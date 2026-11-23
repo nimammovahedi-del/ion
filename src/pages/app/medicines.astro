@@ -30,7 +30,7 @@ const older = [...answers].sort((a, b) => a.date.localeCompare(b.date));
       <p class="muted">Both answers are kept here, as she gave them. Neither one is treated as the right one.</p>
     </div>
     <div class="two-quotes">
-      {older.map((a) => <HerWords text={a.text} cite={`${a.day} call`} />)}
+      {older.map((a) => <HerWords text={a.text} cite={`${a.day} ${a.source ?? 'call'}`} />)}
     </div>
     <p class="two-might"><Icon name="chat" size={18} /><span>You might gently ask her about Monday evening next time you talk. If she is often unsure, her pharmacist can suggest ways to keep track.</span></p>
   </Card>

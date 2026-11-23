@@ -66,6 +66,7 @@ const { source = 'home' } = Astro.props;
     if (back) {
       say(back, false);
       if (back === 'invalid-email') invalid(true);
+      status.focus();
     }
 
     form.addEventListener('submit', function (e) {

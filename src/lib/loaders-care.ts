@@ -50,18 +50,23 @@ export async function getAgenda(n = 14): Promise<AgendaDay[]> {
 
 /**
  * Morning and evening groups, each with a 14-day strip built from the medicines series.
- * Same r1 rule as getPillTimesTaken: on a day with one of two pill times, the missing one is the evening.
- * In the example that day is Monday, where she gave two different answers, and today, where the evening has not come yet.
+ * Each morning call asks about last night's pills and this morning's, so the number on a call day covers the evening
+ * before and that morning. Same r1 rule as getPillTimesTaken: when it is one of two, the unsure one is the evening.
+ * In the example that is Monday evening, where she gave two different answers. This evening has not come up yet.
  */
 export async function getMedicineGroups(): Promise<MedicineGroup[]> {
   const [meds, series, today] = await Promise.all([getMedicines(), getMetric('medicines'), getToday()]);
   const pts = lastDays(series, 14);
   const wd = (iso: string) => fmt(new Date(`${iso}T00:00:00Z`), { weekday: 'short' });
   const morningDays: DoseDay[] = pts.map((p) => ({ date: p.date, label: p.label, weekday: wd(p.date), answer: p.value === null ? 'no-call' : p.value >= 1 ? 'yes' : 'no' }));
-  const eveningDays: DoseDay[] = pts.map((p) => ({
-    date: p.date, label: p.label, weekday: wd(p.date),
-    answer: p.date === today.iso ? 'not-yet' : p.value === null ? 'no-call' : p.value >= 2 ? 'yes' : 'two',
-  }));
+  // The evening of a day is asked about on the next morning's call, so it reads the next day's number.
+  const eveningDays: DoseDay[] = pts.map((p, i) => {
+    const next = pts[i + 1];
+    return {
+      date: p.date, label: p.label, weekday: wd(p.date),
+      answer: p.date === today.iso || !next ? 'not-yet' : next.value === null ? 'no-call' : next.value >= 2 ? 'yes' : 'two',
+    };
+  });
   const withRefill = (when: 'morning' | 'evening') => meds.filter((m) => m.when === when).map((m) => ({ ...m, refillOn: care.refillDates[m.id] }));
   return [
     { when: 'morning', title: 'Morning pills', asked: 'Asked on the 9:00 AM call', items: withRefill('morning'), days: morningDays,

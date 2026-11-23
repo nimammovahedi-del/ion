@@ -59,4 +59,4 @@ export interface AskTomorrow { id: string; text: string; by: string; status: 'qu
 export interface CallSettings { time: string; days: string[]; voice: string; topics: { id: string; label: string; on: boolean; fixed?: boolean }[]; retry: string; }
 
 /** Her own words on one measure, from one call. */
-export interface HerWords { metric: MetricId; date: string; day: string; text: string; }
+export interface HerWords { metric: MetricId; date: string; day: string; text: string; source?: string; }   // source: where she said it when it was not the morning call

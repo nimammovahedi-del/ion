@@ -30,7 +30,8 @@ const attrs = href ? { href } : { type };
   .btn-secondary { background: var(--surface); color: var(--ink); border-color: var(--grey-2); }
   .btn-secondary:hover { color: var(--ink); border-color: var(--line-strong); box-shadow: var(--shadow-1); }
   .btn-dark { background: var(--deep); color: var(--on-deep); }
-  .btn-dark:hover { color: var(--on-deep); background: #24375f; }
+  .btn:disabled, .btn[aria-disabled='true'] { opacity: 0.45; cursor: not-allowed; box-shadow: none; transform: none; }
+  .btn-dark:hover { color: var(--on-deep); background: var(--deep-hover); }
   .btn-light { background: var(--surface); color: var(--ink); box-shadow: 0 8px 24px rgba(17, 17, 17, 0.16); }
   .btn-light:hover { color: var(--ink); }
   .btn-ghost { background: transparent; color: var(--acc-text); padding-inline: var(--s-3); }

@@ -24,7 +24,7 @@ const story = settings.topics.find((t) => t.id === 'story')?.on;
 const tries = settings.retry.match(/\d{1,2}:\d{2}/g) ?? [];
 ---
 <AppLayout title="Call settings" active="settings" eyebrow="Call settings"
-  heading="How Ion's call works." tone2={`Every morning at ${settings.time}.`}
+  heading="How Ion's call works." tone2="You choose when, and what Ion asks."
   lede={`When Ion calls ${parent.short}, what it asks about, and what happens if she does not pick up. Changes take effect from the next call.`}>
   <LiveRegion />
   <p class="paused-banner" data-paused-banner hidden><Icon name="clock" size={18} /><span>Calls are paused. Ion will not call {parent.short} until you switch this off.</span></p>
@@ -55,6 +55,7 @@ const tries = settings.retry.match(/\d{1,2}:\d{2}/g) ?? [];
           {tries.map((t) => <li><b class="num">{t}</b><span>Tries again</span></li>)}
           <li><b><Icon name="users" size={16} /></b><span>{viewer.short} is told</span></li>
         </ol>
+        <p class="small muted">These times follow the starting call time of {settings.time}. In this example, a new call time is kept on this page only, and the other pages keep showing {settings.time}.</p>
         <p class="muted small">Ion does not keep calling after that. A missed call is not a sign that anything is wrong, but it is worth a call from someone in the family.</p>
       </Card>
 

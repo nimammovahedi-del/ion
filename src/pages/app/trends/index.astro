@@ -61,7 +61,7 @@ const statusLabel = { changed: 'Changed', check: 'Check', usual: 'As usual' } as
   // On narrow screens the charts scroll inside their box: start at the newest days, on the right.
   const toNewest = () => root?.querySelectorAll<HTMLElement>('.chart .scroll').forEach((el) => { el.scrollLeft = el.scrollWidth; });
   if (root) {
-    const KEY = 'i-on.trends.range';
+    const KEY = 'ion-example-trends-range';
     const set = (v: string) => {
       root.dataset.active = v;
       const input = root.querySelector<HTMLInputElement>(`input[name="range"][value="${v}"]`);

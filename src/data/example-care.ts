@@ -5,7 +5,7 @@ import type { CalendarItem } from './types';
 
 /** Words for each task in src/data/example.ts, keyed by task id. */
 export const taskWords: Record<string, Pick<CareTask, 'origin' | 'doing' | 'approveLabel' | 'ionAfter' | 'doneNote'>> = {
-  ride: { origin: 'She asked on today\'s call.', doing: 'drive her', approveLabel: 'Approve ride',
+  ride: { origin: 'She asked on today\'s call.', doing: 'sort out the ride', approveLabel: 'Approve ride',
     ionAfter: 'Once someone says yes, Ion will tell her on tomorrow\'s call who is driving.' },
   groceries: { origin: 'She said she is running low on today\'s call.', doing: 'bring the groceries', approveLabel: 'Approve shopping',
     ionAfter: 'Ion will tell her on tomorrow\'s call who is bringing them.' },

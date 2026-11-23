@@ -61,6 +61,14 @@ const groups = [
   // Keep the "Waiting for you" count in step with what was approved in this browser (example data only).
   import { syncWaitingBadge } from '@/components/app/care/store';
   syncWaitingBadge();
+  // On phones the menu is a sideways row: bring the current page's pill into view without moving the page.
+  const menu = document.querySelector<HTMLElement>('.menu');
+  const current = menu?.querySelector<HTMLElement>('[aria-current="page"]');
+  if (menu && current && menu.scrollWidth > menu.clientWidth) {
+    const m = menu.getBoundingClientRect();
+    const c = current.getBoundingClientRect();
+    menu.scrollLeft += c.left - m.left - (m.width - c.width) / 2;
+  }
 </script>
 <style>
   :global(body.app) { background: var(--paper); }
@@ -78,7 +86,7 @@ const groups = [
   .circle li { display: grid; place-items: center; width: 2.25rem; height: 2.25rem; margin-left: -0.375rem; border-radius: 50%; background: var(--acc-soft); border: 2px solid var(--surface); font-size: var(--fs-xs); font-weight: 500; }
   .circle li.me { background: var(--acc); }
   .approvals { display: inline-flex; align-items: center; gap: var(--s-2); min-height: var(--tap); padding: 0 var(--s-3) 0 var(--s-4); border-radius: var(--r-pill); background: var(--deep); color: var(--on-deep); font-size: var(--fs-sm); font-weight: 500; text-decoration: none; }
-  .approvals:hover { color: var(--on-deep); background: #24375f; }
+  .approvals:hover { color: var(--on-deep); background: var(--deep-hover); }
   .approvals b { display: grid; place-items: center; min-width: 1.5rem; height: 1.5rem; padding: 0 0.375rem; border-radius: var(--r-pill); background: var(--acc); color: var(--on-acc); font-weight: 600; }
   .menu { grid-area: menu; align-self: start; display: flex; flex-direction: column; gap: var(--s-5); padding: var(--s-4); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); }
   .menu-group ul { display: flex; flex-direction: column; gap: 0.125rem; }

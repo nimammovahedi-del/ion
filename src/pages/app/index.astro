@@ -19,6 +19,11 @@ const flagged = cards.filter((c) => c.status !== 'usual');
 const steady = cards.filter((c) => c.status === 'usual');
 const waitingStep = steps.find((s) => s.status === 'needs-you');
 const doneSteps = steps.filter((s) => s.status === 'done').length;
+// The same steps once the family has said yes to the ride. Shown in place of the list above by the task cards' script.
+const stepsAfterYes = steps.map((st) => st.status !== 'needs-you' ? st : {
+  ...st, status: 'done' as const, result: 'Someone in the family said yes. It is on the Tasks page now.',
+  substeps: st.substeps?.map((x, i, all) => ({ ...x, done: true, code: undefined, label: i === all.length - 1 ? 'The family said yes' : x.label })), progress: 100,
+});
 ---
 <AppLayout
   title="Today"
@@ -69,10 +74,11 @@ const doneSteps = steps.filter((s) => s.status === 'done').length;
         <div class="sec-head">
           <div>
             <h2 id="ion-h" class="h3">What Ion did today</h2>
-            <p class="muted small">{doneSteps} of {steps.length} steps done{waitingStep ? `. Step ${waitingStep.n} is waiting for you.` : '.'}</p>
+            <p class="muted small"><span data-ride-step>{doneSteps} of {steps.length} steps done{waitingStep ? `. Step ${waitingStep.n} is waiting for you.` : '.'}</span><span data-ride-step-done hidden>{doneSteps + 1} of {steps.length} steps done.</span></p>
           </div>
         </div>
-        <ol role="list" class="steps">{steps.map((s) => <StepRow step={s} total={steps.length} />)}</ol>
+        <ol role="list" class="steps" data-ride-step>{steps.map((s) => <StepRow step={s} total={steps.length} />)}</ol>
+        <ol role="list" class="steps" data-ride-step-done hidden>{stepsAfterYes.map((s) => <StepRow step={s} total={steps.length} />)}</ol>
       </section>
       <MightDo items={report.suggestions} />
     </div>
@@ -89,6 +95,7 @@ const doneSteps = steps.filter((s) => s.status === 'done').length;
   .cards-steady { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: var(--s-4); }
   .ion { display: flex; flex-direction: column; gap: var(--s-4); min-width: 0; }
   .steps { display: flex; flex-direction: column; gap: var(--s-3); }
+  .steps[hidden] { display: none; }
   /* phones: the steady cards slide sideways so the page stays short */
   @container (max-width: 43.99rem) {
     .cards-steady { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: var(--s-2); }

@@ -14,7 +14,6 @@ import { ionLead } from '@/components/app/care/words';
 import { getCallSettings, getParent, getReminders, getViewer } from '@/lib/loaders';
 
 const [reminders, parent, settings, viewer] = await Promise.all([getReminders(), getParent(), getCallSettings(), getViewer()]);
-const on = reminders.filter((r) => r.active).length;
 const blocks = [
   { id: 'call', title: `On the morning call, ${settings.time}`, open: `Good morning, ${parent.short}. It's Ion.`, close: 'Shall we start with how you slept?' },
   { id: 'evening-reminder', title: 'Evening reminder, 6:00 PM', open: `Hello ${parent.short}, it's Ion, with your evening reminder.`, close: 'That\'s all from me. Have a lovely evening.' },
@@ -23,7 +22,7 @@ const kinds = ['medicine', 'appointment', 'other'] as const;
 const kindLabel = { medicine: 'Pills', appointment: 'An appointment', other: 'Something else' };
 ---
 <AppLayout title="Reminders" active="reminders" eyebrow="Reminders"
-  heading={`What Ion says to ${parent.short}.`} tone2={`${on} reminders are on.`}
+  heading={`What Ion says to ${parent.short}.`} tone2="Kindly, in your words."
   lede="The things your family has asked Ion to remind her about: pills, appointments and everyday things. Switch one off and Ion stops saying it, straight away.">
   <LiveRegion />
   <div class="layout">

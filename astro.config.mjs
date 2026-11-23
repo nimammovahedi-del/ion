@@ -4,4 +4,6 @@ import { defineConfig } from 'astro/config';
 export default defineConfig({
   site: 'https://i-on.pages.dev',
   build: { format: 'directory' },
+  // Fonts and other assets are always files, never inlined as data: addresses, so the content security policy can stay strict.
+  vite: { build: { assetsInlineLimit: 0 } },
 });

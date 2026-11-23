@@ -136,9 +136,14 @@ const open = limit - queued.length;
     const cid = Array.from(queue.attributes).find((a) => a.name.startsWith('data-astro-cid'));
     if (cid) openList.querySelectorAll('*').forEach((el) => el.setAttribute(cid.name, cid.value));
     const full = used >= limit;
+    const hadFocus = document.activeElement === submit;
     submit.disabled = full;
     const f = form.querySelector<HTMLElement>('[data-full]');
-    if (f) f.hidden = !full;
+    if (f) {
+      f.hidden = !full;
+      // A disabled button drops keyboard focus, so hand it to the line that explains why.
+      if (full && hadFocus) { f.setAttribute('tabindex', '-1'); f.focus(); }
+    }
   }
 
   function persist() { save('ask', Array.from(queue.children).map(read)); }

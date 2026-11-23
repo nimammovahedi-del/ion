@@ -102,7 +102,8 @@ const rights = [
           </Field>
         </div>
         <Field label="Their email address" for="inv-email" hint="In this example no invite is sent.">
-          <input class="cf-input" id="inv-email" name="email" type="email" maxlength="120" autocomplete="off" aria-describedby="inv-email-hint" />
+          <input class="cf-input" id="inv-email" name="email" type="email" maxlength="120" autocomplete="off" aria-describedby="inv-email-hint inv-email-error" />
+          <p class="cf-hint err" id="inv-email-error" hidden>That does not look like an email address. Check it, or leave it empty.</p>
         </Field>
         <p class="cf-hint err" id="inv-error" hidden>Please add their name.</p>
         <div class="cf-actions"><Button type="submit" variant="dark"><Icon name="plus" size={16} />Invite</Button></div>
@@ -175,6 +176,12 @@ const rights = [
     if (!name) { if (err) err.hidden = false; nameInput.setAttribute('aria-invalid', 'true'); nameInput.focus(); return; }
     if (err) err.hidden = true;
     nameInput.removeAttribute('aria-invalid');
+    const emailInput = document.getElementById('inv-email') as HTMLInputElement;
+    const emailErr = document.getElementById('inv-email-error');
+    const badEmail = emailInput.value.trim() !== '' && !emailInput.checkValidity();
+    if (emailErr) emailErr.hidden = !badEmail;
+    if (badEmail) { emailInput.setAttribute('aria-invalid', 'true'); emailInput.focus(); return; }
+    emailInput.removeAttribute('aria-invalid');
     const inv: Invite = { id: uid(), name, relation: String(fd.get('relation') ?? '').trim() };
     invites.push(inv);
     save('family-invites', invites);

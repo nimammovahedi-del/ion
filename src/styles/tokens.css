@@ -8,6 +8,7 @@
   --acc-soft: #e4effc;   /* tint: chips, card tops, hover fills */
   --deep: #1b2b4b;       /* navy: dark panels, "Check" chips */
   --on-deep: #ffffff;
+  --deep-hover: #24375f; /* navy buttons under the pointer */
   --paper: #f5f7fa;      /* page ground for the app, soft panels on the site */
   --surface: #ffffff;
   --line: #e4e8ee;       /* hairlines and card borders */

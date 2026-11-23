@@ -47,6 +47,7 @@ export const getDoctorQuestions = async () => ex.doctorQuestions;
 
 /**
  * How often she said she took each pill time over the last n days, from the medicines series.
+ * Each morning call asks about last night's pills and this morning's, so a day's number covers those two pill times.
  * r1 rule: on a day with one of two pill times, it was the evening pills (true for the example family).
  * r2 will read the two pill times separately from the call answers.
  */

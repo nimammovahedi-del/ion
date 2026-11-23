@@ -107,6 +107,7 @@ const things = (n: number) => (n === 0 ? 'nothing planned' : n === 1 ? '1 thing'
 
   const sortOf = (t: string) => { if (!t) return -1; const [h, m] = t.split(':').map(Number); return h * 60 + m; };
   const dayLabel = (iso: string) => document.querySelector(`[data-day="${iso}"] .day-title`)?.firstChild?.textContent ?? iso;
+  const todayIso = document.querySelector('[data-day]')?.getAttribute('data-day') ?? '';
   const weekdayLong = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' });
 
   function refreshStrip(iso: string) {
@@ -125,7 +126,7 @@ const things = (n: number) => (n === 0 ? 'nothing planned' : n === 1 ? '1 thing'
     if (!list) return null;
     const row = fromTemplate(`tpl-${a.kind}`, {
       title: a.title, time: a.time ? clock(a.time) : '', 'remove-label': ` ${a.title}`,
-      mention: a.mention ? `Ion will mention it on ${weekdayLong(a.day)} morning's call.` : '',
+      mention: !a.mention ? '' : a.day === todayIso ? 'Today\'s call is done, so Ion will not mention this one.' : `Ion will mention it on ${weekdayLong(a.day)} morning's call.`,
     });
     row.dataset.item = a.id;
     row.dataset.sort = String(sortOf(a.time));
@@ -154,14 +155,14 @@ const things = (n: number) => (n === 0 ? 'nothing planned' : n === 1 ? '1 thing'
     const title = String(fd.get('title') ?? '').trim();
     const err = document.getElementById('ev-error');
     const titleInput = document.getElementById('ev-title') as HTMLInputElement;
-    if (!title) { if (err) err.hidden = false; titleInput.setAttribute('aria-invalid', 'true'); titleInput.focus(); return; }
+    if (!title) { const was = form.querySelector<HTMLElement>('[data-done]'); if (was) was.hidden = true; if (err) err.hidden = false; titleInput.setAttribute('aria-invalid', 'true'); titleInput.focus(); return; }
     if (err) err.hidden = true;
     titleInput.removeAttribute('aria-invalid');
     const a: Added = { id: uid(), title, day: String(fd.get('day')), time: String(fd.get('time') ?? ''), kind: (fd.get('kind') as Added['kind']) ?? 'appointment', mention: fd.get('mention') === 'on' };
     added.push(a);
     save('calendar', added);
     render(a);
-    const msg = `Added ${title} on ${dayLabel(a.day)}${a.time ? ` at ${clock(a.time)}` : ''}.${a.mention ? ' Ion will mention it that morning.' : ''}`;
+    const msg = `Added ${title} on ${dayLabel(a.day)}${a.time ? ` at ${clock(a.time)}` : ''}.${a.mention && a.day !== todayIso ? ' Ion will mention it that morning.' : ''}`;
     const done = form.querySelector<HTMLElement>('[data-done]');
     const m = form.querySelector('[data-msg]');
     if (m) m.textContent = msg;

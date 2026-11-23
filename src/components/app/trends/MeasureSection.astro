@@ -53,7 +53,7 @@ const table = lastDays(m, 14).slice().reverse();
   {words.length > 0 && (
     <ul role="list" class="m-words" aria-label={`What she said about ${m.title.toLowerCase()}`}>
       {words.map((w) => (
-        <li><blockquote>&ldquo;{w.text}&rdquo;</blockquote><span>She said, on the {w.day} call</span></li>
+        <li><blockquote>&ldquo;{w.text}&rdquo;</blockquote><span>She said, on the {w.day} {w.source ?? 'call'}</span></li>
       ))}
     </ul>
   )}

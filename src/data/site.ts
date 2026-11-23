@@ -106,7 +106,7 @@ export const FAQS = [
   { q: 'What if she does not pick up?',
     a: ['Ion tries again a little later, at times you choose. If she still does not answer, the family is told, so someone can give her a ring.', 'A missed call is not an alarm. I-on cannot know why she did not answer.'] },
   { q: 'What if something sounds wrong on a call?',
-    a: ['Anything that sounds different from her usual goes at the top of the report, in plain words, for the family to read.', 'I-on is not an emergency service. It does not send help and does not watch over her between calls. In an emergency, call 911.'] },
+    a: ['Answers that sound different from her usual are shown first in the report, in plain words, for the family to read.', 'I-on is not an emergency service. It does not send help and does not watch over her between calls. In an emergency, call 911.'] },
   { q: 'Does she need a smartphone or an app?',
     a: ['No. Ion calls an ordinary phone, landline or mobile. There is nothing for her to install, charge or learn. The app is for the family.'] },
   { q: 'Who is the capybara?',

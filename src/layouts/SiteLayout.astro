@@ -13,7 +13,7 @@ const links = siteNav.filter((n) => ['home', 'why', 'how', 'questions'].includes
       <a class="brand" href="/" aria-label="I-on home">I-on<span class="brand-dot" aria-hidden="true"></span></a>
       <nav aria-label="Main">
         <ul role="list" class="navtrack">
-          {links.map((n) => <li><a href={n.href} aria-current={n.id === active ? 'page' : undefined}>{n.label}</a></li>)}
+          {links.map((n) => <li class={n.id === 'home' ? 'nav-home' : undefined}><a href={n.href} aria-current={n.id === active ? 'page' : undefined}>{n.label}</a></li>)}
         </ul>
       </nav>
       <div class="navcta">
@@ -59,7 +59,18 @@ const links = siteNav.filter((n) => ['home', 'why', 'how', 'questions'].includes
     .navpill { padding: var(--s-3) var(--s-4); border-radius: 1.5rem; }
     .navpill nav { order: 3; flex: 1 1 100%; min-width: 0; }
     .applink { display: none; }
+    /* Three links fit a phone without cutting a word. The logo already leads home. */
+    .nav-home { display: none; }
+    .navtrack { justify-content: space-between; }
+    .navtrack a { padding: 0 0.75rem; font-size: 0.875rem; }
   }
+  @media (max-width: 26rem) {
+    .navpill { padding: var(--s-3); }
+    .navtrack { gap: 0; }
+    .navtrack a { padding: 0 0.5rem; font-size: 0.8125rem; }
+  }
+  /* Keep keyboard focus clear of the floating dock on wide screens. */
+  @media (min-width: 56rem) { :global(html) { scroll-padding-bottom: 7rem; } }
   .site-foot { display: flex; flex-direction: column; gap: var(--s-5); margin-top: var(--s-24); padding-block: var(--s-10) var(--s-12); border-top: 1px solid var(--line); }
   .foot-top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--s-6); }
   .foot-links { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-6); }
