@@ -31,3 +31,25 @@
 /* Small text button used for "Remove" and "Undo" */
 .cf-link { display: inline-flex; align-items: center; min-height: var(--tap); padding: 0 var(--s-3); border: 0; border-radius: var(--r-sm); background: transparent; color: var(--acc-text); font-size: var(--fs-sm); font-weight: 500; text-decoration: underline; text-underline-offset: 0.2em; }
 .cf-link:hover { background: var(--acc-soft); }
+
+/* One layout for every page with an "Add" form: the main list on the left, the form in a right-hand column. It stacks when narrow. */
+.care-cols { display: grid; grid-template-columns: minmax(0, 1fr) 24rem; gap: var(--s-8); align-items: start; }
+.care-main { display: flex; flex-direction: column; gap: var(--s-8); min-width: 0; }
+.care-side { position: sticky; top: var(--s-6); display: flex; flex-direction: column; gap: var(--s-4); min-width: 0; }
+@media (max-width: 75rem) {
+  .care-cols { grid-template-columns: minmax(0, 1fr); }
+  .care-side { position: static; }
+}
+
+/* Day pills (Call settings, Add a reminder). A chosen day is filled and carries a tick; a day left out is an empty dashed ring. */
+.cf-days { gap: var(--s-1); }
+.dayp { width: 2.75rem; height: 2.75rem; min-height: 2.75rem; font-size: var(--fs-sm); justify-content: center; padding: 0; border-radius: 50%; border-style: dashed; background: transparent; color: var(--ink-2); }
+.dayp input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.dayp:has(input:checked) { border-style: solid; background: var(--acc-soft); border-color: var(--acc-text); color: var(--ink); font-weight: 600; }
+.dayp-tick { position: absolute; top: -0.25rem; right: -0.25rem; display: none; place-items: center; width: 1.125rem; height: 1.125rem; border-radius: 50%; background: var(--deep); color: var(--on-deep); pointer-events: none; }
+.dayp:has(input:checked) .dayp-tick { display: grid; }
+
+/* "Also in Tasks", "On the calendar": small links from one copy of a thing to its other copies */
+.also { display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--s-3); font-size: var(--fs-sm); line-height: 1.5; color: var(--ink-2); }
+.also svg { flex: none; }
+.also a { display: inline-block; padding-block: 0.75rem; margin-block: -0.75rem; color: var(--acc-text); font-weight: 500; text-underline-offset: 0.2em; }

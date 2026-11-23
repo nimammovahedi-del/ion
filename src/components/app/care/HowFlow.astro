@@ -1,0 +1,29 @@
+---
+/** "How this works", said as a small flow chart instead of a paragraph. The last part of a care page. */
+import Flow from '@/components/ui/Flow.astro';
+import type { FlowStep } from '@/components/ui/Flow.astro';
+import Icon from '@/components/ui/Icon.astro';
+interface Props { steps: FlowStep[]; label: string; title?: string; note?: string; tag?: string; id?: string; tone?: 'surface' | 'butter' | 'leaf' | 'sky' }
+const { steps, label, title = 'How this works', note, tag, id = 'how', tone = 'surface' } = Astro.props;
+---
+<section class:list={['how', `how-${tone}`]} id={id} aria-labelledby={`${id}-h`}>
+  <div class="how-head">
+    <h2 id={`${id}-h`}>{title}</h2>
+    {tag && <span class="how-tag">{tag}</span>}
+  </div>
+  <Flow steps={steps} label={label} />
+  {note && <p class="how-note"><Icon name="shield" size={18} /><span>{note}</span></p>}
+  <slot />
+</section>
+<style>
+  .how { display: flex; flex-direction: column; gap: var(--s-6); padding: var(--s-8); border-radius: var(--r-xl); background: var(--surface); border: 1px solid var(--line); scroll-margin-top: var(--s-6); min-width: 0; }
+  .how-butter { background: var(--butter-soft); border-color: transparent; }
+  .how-leaf { background: var(--leaf-soft); border-color: transparent; }
+  .how-sky { background: var(--sky-soft); border-color: transparent; }
+  .how-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); }
+  h2 { font-size: 1.5rem; font-weight: 500; line-height: 1.2; letter-spacing: -0.025em; }
+  .how-tag { font-size: var(--fs-sm); font-weight: 500; padding: 0.25rem 0.75rem; border-radius: var(--r-pill); background: var(--surface); border: 1px solid var(--hair); }
+  .how-note { display: flex; align-items: flex-start; justify-content: center; gap: var(--s-2); font-size: 0.9375rem; line-height: 1.5; color: var(--ink-2); }
+  .how-note :global(svg) { flex: none; margin-top: 0.125rem; }
+  @media (max-width: 40rem) { .how { padding: var(--s-5); } }
+</style>

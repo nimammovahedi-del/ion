@@ -1,0 +1,37 @@
+---
+/**
+ * One part of a care page. Every page is built from the same few parts in the same order
+ * ("right now", then "add", then "how this works"), so a caregiver learns the shape once.
+ * The heading is an h2 with a friendly icon tile, an optional count and one short line.
+ */
+import IconBadge from '@/components/ui/IconBadge.astro';
+interface Props {
+  id: string; title: string; icon?: string; tone?: 'acc' | 'leaf' | 'butter' | 'sky' | 'paper' | 'deep' | 'surface';
+  sub?: string; count?: number | string; countId?: string; countLabel?: string; class?: string;
+}
+const { id, title, icon, tone = 'acc', sub, count, countId, countLabel, class: cls = '' } = Astro.props;
+---
+<section class:list={['part', cls]} id={id} aria-labelledby={`${id}-h`}>
+  <header class="part-head">
+    {icon && <IconBadge name={icon} tone={tone} size="md" />}
+    <div class="part-words">
+      <div class="part-row">
+        <h2 id={`${id}-h`}>{title}</h2>
+        {count !== undefined && <span class="part-count num" id={countId}>{count}{countLabel && <span class="sr-only"> {countLabel}</span>}</span>}
+      </div>
+      {sub && <p class="part-sub">{sub}</p>}
+    </div>
+    {Astro.slots.has('end') && <div class="part-end"><slot name="end" /></div>}
+  </header>
+  <slot />
+</section>
+<style is:global>
+  .part { display: flex; flex-direction: column; gap: var(--s-4); min-width: 0; scroll-margin-top: var(--s-6); }
+  .part-head { display: flex; align-items: center; gap: var(--s-3); min-width: 0; }
+  .part-words { display: flex; flex-direction: column; min-width: 0; }
+  .part-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3); }
+  .part-head h2 { font-size: 1.5rem; font-weight: 500; line-height: 1.2; letter-spacing: -0.025em; }
+  .part-count { display: grid; place-items: center; min-width: 1.75rem; height: 1.75rem; padding: 0 var(--s-2); border-radius: var(--r-pill); background: var(--surface); border: 1px solid var(--line); font-size: var(--fs-sm); font-weight: 600; }
+  .part-sub { color: var(--ink-2); font-size: 0.9375rem; line-height: 1.5; }
+  .part-end { margin-left: auto; display: flex; align-items: center; gap: var(--s-2); }
+</style>

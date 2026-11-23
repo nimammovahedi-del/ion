@@ -1,8 +1,11 @@
 // The invented example family. Every screen in r1 reads from here through src/lib/loaders.ts.
 // Margaret "Maggie" Ellis is not a real person.
-import type { AgentStep, AskTomorrow, HerWords, CalendarItem, CallSettings, DayPoint, HealthCardData, Medicine, MetricSeries, Person, Reminder, Story, Task, WeekNote } from './types';
+import type { AgentStep, AskTomorrow, DayFlowStep, HerWords, CalendarItem, CallSettings, DayPoint, HealthCardData, Medicine, MetricSeries, Person, Reminder, Task, WeekNote } from './types';
 
-export const TODAY = { iso: '2026-11-24', long: 'Tuesday, November 24', short: 'Tue Nov 24', callTime: '9:04 AM', callMinutes: 6 };
+/** When her daily call is planned (getCallSettings().time), and when today's call actually began (getToday().callTime). */
+export const PLANNED_CALL_TIME = '9:00 AM';
+export const CALL_TIME = '9:04 AM';
+export const TODAY = { iso: '2026-11-24', long: 'Tuesday, November 24', short: 'Tue Nov 24', callTime: CALL_TIME, callMinutes: 6 };
 
 export const parent: Person = { id: 'maggie', name: 'Margaret Ellis', short: 'Maggie', initials: 'ME', relation: 'Mom', role: 'parent' };
 export const family: Person[] = [
@@ -21,8 +24,8 @@ export const report = {
   feeling: 6, feelingUsual: 7,
   // Added for the Today page.
   overall: 'One thing to watch: her sleep',
-  overallTone: 'changed' as 'changed' | 'check' | 'usual',
-  stayedSame: 'Her meals, drinks, knee and mood are close to her usual. No falls.',
+  overallTone: 'changed' as 'changed' | 'check' | 'little' | 'usual',
+  stayedSame: 'Her meals, drinks and knee are as usual. No falls.',
   quotes: [
     { text: 'A bit tired, but I\'m all right.', about: 'When Ion asked how she was feeling' },
     { text: 'I was up three times again.', about: 'About last night' },
@@ -32,7 +35,6 @@ export const report = {
     { text: 'You might ask her what is waking her at night.', why: 'Four short nights in a row.', href: '/app/ask/', link: 'Add it to tomorrow\'s call' },
     { text: 'If the short nights go on this week, you might mention them to her doctor.', why: 'The doctor-visit page puts the last 30 days on one sheet.', href: '/app/trends/doctor-visit/', link: 'Open the doctor-visit page' },
     { text: 'You might gently ask about Monday evening\'s pills.', why: 'She gave two different answers. Both are kept.', href: '/app/medicines/', link: 'See her medicines' },
-    { text: 'You might ask her about the bakery next time you talk.', why: 'She told Ion about her first job, in 1962.', href: '/app/stories/', link: 'Read the story' },
   ],
 };
 
@@ -63,23 +65,23 @@ export const doctorQuestions: string[] = [
 
 export const healthCards: HealthCardData[] = [
   { id: 'sleep', title: 'Sleep', icon: 'moon', value: '5.5', unit: 'hours', caption: 'Last night · her usual is 7.5', status: 'changed', statusLabel: 'Changed',
-    sources: [{ label: 'Tue call', kind: 'call' }, { label: '3 earlier calls', kind: 'earlier-calls' }],
+    sources: [{ label: 'Tue call', kind: 'call' }, { label: '3 earlier calls', kind: 'earlier-calls' }], from: 'From today\'s call and the three before it',
     evidence: 'She said, "I was up three times again." This is the fourth short night in a row.' },
-  { id: 'medicines', title: 'Medicines', icon: 'pill', value: '1 of 2', caption: 'Pill times taken since yesterday\'s call', status: 'check', statusLabel: 'Check',
-    sources: [{ label: 'Tue call', kind: 'call' }, { label: 'Mon evening reminder', kind: 'call' }],
-    evidence: 'Morning pills taken today.',
+  { id: 'medicines', title: 'Medicines', icon: 'pill', value: 'Two answers', caption: 'Morning: she said yes. Last night: two different answers.', status: 'check', statusLabel: 'Check',
+    sources: [{ label: 'Tue call', kind: 'call' }, { label: 'Mon evening reminder', kind: 'call' }], from: 'From today\'s call and Monday\'s evening reminder',
+    evidence: 'Today she said she took her morning pills.',
     disagreement: 'Today she said she took last night\'s pills. On Monday\'s evening reminder she said she would skip them. Both answers are kept so you can ask her.' },
-  { id: 'feeling', title: 'Feeling', icon: 'heart', value: '6', unit: 'out of 10', caption: 'Her own score · her usual is 7', status: 'usual', statusLabel: 'As usual',
-    sources: [{ label: 'Tue call', kind: 'call' }],
+  { id: 'feeling', title: 'Feeling', icon: 'heart', value: '6', unit: 'out of 10', caption: 'Her own score · her usual is 7', status: 'little', statusLabel: 'A little lower',
+    sources: [{ label: 'Tue call', kind: 'call' }], from: 'From today\'s call',
     evidence: 'She said, "A bit tired, but I\'m all right." One point under her usual, which fits the short nights.' },
   { id: 'meals', title: 'Meals', icon: 'bowl', value: '3', unit: 'meals', caption: 'Yesterday · tea and water through the day', status: 'usual', statusLabel: 'As usual',
-    sources: [{ label: 'Tue call', kind: 'call' }],
+    sources: [{ label: 'Tue call', kind: 'call' }], from: 'From today\'s call',
     evidence: 'Dinner was soup and toast. She is low on milk, eggs and bread.' },
   { id: 'pain', title: 'Pain', icon: 'spark', value: '4', unit: 'out of 10', caption: 'Right knee · same as last week', status: 'usual', statusLabel: 'As usual',
-    sources: [{ label: 'Tue call', kind: 'call' }, { label: 'Last week', kind: 'earlier-calls' }],
+    sources: [{ label: 'Tue call', kind: 'call' }, { label: 'Last week', kind: 'earlier-calls' }], from: 'From today\'s call and last week\'s calls',
     evidence: 'She said, "The knee is the same, nothing new."' },
   { id: 'falls', title: 'Falls', icon: 'walk', value: 'None', caption: 'Since Monday\'s call', status: 'usual', statusLabel: 'As usual',
-    sources: [{ label: 'Tue call', kind: 'call' }],
+    sources: [{ label: 'Tue call', kind: 'call' }], from: 'From today\'s call',
     evidence: 'She said, "No falls. I hold the rail on the stairs."' },
 ];
 
@@ -88,16 +90,16 @@ export const tasks: Task[] = [
     actions: [{ label: 'Approve ride', kind: 'primary' }, { label: 'I\'ll drive', kind: 'secondary' }] },
   { id: 'groceries', title: 'Groceries: milk, eggs, bread', detail: 'She is running low. Added from today\'s food question.', icon: 'cart', from: 'Tue call', status: 'needs-you',
     actions: [{ label: 'Open shopping list', kind: 'primary' }, { label: 'Daniel will shop', kind: 'secondary' }] },
-  { id: 'refill', title: 'Call the pharmacy about a refill', detail: 'Her small white morning pills. About 6 days left, refill due Monday.', icon: 'pill', from: 'Medicine list', due: 'Mon Nov 30', status: 'needs-you',
+  { id: 'refill', title: 'Call the pharmacy about a refill', detail: 'Small white pill: about 6 days left. Refill due Monday.', icon: 'pill', from: 'Medicine list', due: 'Mon Nov 30', status: 'needs-you',
     actions: [{ label: 'Open refill', kind: 'primary' }, { label: 'Done already', kind: 'secondary' }] },
   { id: 'heating', title: 'Check the heating before the cold week', detail: 'Daniel offered on Sunday. He will look on Saturday.', icon: 'home', from: 'Family note', due: 'Sat Nov 28', status: 'in-progress', assignee: 'Daniel', actions: [] },
   { id: 'glasses', title: 'Pick up her new reading glasses', detail: 'Collected by Sara on Friday.', icon: 'check', from: 'Call, Nov 18', status: 'done', assignee: 'Sara', actions: [] },
 ];
 
 export const steps: AgentStep[] = [
-  { n: 1, title: 'Call', result: 'Called Maggie at 9:04 AM and talked for 6 minutes.', time: '9:04 AM', status: 'done' },
+  { n: 1, title: 'Call', result: `Called Maggie at ${CALL_TIME} and talked for 6 minutes.`, time: CALL_TIME, status: 'done' },
   { n: 2, title: 'Report', result: 'Wrote today\'s report and compared it with her usual.', time: '9:05 AM', status: 'done' },
-  { n: 3, title: 'Tasks', result: 'Made three tasks from what she asked for.', time: '9:05 AM', status: 'done' },
+  { n: 3, title: 'Tasks', result: 'Made a list of three things to do.', time: '9:05 AM', status: 'done' },
   { n: 4, title: 'Ride for Thursday', result: 'She needs to get to the eye doctor at 2:00 PM.', time: '9:05 AM', status: 'needs-you', progress: 66,
     substeps: [
       { label: 'She asked for a ride on the call', done: true },
@@ -108,12 +110,12 @@ export const steps: AgentStep[] = [
 ];
 
 export const calendar: CalendarItem[] = [
-  { id: 'c1', date: '2026-11-24', day: 'Tue Nov 24', time: '9:00 AM', title: 'Daily call', kind: 'call', note: 'Done, 6 minutes' },
-  { id: 'c2', date: '2026-11-25', day: 'Wed Nov 25', time: '9:00 AM', title: 'Daily call', kind: 'call' },
+  { id: 'c1', date: '2026-11-24', day: 'Tue Nov 24', time: PLANNED_CALL_TIME, title: 'Daily call', kind: 'call', note: 'Done, 6 minutes' },
+  { id: 'c2', date: '2026-11-25', day: 'Wed Nov 25', time: PLANNED_CALL_TIME, title: 'Daily call', kind: 'call' },
   { id: 'c3', date: '2026-11-26', day: 'Thu Nov 26', time: '2:00 PM', title: 'Eye doctor', kind: 'appointment', note: 'Ride not yet set' },
   { id: 'c4', date: '2026-11-28', day: 'Sat Nov 28', title: 'Priya visits', kind: 'visit', note: 'All day' },
   { id: 'c5', date: '2026-11-28', day: 'Sat Nov 28', time: '10:00 AM', title: 'Daniel checks the heating', kind: 'visit' },
-  { id: 'c6', date: '2026-11-30', day: 'Mon Nov 30', title: 'Refill due', kind: 'refill', note: 'Small white morning pills' },
+  { id: 'c6', date: '2026-11-30', day: 'Mon Nov 30', title: 'Refill due', kind: 'refill', note: 'Small white pill' },
   { id: 'c7', date: '2026-12-03', day: 'Thu Dec 3', time: '11:30 AM', title: 'Hair appointment', kind: 'appointment' },
 ];
 
@@ -128,17 +130,10 @@ export const medicines: Medicine[] = [
 
 export const reminders: Reminder[] = [
   { id: 'r1', kind: 'medicine', text: 'Time for your evening pills, Maggie.', when: 'Every day, 6:00 PM', spokenBy: 'evening-reminder', setBy: 'Sara', active: true },
-  { id: 'r2', kind: 'medicine', text: 'Have you taken your morning pills?', when: 'Every day, on the 9:00 AM call', spokenBy: 'call', setBy: 'Sara', active: true },
+  { id: 'r2', kind: 'medicine', text: 'Have you taken your morning pills?', when: `Every day, on the ${PLANNED_CALL_TIME} call`, spokenBy: 'call', setBy: 'Sara', active: true },
   { id: 'r3', kind: 'appointment', text: 'You have the eye doctor on Thursday at 2:00 PM.', when: 'Wed and Thu, on the call', spokenBy: 'call', setBy: 'I-on, from the calendar', active: true },
   { id: 'r4', kind: 'other', text: 'Priya is visiting on Saturday.', when: 'Fri, on the call', spokenBy: 'call', setBy: 'Priya', active: true },
   { id: 'r5', kind: 'other', text: 'Put the bins out tonight.', when: 'Every Wednesday, 6:00 PM', spokenBy: 'evening-reminder', setBy: 'Daniel', active: false },
-];
-
-export const stories: Story[] = [
-  { id: 's1', date: 'Tue Nov 24', title: 'Her first job, at a bakery in 1962', text: 'She started at Hartley\'s bakery at sixteen, on the early shift. Her job was to ice the buns before the shop opened at seven.', quote: 'I could ice forty buns before the kettle boiled.' },
-  { id: 's2', date: 'Mon Nov 23', title: 'The garden on Marsh Lane', text: 'She grew runner beans along the back fence and gave most of them away to the neighbors.', quote: 'You never had to buy a bean on that street.' },
-  { id: 's3', date: 'Sun Nov 22', title: 'How she met Arthur', text: 'They met at a dance in the church hall. He stepped on her foot twice and apologized three times.' },
-  { id: 's4', date: 'Sat Nov 21', title: 'Sara\'s first day of school', text: 'Sara refused to let go of the gate. Maggie stood across the road for an hour in case she ran out.' },
 ];
 
 export const askTomorrow: AskTomorrow[] = [
@@ -148,7 +143,7 @@ export const askTomorrow: AskTomorrow[] = [
 ];
 
 export const callSettings: CallSettings = {
-  time: '9:00 AM', days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], voice: 'Ion, calm and unhurried', retry: 'If she does not answer, try again at 9:20 and 10:00, then tell Sara.',
+  time: PLANNED_CALL_TIME, days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], voice: 'Ion, calm and unhurried', retry: 'If she does not answer, try again at 9:20 and 10:00, then tell Sara.',
   topics: [
     { id: 'sleep', label: 'Sleep', on: true, fixed: true },
     { id: 'meals', label: 'Meals and drinks', on: true, fixed: true },
@@ -163,9 +158,10 @@ export const callSettings: CallSettings = {
 };
 
 export const weekNotes: WeekNote[] = [
-  { week: 'Nov 18 to 24', changed: ['Sleep fell to about 5.5 hours for four nights.', 'One evening of pills has two different answers.'], steady: ['Meals, drinks and pain are as usual.', 'No falls. She went out on three days.'] },
-  { week: 'Nov 11 to 17', changed: ['Nothing changed this week.'], steady: ['Sleep about 7.5 hours.', 'All pills taken.', 'Out on four days, including church.'] },
-  { week: 'Nov 4 to 10', changed: ['Knee pain rose to 5 for two days after the long walk, then settled.'], steady: ['Sleep and meals as usual.', 'All pills taken.'] },
+  { week: 'Nov 18 to 24', changed: ['Sleep fell to about 5.5 hours for four nights, Nov 21 to 24.', 'Monday evening\'s pills (Nov 23) have two different answers from her.'],
+    little: ['Her feeling score is one point under her usual.', 'She went out on three days, a little less often than usual.'], steady: ['Meals, drinks and pain are as usual.', 'No falls.'] },
+  { week: 'Nov 11 to 17', changed: ['Nothing changed this week.'], steady: ['Sleep about 7.5 hours.', 'She said she took all her pills.', 'Out on four days, including church.'] },
+  { week: 'Nov 4 to 10', changed: ['Knee pain rose to 5 for two days after the long walk, then settled.'], steady: ['Sleep and meals as usual.', 'She said she took all her pills.'] },
 ];
 
 // ---- 90 days of invented daily answers, oldest first, ending today. Deterministic, so every build matches. ----
@@ -193,22 +189,36 @@ function series(seed: number, base: number, spread: number, step: number, lo: nu
   });
 }
 const SLEEP_TAIL = [7.5, 7, 8, 7.5, 7, 7.5, 8, 7, 7.5, 7.5, 6, 5.5, 5, 5.5];
+// Pain is pinned by hand so the chart and the words agree: steady at 4, a 3 now and then,
+// and 5 on exactly two days, November 7 and 8, after the long walk. Keys count days from the start of the 90.
+const PAIN_DAYS: Record<number, number> = { 6: 3, 19: 3, 27: 3, 33: 3, 41: 3, 50: 3, 58: 3, 63: 3, 72: 5, 73: 5 };
+/** Evenings where she gave two different answers about her pills. Any other doubtful pill time is "she said no, or was not sure". */
+export const pillTwoAnswers: string[] = ['2026-11-23'];
 
 export const metrics: MetricSeries[] = [
   { id: 'sleep', title: 'Sleep', unit: 'hours', icon: 'moon', usual: 7.5, usualLabel: '7.5 hours', higherIsBetter: true, min: 3, max: 10, points: series(11, 7.5, 0.6, 0.5, 4, 9.5, SLEEP_TAIL), status: 'changed',
     note: 'About two hours under her usual for the last four nights.' },
-  { id: 'feeling', title: 'Feeling', unit: 'out of 10', icon: 'heart', usual: 7, usualLabel: '7 out of 10', higherIsBetter: true, min: 0, max: 10, points: series(23, 7, 1, 1, 4, 9, [7, 7, 8, 7, 7, 7, 8, 7, 7, 7, 6, 6, 6, 6]), status: 'usual',
+  { id: 'feeling', title: 'Feeling', unit: 'out of 10', icon: 'heart', usual: 7, usualLabel: '7 out of 10', higherIsBetter: true, min: 0, max: 10, points: series(23, 7, 1, 1, 4, 9, [7, 7, 8, 7, 7, 7, 8, 7, 7, 7, 6, 6, 6, 6]), status: 'little', statusLabel: 'A little lower',
     note: 'One point under her usual since the short nights began.' },
-  { id: 'pain', title: 'Pain', unit: 'out of 10', icon: 'spark', usual: 4, usualLabel: '4 out of 10, right knee', higherIsBetter: false, min: 0, max: 10, points: series(37, 4, 0.8, 1, 2, 7, [4, 4, 3, 4, 4, 4, 4, 3, 4, 4, 4, 4, 4, 4], { 71: 5, 72: 5 }), status: 'usual',
-    note: 'Steady at 4. It rose to 5 for two days in early November, then settled.' },
+  { id: 'pain', title: 'Pain', unit: 'out of 10', icon: 'spark', usual: 4, usualLabel: '4 out of 10, right knee', higherIsBetter: false, min: 0, max: 10, points: series(37, 4, 0, 1, 2, 7, [4, 4, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4], PAIN_DAYS), status: 'usual',
+    note: 'Steady at 4, the same as last week.' },
   { id: 'meals', title: 'Meals', unit: 'meals a day', icon: 'bowl', usual: 3, usualLabel: '3 meals', higherIsBetter: true, min: 0, max: 4, points: series(41, 3, 0.7, 1, 1, 3, [3, 3, 3, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]), status: 'usual',
     note: 'Three meals on most days. Nothing has changed.' },
   { id: 'fluids', title: 'Drinks', unit: 'cups a day', icon: 'bowl', usual: 6, usualLabel: 'about 6 cups', higherIsBetter: true, min: 0, max: 10, points: series(53, 6, 1.2, 1, 3, 9, [6, 6, 7, 6, 5, 6, 6, 6, 7, 6, 6, 6, 5, 6]), status: 'usual',
     note: 'About six cups a day, mostly tea and water.' },
-  { id: 'medicines', title: 'Medicines', unit: 'pill times taken since the call before, of 2', icon: 'pill', usual: 2, usualLabel: 'both pill times', higherIsBetter: true, min: 0, max: 2, points: series(67, 2, 0.2, 1, 1, 2, [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1], { 30: 1, 52: 1 }), status: 'check',
-    note: 'Both pill times taken on most days. Monday evening has two different answers.' },
+  { id: 'medicines', title: 'Medicines', unit: 'pill times she said yes to since the call before, of 2', icon: 'pill', usual: 2, usualLabel: 'both pill times', higherIsBetter: true, min: 0, max: 2, points: series(67, 2, 0.2, 1, 1, 2, [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1], { 30: 1, 52: 1 }), status: 'check',
+    note: 'Monday evening has two different answers. On the other days this week she said she took her pills.' },
   { id: 'falls', title: 'Falls', unit: 'falls', icon: 'walk', usual: 0, usualLabel: 'none', higherIsBetter: false, min: 0, max: 2, points: series(71, 0, 0, 1, 0, 1, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], { 37: 1 }), status: 'usual',
-    note: 'No falls in the last seven weeks. One stumble on the back step in October, no injury.' },
-  { id: 'out', title: 'Getting out', unit: 'times out of the house', icon: 'home', usual: 1, usualLabel: 'out on most days', higherIsBetter: true, min: 0, max: 2, points: series(83, 1, 0.9, 1, 0, 2, [1, 0, 0, 1, 2, 1, 0, 0, 1, 0, 1, 0, 0, 1]), status: 'usual',
+    note: 'No falls this week.' },
+  { id: 'out', title: 'Getting out', unit: 'times out of the house', icon: 'home', usual: 1, usualLabel: 'out on most days', higherIsBetter: true, min: 0, max: 2, points: series(83, 1, 0.9, 1, 0, 2, [1, 0, 0, 1, 2, 1, 0, 0, 1, 0, 1, 0, 0, 1]), status: 'little', statusLabel: 'A little less',
     note: 'Out on three days this week, a little less than usual.' },
+];
+
+/** The same morning as `steps`, told as five short stops for the timeline on Today. */
+export const dayFlow: DayFlowStep[] = [
+  { id: 'call', icon: 'phone', time: CALL_TIME, title: 'Ion called', text: 'Her daily morning call', status: 'done' },
+  { id: 'answer', icon: 'chat', time: CALL_TIME, title: 'She answered', text: 'They talked for 6 minutes', status: 'done' },
+  { id: 'report', icon: 'note', time: '9:05 AM', title: 'Report written', text: 'With three things to do', status: 'done' },
+  { id: 'ride', icon: 'car', time: '9:05 AM', title: 'Ride for Thursday', text: 'On the calendar. It needs a yes from the family.', status: 'needs-you', doneText: 'The family said yes. It is on the Tasks page.' },
+  { id: 'evening', icon: 'bell', time: '6:00 PM', title: 'Evening reminder', text: 'Ion will remind her about her evening pills', status: 'later' },
 ];

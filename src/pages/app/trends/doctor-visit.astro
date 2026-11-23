@@ -2,7 +2,10 @@
 import AppLayout from '@/layouts/AppLayout.astro';
 import Button from '@/components/ui/Button.astro';
 import Icon from '@/components/ui/Icon.astro';
-import { getDoctorQuestions, getHerWords, getMedicines, getMetrics, getParent, getPillTimesTaken, getViewer, getWeekNotes, lastDays } from '@/lib/loaders';
+import IconBadge from '@/components/ui/IconBadge.astro';
+import Capybara from '@/components/ui/Capybara.astro';
+import MiniTrend from '@/components/app/trends/MiniTrend.astro';
+import { getDoctorQuestions, getHerWords, getMedicines, getMetrics, getParent, getPillTimesTaken, getViewer, getWeekNotes, lastDays, pillCounts, pillDays } from '@/lib/loaders';
 import { dayLabel, direction, tableValue } from '@/components/app/trends/measure';
 
 const [parent, viewer, metrics, words, medicines, questions, notes, pills] = await Promise.all([
@@ -19,51 +22,73 @@ const changedWords = changedMeasures.map((m) => ({ m, words: words.filter((w) =>
 const morning = medicines.filter((m) => m.when === 'morning');
 const evening = medicines.filter((m) => m.when === 'evening');
 const pillRows = [
-  { when: 'Morning pills', list: morning, taken: pills.morning },
-  { when: 'Evening pills', list: evening, taken: pills.evening },
+  { when: 'Morning pills', list: morning, said: `${pills.morning} of ${pills.answered} mornings` },
+  { when: 'Evening pills', list: evening, said: `${pills.evening} of ${pills.eveningsAsked} evenings` },
 ].filter((r) => r.list.length);
+const pillNote = [
+  `Counted over the ${pills.answered} mornings and ${pills.eveningsAsked} evenings Ion asked her about. Tonight's pills are not counted yet.`,
+  pills.two ? `${pills.two === 1 ? 'One evening has' : `${pills.two} evenings have`} two different answers from her. Both are kept.` : '',
+  pills.no ? `${pills.no === 1 ? 'Once' : `${pills.no} times`} she said no, or was not sure.` : '',
+].filter(Boolean).join(' ');
+// For measures that are counts of days, one small bar says more than a row of hairlines, on screen and on paper.
+const glance = (m: (typeof measures)[number]) => {
+  const pts = lastDays(m, 30);
+  if (m.id === 'medicines') { const c = pillCounts(pillDays(pts)); return { part: c.timesYes, of: c.times, words: 'pill times: she said yes' }; }
+  if (m.id === 'out') { const a = pts.filter((p) => p.value !== null); return { part: a.filter((p) => (p.value as number) > 0).length, of: a.length, words: 'days: she went out' }; }
+  if (m.id === 'falls') { const n = pts.reduce((x, p) => x + (p.value ?? 0), 0); return { part: n, of: 0, words: n === 0 ? 'No falls in 30 days' : n === 1 ? 'One fall or stumble' : `${n} falls` }; }
+  return null;
+};
+const little = notes[0]?.little ?? [];
 const blankLines = 5;
 ---
 <AppLayout
   title="For a doctor visit"
   active="trends"
-  eyebrow="For a doctor visit"
   heading={`${parent.name}, last 30 days`}
   tone2={`${from} to ${to}`}
 >
   <div class="dv">
     <div class="actions no-print">
+      <Capybara size={72} waves={false} ground="var(--surface)" label="" />
+      <p><b>One sheet to take along.</b> Print it, or show it on your phone at the appointment.</p>
       <Button variant="dark" data-print class="needs-js"><Icon name="print" size={18} />Print this page</Button>
       <Button href="/app/trends/" variant="secondary">Back to Trends</Button>
-      <p class="muted small">Fits on one or two sheets. You can also show it on your phone at the appointment.</p>
     </div>
 
-    <article class="sheet" aria-labelledby="about-h">
-      <section class="block about">
-        <h2 id="about-h" class="sr-only">About these notes</h2>
-        <p><b>About these notes.</b> These are family notes from daily check-in calls with {parent.short}, in her own words. They are not a medical record and nothing here was measured. Prepared by {viewer.name} ({viewer.relation.toLowerCase()}) with I-on.</p>
-      </section>
+    <article class="sheet" aria-labelledby="changed-h">
+      <p class="about">Family notes from {parent.short}'s daily check-in calls, in her own words. Not a medical record. Prepared by {viewer.name} ({viewer.relation.toLowerCase()}) with I-on.</p>
 
-      <section class="block" aria-labelledby="changed-h">
-        <h2 id="changed-h">What changed in the last 30 days</h2>
+      <section class="block first" aria-labelledby="changed-h">
+        <h2 id="changed-h"><IconBadge name="spark" tone="acc" size="sm" class="no-print" />What changed in the last 30 days</h2>
         <ul>
-          {weeksChanged.map((w) => <li><b>{w.week}:</b> {w.changed.join(' ')}</li>)}
+          {weeksChanged.map((w, i) => (
+            <>
+              <li><b>{w.week}:</b> {w.changed.join(' ')}</li>
+              {i === 0 && little.length > 0 && <li><b>A little different, {w.week}:</b> {little.join(' ')}</li>}
+            </>
+          ))}
         </ul>
         <p class="steady"><b>Stayed the same this week:</b> {notes[0]?.steady.join(' ')}</p>
       </section>
 
       <section class="block" aria-labelledby="table-h">
-        <h2 id="table-h">Each measure</h2>
+        <h2 id="table-h"><IconBadge name="trends" tone="acc" size="sm" class="no-print" />Each measure</h2>
         <div class="t-scroll" tabindex="0" role="group" aria-label="Measures table. Scroll sideways if needed.">
           <table>
-            <caption class="sr-only">Each measure with her usual, the 30-day average, the last 7 days and the direction</caption>
+            <caption class="sr-only">Each measure with the last 30 days at a glance, her usual, the last 30 days, the last 7 days and the direction</caption>
             <thead>
-              <tr><th scope="col">Measure</th><th scope="col">Her usual</th><th scope="col">Last 30 days</th><th scope="col">Last 7 days</th><th scope="col">Direction</th></tr>
+              <tr><th scope="col">Measure</th><th scope="col">The 30 days at a glance</th><th scope="col">Her usual</th><th scope="col">Last 30 days</th><th scope="col">Last 7 days</th><th scope="col">Direction</th></tr>
             </thead>
             <tbody>
               {measures.map((m) => (
                 <tr>
                   <th scope="row">{m.title}</th>
+                  <td class="pic">{(() => {
+                    const g = glance(m);
+                    if (!g) return <MiniTrend m={m} days={30} width={180} height={34} />;
+                    if (!g.of) return <span class="g-words">{g.words}</span>;
+                    return <span class="g-bar"><span class="g-track" aria-hidden="true"><span style={`width:${Math.round((g.part / g.of) * 100)}%`}></span></span><span class="g-words">{g.part} of {g.of} {g.words.split(':')[0]}</span></span>;
+                  })()}</td>
                   <td>{m.usualLabel.charAt(0).toUpperCase() + m.usualLabel.slice(1)}</td>
                   <td class="num">{tableValue(m, lastDays(m, 30))}</td>
                   <td class="num">{tableValue(m, lastDays(m, 7))}</td>
@@ -73,12 +98,12 @@ const blankLines = 5;
             </tbody>
           </table>
         </div>
-        <p class="small muted">Averages are over the days she answered. "Direction" compares the last 7 days with her usual.</p>
+        <p class="small muted">Nothing here was measured: every number is her own answer on a call. In the small lines the dotted line is her usual and a gap is a day with no answer. Averages are over the days she answered. "Direction" compares the last 7 days with her usual.</p>
       </section>
 
       {changedWords.length > 0 && (
         <section class="block" aria-labelledby="words-h">
-          <h2 id="words-h">In her own words</h2>
+          <h2 id="words-h"><IconBadge name="chat" tone="butter" size="sm" class="no-print" />In her own words</h2>
           <ul class="words">
             {changedWords.map((x) => x.words.map((w) => (
               <li><span class="w-meta">{x.m.title}, {w.day}:</span> &ldquo;{w.text}&rdquo;</li>
@@ -88,7 +113,7 @@ const blankLines = 5;
       )}
 
       <section class="block" aria-labelledby="meds-h">
-        <h2 id="meds-h">Her medicines, by the family's own labels</h2>
+        <h2 id="meds-h"><IconBadge name="pill" tone="leaf" size="sm" class="no-print" />Her medicines, by the family's own labels</h2>
         <table class="meds">
           <caption class="sr-only">Pill times and how often she said she took them in the last 30 days</caption>
           <thead><tr><th scope="col">When</th><th scope="col">What the family calls them</th><th scope="col">She said she took them</th></tr></thead>
@@ -97,16 +122,16 @@ const blankLines = 5;
               <tr>
                 <th scope="row">{r.when}</th>
                 <td>{r.list.map((p) => p.label).join(', ')}</td>
-                <td class="num">{r.taken} of {pills.answered} days</td>
+                <td class="num">{r.said}</td>
               </tr>
             ))}
           </tbody>
         </table>
-        <p class="small muted">Out of the {pills.answered} days she answered the medicine question. On days she did not say yes to both pill times, it was the evening pills she missed or was not sure about. One of those evenings has two different answers from her.</p>
+        <p class="small muted">{pillNote}</p>
       </section>
 
       <section class="block questions" aria-labelledby="q-h">
-        <h2 id="q-h">Questions we want to ask</h2>
+        <h2 id="q-h"><IconBadge name="question" tone="sky" size="sm" class="no-print" />Questions we want to ask</h2>
         <ol>
           {questions.map((q) => (
             <li><p>{q}</p><span class="rule" aria-hidden="true"></span><span class="rule" aria-hidden="true"></span></li>
@@ -124,25 +149,32 @@ const blankLines = 5;
 </script>
 
 <style>
-  .dv { display: flex; flex-direction: column; gap: var(--s-5); min-width: 0; max-width: 56rem; }
-  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); }
-  .actions p { flex: 1 1 16rem; }
-  .sheet { display: flex; flex-direction: column; gap: var(--s-6); padding: var(--s-8); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-xl); min-width: 0; }
+  .dv { display: flex; flex-direction: column; gap: var(--s-5); min-width: 0; width: 100%; max-width: 60rem; margin-inline: auto; }
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3) var(--s-4); padding: var(--s-4) var(--s-5); border-radius: var(--r-xl); background: var(--butter-soft); }
+  .actions :global(.capy) { flex: none; width: 4.5rem; }
+  .actions p { flex: 1 1 16rem; line-height: 1.45; }
+  .actions p b { display: block; font-size: var(--fs-lg); font-weight: 500; }
+  .sheet { display: flex; flex-direction: column; gap: var(--s-6); padding: var(--s-10); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-xl); box-shadow: var(--shadow-2); min-width: 0; }
   .block { display: flex; flex-direction: column; gap: var(--s-3); min-width: 0; }
   .block + .block { padding-top: var(--s-6); border-top: 1px solid var(--line); }
-  .block h2 { font-size: 1.25rem; font-weight: 600; letter-spacing: -0.01em; line-height: 1.3; }
-  .about p { font-size: 0.9375rem; line-height: 1.55; padding: var(--s-4); border-radius: var(--r-md); background: var(--paper); }
+  .block h2 { display: flex; align-items: center; gap: var(--s-3); font-size: 1.25rem; font-weight: 500; letter-spacing: -0.015em; line-height: 1.3; }
+  .about { font-size: var(--fs-sm); line-height: 1.5; color: var(--ink-2); margin-bottom: calc(-1 * var(--s-2)); }
+  .g-bar { display: flex; flex-direction: column; gap: 0.1875rem; }
+  .g-track { display: block; height: 0.5rem; border-radius: var(--r-pill); background: var(--grey-2); overflow: hidden; }
+  .g-track span { display: block; height: 100%; border-radius: var(--r-pill); background: var(--leaf); }
+  .g-words { font-size: var(--fs-sm); line-height: 1.3; color: var(--ink-2); }
   ul, ol { padding-left: 1.25rem; display: flex; flex-direction: column; gap: var(--s-2); line-height: 1.5; }
   .steady { color: var(--ink-2); line-height: 1.5; }
-  .steady b, .about b { color: var(--ink); }
+  .steady b { color: var(--ink); font-weight: 600; }
   .t-scroll { overflow-x: auto; }
   table { width: 100%; border-collapse: collapse; font-size: 0.9375rem; }
-  th, td { padding: var(--s-2) var(--s-3); text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
-  thead th { font-size: var(--fs-sm); font-weight: 500; color: var(--ink-2); border-bottom-color: var(--line-strong); }
+  th, td { padding: var(--s-2) var(--s-3); text-align: left; vertical-align: middle; border-bottom: 1px solid var(--line); }
+  thead th { font-size: var(--fs-sm); font-weight: 500; color: var(--ink-2); border-bottom-color: var(--line-strong); vertical-align: bottom; }
   tbody th { font-weight: 600; }
-  .unit { display: block; font-weight: 400; font-size: var(--fs-xs); color: var(--ink-2); }
   td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .t-scroll table { min-width: 36rem; }
+  td.pic { width: 11.5rem; min-width: 9rem; }
+  td.pic :global(svg) { width: 100%; height: auto; }
+  .t-scroll table { min-width: 44rem; }
   .words { list-style: none; padding: 0; }
   .words li { padding-left: var(--s-4); border-left: 3px solid var(--acc); }
   .w-meta { font-size: var(--fs-sm); color: var(--ink-2); }
@@ -150,33 +182,50 @@ const blankLines = 5;
   .questions li p { margin-bottom: var(--s-1); }
   .rule { display: block; height: 2rem; border-bottom: 1px solid var(--line-strong); }
   .blank { display: flex; flex-direction: column; }
-  @media (max-width: 30rem) { .sheet { padding: var(--s-4); border-radius: var(--r-lg); } }
+  @media (max-width: 30rem) { .sheet { padding: var(--s-5); border-radius: var(--r-lg); } }
 
   @media print {
     .dv { max-width: none; gap: 0; }
-    .sheet { padding: 0; border: 0; border-radius: 0; gap: 0.9rem; background: transparent; color: var(--ink); font-size: 10.5pt; }
-    .block + .block { padding-top: 0.9rem; border-top: 1px solid var(--ink); }
-    .block { gap: 0.4rem; break-inside: avoid; }
-    .block h2 { font-size: 12.5pt; }
-    .about p { background: transparent; padding: 0; }
-    th, td { padding: 0.2rem 0.4rem; border-bottom: 1px solid var(--ink); color: var(--ink); }
-    thead th { color: var(--ink); }
+    .sheet { padding: 0; border: 0; border-radius: 0; box-shadow: none; gap: 0.55rem; background: transparent; color: var(--ink); font-size: 9.5pt; }
+    .block + .block { padding-top: 0.5rem; border-top: 1px solid var(--ink); }
+    .block { gap: 0.25rem; break-inside: avoid; }
+    .block h2 { font-size: 11.5pt; font-weight: 600; }
+    .about { font-size: 8.5pt; line-height: 1.35; color: var(--ink); margin: 0; }
+    .g-track { height: 0.3rem; background: transparent; border: 0.5pt solid var(--ink); }
+    .g-track span { background: var(--ink); border-radius: 0; }
+    .g-words { font-size: 8pt; color: var(--ink); }
+    ul, ol { gap: 0.1rem; line-height: 1.35; }
+    table { font-size: 9pt; }
+    th, td { padding: 0.06rem 0.35rem; border-bottom: 1px solid var(--ink); color: var(--ink); line-height: 1.3; }
+    thead th { color: var(--ink); font-size: 8.5pt; border-bottom-color: var(--ink); }
+    td.pic { width: 7rem; min-width: 0; }
+    td.pic :global(svg) { height: 1.1rem; }
     .t-scroll { overflow: visible; }
     .t-scroll table { min-width: 0; }
-    .unit, .w-meta, .steady, .muted { color: var(--ink); }
-    .words li { border-left: 2px solid var(--ink); }
-    .rule { height: 1.5rem; border-bottom: 1px solid var(--ink); }
+    .w-meta, .steady, .muted { color: var(--ink); }
+    .small { font-size: 8.5pt; line-height: 1.35; }
+    .words { display: grid; grid-template-columns: 1fr 1fr; gap: 0.15rem 1rem; }
+    .words li, .w-meta { font-size: 8.5pt; line-height: 1.35; }
+    .words li { border-left: 2px solid var(--ink); padding-left: 0.5rem; }
+    .questions ol { gap: 0.15rem; }
+    .questions li p { margin-bottom: 0; }
+    .rule { height: 1.1rem; border-bottom: 1px solid var(--ink); }
+    .questions li .rule + .rule, .blank .rule:nth-child(n + 3) { display: none; }
   }
 </style>
 <style is:global>
   @media print {
-    @page { margin: 14mm; }
-    body.app, body.app .content { background: var(--surface) !important; color: var(--ink); }
+    @page { margin: 12mm; }
+    html, body.app, body.app .content, body.app .main, body.app .shell { background: var(--print-paper) !important; color: var(--ink); }
     body.app .content { gap: 0.8rem; }
     body.app .page-head { padding: 0; gap: 0.2rem; }
-    body.app .page-head .h1 { font-size: 20pt; font-weight: 500; }
-    body.app .page-head .tone-2 { color: var(--ink); font-size: 14pt; }
-    body.app .page-eyebrow span { display: none; }
-    body.app .standing { color: var(--ink); border-top-color: var(--ink); margin-top: 0.5rem; }
+    body.app .page-head .h1 { font-size: 17pt; font-weight: 500; }
+    body.app .page-head .tone-2 { color: var(--ink); font-size: 12pt; }
+    body.app .content { gap: 0.5rem; }
+    body.app .shell { padding: 0; }
+    body.app .standing { color: var(--ink); border-top-color: var(--ink); margin-top: 0.4rem; padding-top: 0.3rem; font-size: 8.5pt; }
+    body.app .spark .spark-line { stroke: var(--ink) !important; stroke-width: 2; }
+    body.app .spark .spark-usual { stroke: var(--ink) !important; stroke-width: 1; }
+    body.app .spark .spark-last { fill: var(--ink) !important; }
   }
 </style>

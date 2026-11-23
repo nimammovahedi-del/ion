@@ -1,12 +1,10 @@
 ---
-/** The one visible line on every page that takes input: this is an example, nothing leaves this browser. With a quiet reset. */
-import Icon from '@/components/ui/Icon.astro';
-interface Props { reset?: boolean; class?: string }
-const { reset = true, class: cls = '' } = Astro.props;
+/** The one quiet line at the foot of every care page: this is an example, nothing leaves this browser. With a reset link. */
+interface Props { reset?: boolean; more?: string; class?: string }
+const { reset = true, more, class: cls = '' } = Astro.props;
 ---
 <aside class:list={['xnote', cls]} aria-label="About this example">
-  <Icon name="lock" size={18} />
-  <p>This is an example. Nothing you do here is sent anywhere or saved outside this browser.</p>
+  <p>This is an example. Nothing you do here is sent anywhere or saved outside this browser.{more && ` ${more}`}</p>
   <noscript><p>The buttons and forms on this page need JavaScript. Without it you can still read everything.</p></noscript>
   {reset && <button type="button" class="xnote-reset" data-ion-reset>Reset the example</button>}
 </aside>
@@ -17,9 +15,7 @@ const { reset = true, class: cls = '' } = Astro.props;
   });
 </script>
 <style>
-  .xnote { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3); padding: var(--s-2) var(--s-2) var(--s-2) var(--s-4); border: 1px dashed var(--line-strong); border-radius: var(--r-md); color: var(--ink-2); font-size: var(--fs-sm); line-height: 1.5; }
-  .xnote :global(svg) { flex: none; }
-  .xnote p { flex: 1 1 14rem; }
-  .xnote-reset { min-height: var(--tap); padding: 0 var(--s-3); border: 0; border-radius: var(--r-sm); background: transparent; color: var(--acc-text); font-size: var(--fs-sm); font-weight: 500; text-decoration: underline; text-underline-offset: 0.2em; }
+  .xnote { display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--s-2); color: var(--ink-2); font-size: var(--fs-sm); line-height: 1.5; }
+  .xnote-reset { min-height: var(--tap); padding: 0 var(--s-2); border: 0; border-radius: var(--r-sm); background: transparent; color: var(--acc-text); font-size: var(--fs-sm); font-weight: 500; text-decoration: underline; text-underline-offset: 0.2em; }
   .xnote-reset:hover { background: var(--acc-soft); }
 </style>

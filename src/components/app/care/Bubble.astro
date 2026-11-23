@@ -1,0 +1,21 @@
+---
+/** A speech bubble with a small tail. Use it for words that are spoken: what Ion will say, a question from the family, her answer. */
+interface Props { tone?: 'acc' | 'butter' | 'leaf' | 'sky' | 'surface' | 'paper'; tail?: 'left' | 'right' | 'down' | 'up' | 'none'; as?: 'div' | 'p' | 'blockquote'; class?: string; [key: string]: unknown }
+const { tone = 'acc', tail = 'left', as: Tag = 'div', class: cls = '', ...rest } = Astro.props;
+---
+<Tag class:list={['bub', `bub-${tone}`, `bub-tail-${tail}`, cls]} {...rest}><slot /></Tag>
+<style is:global>
+  .bub { position: relative; margin: 0; padding: var(--s-3) var(--s-4); border-radius: var(--r-lg); background: var(--bub, var(--acc-soft)); color: var(--ink); line-height: 1.5; min-width: 0; overflow-wrap: anywhere; }
+  .bub::before { content: ''; position: absolute; width: 0.875rem; height: 0.875rem; background: inherit; border-radius: 0.1875rem; transform: rotate(45deg); }
+  .bub-tail-left::before { left: -0.3125rem; top: 1rem; }
+  .bub-tail-right::before { right: -0.3125rem; top: 1rem; }
+  .bub-tail-down::before { left: 1.5rem; bottom: -0.3125rem; }
+  .bub-tail-up::before { left: 0.625rem; top: -0.3125rem; }
+  .bub-tail-none::before { display: none; }
+  .bub-acc { --bub: var(--acc-soft); }
+  .bub-butter { --bub: var(--butter-soft); }
+  .bub-leaf { --bub: var(--leaf-soft); }
+  .bub-sky { --bub: var(--sky-soft); }
+  .bub-surface { --bub: var(--surface); }
+  .bub-paper { --bub: var(--paper); }
+</style>

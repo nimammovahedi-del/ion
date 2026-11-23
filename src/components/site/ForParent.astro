@@ -1,34 +1,52 @@
 ---
-/** A short band on what your parent's side of I-on is. */
-import Capybara from '@/components/ui/Capybara.astro';
+/** For your parent: her side of I-on is an ordinary phone call. One picture, four short points, two example reminders. */
+import IconBadge from '@/components/ui/IconBadge.astro';
+import PhoneTable from './PhoneTable.astro';
+import { PARENT_POINTS } from '@/data/site';
 import { getReminders } from '@/lib/loaders';
 const reminders = await getReminders();
 const spoken = reminders.filter((r) => r.active && r.spokenBy === 'call').slice(0, 2);
 ---
 <section id="parent" class="fp wrap" aria-labelledby="fp-title">
   <div class="fp-band" data-reveal>
-    <div class="fp-capy"><Capybara size={200} ground="var(--surface)" /></div>
+    <div class="fp-pic"><PhoneTable /></div>
     <div class="fp-copy">
-      <h2 id="fp-title" class="h2">For your parent too</h2>
-      <p class="fp-lede">For your mom or dad, I-on is simply a phone call. No app, no buttons, no new device. The same calm voice, at the same time, at an easy pace.</p>
-      <p>The family can add reminders, like pills or an appointment, and Ion mentions them kindly on the call.</p>
+      <h2 id="fp-title" class="h2">For your parent,<span class="tone-2">it is simply a phone call.</span></h2>
+      <ul role="list" class="fp-points">
+        {PARENT_POINTS.map((p, i) => (
+          <li class="draw-pop" style={`--i:${i * 2}`}>
+            <IconBadge name={p.icon} tone="surface" round />
+            <span><b>{p.title}</b><span>{p.text}</span></span>
+          </li>
+        ))}
+      </ul>
       <ul role="list" class="fp-said" aria-label="Example reminders, as Ion says them">
         {spoken.map((r) => <li>"{r.text}"</li>)}
       </ul>
-      <p class="small muted">A fuller view for your parent, with their own say in what is shared, is coming later.</p>
+      <p class="fp-later">A fuller view for your parent, with their own say in what is shared, is coming later.</p>
     </div>
   </div>
 </section>
 <style>
-  .fp { padding-top: var(--s-32); scroll-margin-top: var(--s-6); }
-  .fp-band { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: var(--s-10); background: var(--acc-soft); border-radius: var(--r-xl); padding: var(--s-10) var(--s-12); }
-  .fp-copy { display: flex; flex-direction: column; gap: var(--s-4); max-width: 44rem; }
-  .fp-lede { font-size: var(--fs-lg); line-height: 1.6; }
+  .fp { padding-top: var(--s-24); }
+  .fp-band { display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1fr); align-items: center; gap: var(--s-12); background: var(--acc-soft); border-radius: var(--r-xl); padding: var(--s-10) var(--s-12); overflow: hidden; }
+  .fp-pic { min-width: 0; }
+  .fp-copy { display: flex; flex-direction: column; gap: var(--s-6); min-width: 0; }
+  .fp-points { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-5) var(--s-6); }
+  .fp-points li { display: flex; align-items: flex-start; gap: var(--s-3); min-width: 0; }
+  .fp-points li > span { display: flex; flex-direction: column; line-height: 1.4; }
+  .fp-points b { font-weight: 500; font-size: 1.0625rem; }
+  .fp-points span span { font-size: 0.9375rem; color: var(--ink-2); }
   .fp-said { display: flex; flex-wrap: wrap; gap: var(--s-2); }
   .fp-said li { background: var(--surface); border-radius: var(--r-lg) var(--r-lg) var(--r-lg) var(--r-sm); padding: var(--s-2) var(--s-4); font-size: 0.9375rem; box-shadow: var(--shadow-1); }
-  @media (max-width: 48rem) {
-    .fp { padding-top: var(--s-24); }
-    .fp-band { grid-template-columns: minmax(0, 1fr); padding: var(--s-6); gap: var(--s-4); border-radius: var(--r-lg); }
-    .fp-capy :global(svg) { width: 8rem; }
+  .fp-later { font-size: var(--fs-sm); color: var(--ink-2); }
+  @media (max-width: 56rem) {
+    .fp-band { grid-template-columns: minmax(0, 1fr); gap: var(--s-6); padding: var(--s-8); }
+    .fp-pic { order: 2; max-width: 22rem; margin-inline: auto; }
+  }
+  @media (max-width: 40rem) {
+    .fp { padding-top: var(--s-16); }
+    .fp-band { padding: var(--s-6) var(--s-4); border-radius: var(--r-lg); }
+    .fp-points { grid-template-columns: minmax(0, 1fr); gap: var(--s-4); }
   }
 </style>

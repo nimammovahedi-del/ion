@@ -1,6 +1,7 @@
 // Shapes of everything the app shows. r1 fills them from example data; r2 will fill them from the database.
 
-export type Status = 'changed' | 'check' | 'usual';
+/** changed: clearly different from her usual. check: the family is asked to look at something. little: a small difference. usual: as usual. */
+export type Status = 'changed' | 'check' | 'little' | 'usual';
 export type StepStatus = 'done' | 'working' | 'waiting' | 'needs-you';
 export type MetricId = 'sleep' | 'feeling' | 'pain' | 'meals' | 'fluids' | 'medicines' | 'falls' | 'out';
 
@@ -16,10 +17,11 @@ export interface HealthCardData {
   unit?: string;
   caption: string;        // what the value is, and her usual
   status: Status;
-  statusLabel: string;    // "Changed" | "Check" | "As usual"
+  statusLabel: string;    // "Changed" | "Check" | "A little lower" | "As usual"
   sources: Source[];
   evidence: string;       // one or two sentences, with her own words where we have them
   disagreement?: string;  // shown openly when two sources disagree
+  from?: string;          // one plain line on where this came from, e.g. "From today's call and the three before it"
 }
 
 export interface TaskAction { label: string; kind: 'primary' | 'secondary'; }
@@ -42,17 +44,16 @@ export interface Medicine {
 
 export interface Reminder { id: string; kind: 'medicine' | 'appointment' | 'other'; text: string; when: string; spokenBy: 'call' | 'evening-reminder'; setBy: string; active: boolean; }
 
-export interface Story { id: string; date: string; title: string; text: string; quote?: string; }
-
 export interface DayPoint { date: string; label: string; value: number | null; }
 export interface MetricSeries {
   id: MetricId; title: string; unit: string; icon: string; usual: number; usualLabel: string;
   higherIsBetter: boolean; min: number; max: number; points: DayPoint[];   // oldest first, 90 days
   note: string;   // one plain sentence on the last two weeks
   status: Status;
+  statusLabel?: string;   // the status in words when the plain word is not enough, e.g. "A little lower"
 }
 
-export interface WeekNote { week: string; changed: string[]; steady: string[]; }
+export interface WeekNote { week: string; changed: string[]; steady: string[]; little?: string[]; }   // little: small differences, not shown as changes
 
 export interface AskTomorrow { id: string; text: string; by: string; status: 'queued' | 'asked'; answer?: string; }
 
@@ -60,3 +61,15 @@ export interface CallSettings { time: string; days: string[]; voice: string; top
 
 /** Her own words on one measure, from one call. */
 export interface HerWords { metric: MetricId; date: string; day: string; text: string; source?: string; }   // source: where she said it when it was not the morning call
+
+/** One stop on the "What Ion did today" timeline. */
+export interface DayFlowStep {
+  id: string; icon: string; time: string; title: string; text: string;
+  status: 'done' | 'needs-you' | 'later';
+  doneText?: string;   // the line shown instead of `text` once the family has said yes
+}
+
+/** What she said about one pill time. "two": two different answers. "later": that pill time has not come up on a call yet. */
+export type PillAnswer = 'yes' | 'no' | 'two' | 'no-call' | 'later';
+/** One calendar day of pill answers. The evening is the evening of this date, which Ion asks about on the next morning's call. */
+export interface PillDay { date: string; label: string; morning: PillAnswer; evening: PillAnswer; }

@@ -4,16 +4,17 @@ import type { DoseDay } from '@/data/types-care';
 interface Props { days: DoseDay[]; title: string; id: string }
 const { days, title, id } = Astro.props;
 const WORDS = { yes: 'she said she took them', no: 'she said she missed them', two: 'two different answers', 'not-yet': 'not asked yet', 'no-call': 'no call that day' } as const;
+const KEY = { yes: 'She said yes', no: 'She said no', two: 'Two different answers', 'not-yet': 'Not asked yet', 'no-call': 'No call that day' } as const;
 const counts = days.reduce<Record<string, number>>((a, d) => ({ ...a, [d.answer]: (a[d.answer] ?? 0) + 1 }), {});
 const used = (Object.keys(WORDS) as (keyof typeof WORDS)[]).filter((k) => counts[k]);
 ---
-<div class="ds">
+<div class="ds" data-draw>
   <h3 id={id} class="ds-title">{title}</h3>
   <ol role="list" class="ds-days" aria-labelledby={id}>
-    {days.map((d) => (
+    {days.map((d, i) => (
       <li class:list={['ds-day', `ds-${d.answer}`]}>
         <span class="ds-wd" aria-hidden="true">{d.weekday.slice(0, 1)}</span>
-        <span class="ds-mark" aria-hidden="true">
+        <span class="ds-mark draw-pop" style={`--i:${i}`} aria-hidden="true">
           {d.answer === 'yes' && <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10" /></svg>}
           {d.answer === 'no' && <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M7 7l10 10M17 7L7 17" /></svg>}
           {d.answer === 'two' && <span>?</span>}
@@ -25,7 +26,7 @@ const used = (Object.keys(WORDS) as (keyof typeof WORDS)[]).filter((k) => counts
     ))}
   </ol>
   <ul role="list" class="ds-key" aria-label="What the marks mean">
-    {used.map((k) => <li><span class:list={['ds-mark', 'ds-mini', `ds-${k}`]} aria-hidden="true">{k === 'yes' ? '✓' : k === 'two' ? '?' : k === 'no' ? '×' : k === 'no-call' ? '·' : ''}</span>{WORDS[k].charAt(0).toUpperCase() + WORDS[k].slice(1)}<span class="num ds-count">{counts[k]} {counts[k] === 1 ? 'day' : 'days'}</span></li>)}
+    {used.map((k) => <li><span class:list={['ds-mark', 'ds-mini', `ds-${k}`]} aria-hidden="true">{k === 'yes' ? '✓' : k === 'two' ? '?' : k === 'no' ? '×' : k === 'no-call' ? '·' : ''}</span>{KEY[k]}<span class="num ds-count">{counts[k]} {counts[k] === 1 ? 'day' : 'days'}</span></li>)}
   </ul>
 </div>
 <style>
@@ -33,16 +34,16 @@ const used = (Object.keys(WORDS) as (keyof typeof WORDS)[]).filter((k) => counts
   .ds-title { font-size: var(--fs-sm); font-weight: 500; color: var(--ink-2); }
   .ds-days { display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 0.25rem; }
   .ds-day { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; min-width: 0; }
-  .ds-wd, .ds-n { font-size: 0.6875rem; color: var(--ink-2); line-height: 1; }
-  .ds-mark { display: grid; place-items: center; width: 100%; max-width: 2rem; aspect-ratio: 1; border-radius: var(--r-sm); font-size: var(--fs-sm); font-weight: 600; line-height: 1; }
-  .ds-yes .ds-mark, .ds-mark.ds-yes { background: var(--acc); color: var(--on-acc); }
-  .ds-no .ds-mark, .ds-mark.ds-no { background: var(--deep); color: var(--on-deep); }
-  .ds-two .ds-mark, .ds-mark.ds-two { background: var(--deep); color: var(--on-deep); }
+  .ds-wd, .ds-n { font-size: var(--fs-xs); color: var(--ink-2); line-height: 1; }
+  .ds-mark { display: grid; place-items: center; width: 100%; max-width: 1.875rem; aspect-ratio: 1; border-radius: 50%; font-size: var(--fs-sm); font-weight: 600; line-height: 1; color: var(--ink); }
+  .ds-yes .ds-mark, .ds-mark.ds-yes { background: var(--leaf); }
+  .ds-no .ds-mark, .ds-mark.ds-no { background: var(--acc); }
+  .ds-two .ds-mark, .ds-mark.ds-two { background: var(--butter); box-shadow: inset 0 0 0 2px var(--ink); }
   .ds-not-yet .ds-mark, .ds-mark.ds-not-yet { background: var(--surface); border: 2px dashed var(--line-strong); }
   .ds-no-call .ds-mark, .ds-mark.ds-no-call { background: var(--grey-1); color: var(--ink-2); }
   .ds-key { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-4); font-size: var(--fs-sm); color: var(--ink-2); }
   .ds-key li { display: inline-flex; align-items: center; gap: var(--s-2); }
-  .ds-mini { width: 1.25rem; max-width: none; font-size: 0.75rem; }
+  .ds-mini { width: 1.25rem; max-width: none; font-size: var(--fs-xs); }
   .ds-count { color: var(--ink); font-weight: 500; }
   @media (max-width: 30rem) {
     .ds-days { grid-template-columns: repeat(7, minmax(0, 1fr)); row-gap: var(--s-2); }

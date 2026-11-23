@@ -1,61 +1,73 @@
 ---
 import AppLayout from '@/layouts/AppLayout.astro';
 import Icon from '@/components/ui/Icon.astro';
+import IconBadge from '@/components/ui/IconBadge.astro';
 import Chip from '@/components/ui/Chip.astro';
 import Button from '@/components/ui/Button.astro';
-import BlockHead from '@/components/app/care/BlockHead.astro';
-import HerWords from '@/components/app/care/HerWords.astro';
+import Part from '@/components/app/care/Part.astro';
+import Avatar from '@/components/app/care/Avatar.astro';
+import Bubble from '@/components/app/care/Bubble.astro';
+import HeadArt from '@/components/app/care/HeadArt.astro';
+import AlsoOn from '@/components/app/care/AlsoOn.astro';
 import FormCard from '@/components/app/care/FormCard.astro';
 import Field from '@/components/app/care/Field.astro';
 import ExampleNote from '@/components/app/care/ExampleNote.astro';
 import LiveRegion from '@/components/app/care/LiveRegion.astro';
 import '@/components/app/care/care.css';
-import { getCallSettings, getParent, getViewer } from '@/lib/loaders';
-import { getAskQueue } from '@/lib/loaders-care';
+import { facesOf } from '@/components/app/care/people';
+import { getCallSettings, getFamily, getParent, getViewer } from '@/lib/loaders';
+import { getAlso, getAskQueue } from '@/lib/loaders-care';
 
-const [{ queued, asked, limit }, parent, settings, viewer] = await Promise.all([getAskQueue(), getParent(), getCallSettings(), getViewer()]);
+const [{ queued, asked, limit }, parent, settings, viewer, family, also] = await Promise.all([getAskQueue(), getParent(), getCallSettings(), getViewer(), getFamily(), getAlso()]);
+const faces = facesOf(family);
 const open = limit - queued.length;
+const tips = [
+  { icon: 'check', title: 'One thing at a time' },
+  { icon: 'chat', title: 'Easy to answer in a sentence' },
+  { icon: 'heart', title: 'Nothing frightening', text: 'Keep news and worries for when you talk yourself.' },
+];
+const NUMBER_WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six'];
+const oldest = asked[asked.length - 1]?.date;
+const answersSub = asked.length && oldest ? `The last ${NUMBER_WORDS[asked.length] ?? asked.length} questions, back to ${oldest}.` : 'As she gave them.';
 ---
-<AppLayout title="Ask tomorrow" active="ask" eyebrow="Ask tomorrow"
-  heading="Something you would like to know?" tone2="Ion can ask her tomorrow."
-  lede={`Add a question and Ion will fit it into tomorrow's call, in its own gentle words. You will see ${parent.short}'s answer in the report.`}>
+<AppLayout title="Ask tomorrow" active="ask"
+  heading="Ask her something tomorrow."
+  lede="Up to three questions a call, so it stays short and easy for her.">
+  <HeadArt slot="head-art" name="ask" />
+  <Button slot="head-actions" href="#add" variant="secondary" size="sm"><Icon name="plus" size={16} />Add a question</Button>
   <LiveRegion />
-  <div class="top" data-viewer={viewer.short} data-limit={limit}>
-    <section class="queue" aria-labelledby="q-title">
-      <div class="queue-head">
-        <p class="queue-when"><Icon name="phone" size={16} />Wednesday, November 25 · {settings.time}</p>
+
+  <div class="care-cols">
+  <section class="queue" aria-labelledby="q-title" data-viewer={viewer.short} data-limit={limit} data-faces={JSON.stringify(faces)}>
+    <header class="queue-head">
+      <IconBadge name="phone" tone="surface" size="md" round />
+      <div>
         <h2 id="q-title">For tomorrow's call</h2>
-        <p class="queue-limit"><span data-used class="num">{queued.length}</span> of {limit} questions. Ion asks no more than {limit} extra questions on a call, so it stays short and easy for her.</p>
+        <p class="queue-when">Wednesday, November 25 · {settings.time}</p>
       </div>
-      <ol role="list" class="slots" data-queue>
-        {queued.map((q, i) => (
-          <li class="slot" data-q={q.id}>
-            <span class="slot-n num" aria-hidden="true" data-n>{i + 1}</span>
-            <div class="slot-body">
-              <p class="slot-text" data-slot="text">{q.text}</p>
-              <p class="slot-by">Added by <span data-slot="by">{q.by}</span></p>
-            </div>
-            <button type="button" class="cf-link" data-remove>Remove<span class="sr-only">: <span data-slot="text">{q.text}</span></span></button>
+      <p class="queue-limit"><b><span data-used class="num">{queued.length}</span> of {limit}</b> questions</p>
+    </header>
+    <div class="slots">
+      <ol role="list" data-queue>
+        {queued.map((q) => (
+          <li class="slot" id={`q-${q.id}`} data-q={q.id}>
+            <p class="slot-by"><Avatar size="sm" tone={faces[q.by]?.tone ?? 'paper'} initials={faces[q.by]?.initials ?? ''} data-slot="face" /><span><span data-slot="by">{q.by}</span> would like to know</span></p>
+            <Bubble tone="surface" tail="up"><p class="slot-text" data-slot="text">{q.text}</p></Bubble>
+            <div class="slot-foot"><AlsoOn links={also('ask', q.id)} /><button type="button" class="cf-link" data-remove>Remove<span class="sr-only">: <span data-slot="text">{q.text}</span></span></button></div>
           </li>
         ))}
       </ol>
-      <ol role="list" class="slots open" aria-hidden="true" data-open>
-        {Array.from({ length: open }, (_, i) => <li class="slot empty"><span class="slot-n num">{queued.length + i + 1}</span><span>Open</span></li>)}
+      <ol role="list" aria-hidden="true" data-open>
+        {Array.from({ length: open }, () => <li class="slot empty"><span class="slot-plus">+</span><span>Room for one more</span></li>)}
       </ol>
-    </section>
+    </div>
+  </section>
 
-    <FormCard id="add" title="Add a question" icon="chat">
-      <div class="good">
-        <p class="good-title">What makes a good question</p>
-        <ul role="list">
-          <li><b>One thing at a time.</b> "Are the new glasses comfortable?" rather than three questions in one.</li>
-          <li><b>Easy to answer.</b> Something she can say in a sentence.</li>
-          <li><b>Nothing frightening.</b> Leave news and worries for when you talk yourself.</li>
-        </ul>
-      </div>
+  <div class="care-side">
+    <FormCard title="Add a question" sub="Write it the way you would ask. Ion will say it kindly.">
       <form class="cf" data-add novalidate>
-        <Field label="Your question" for="q-text" hint="Write it the way you would ask. Ion will say it kindly.">
-          <textarea class="cf-textarea" id="q-text" name="text" rows="2" maxlength="140" required placeholder="Ask if the new glasses are comfortable" aria-describedby="q-text-hint q-error q-full"></textarea>
+        <Field label="Your question" for="q-text">
+          <textarea class="cf-textarea" id="q-text" name="text" rows="2" maxlength="140" required placeholder="One thing, easy to answer" aria-describedby="q-error q-full"></textarea>
         </Field>
         <p class="cf-hint err" id="q-error" hidden>Please write a question first.</p>
         <p class="cf-full" id="q-full" data-full hidden={open > 0}>Tomorrow's call already has {limit} questions. Remove one, or add yours after tomorrow's call.</p>
@@ -63,37 +75,55 @@ const open = limit - queued.length;
         <p class="cf-done" data-done hidden><Icon name="check" size={16} /><span data-msg></span></p>
       </form>
     </FormCard>
+    <div class="good">
+      <p class="good-title">A good question is</p>
+      <ul role="list">
+        {tips.map((t) => (
+          <li>
+            <IconBadge name={t.icon} tone="leaf" size="sm" round />
+            <span><b>{t.title}</b>{t.text && <span>{t.text}</span>}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </div>
   </div>
 
-  <section class="earlier" aria-labelledby="e-title">
-    <BlockHead id="e-title" title="Earlier questions" sub={`Her answers, as she gave them. ${parent.short} is free to say no to any question, and Ion moves on.`} />
+  <Part id="earlier" title="Her answers" icon="chat" tone="leaf" sub={answersSub}>
     <ol role="list" class="answers">
       {asked.map((a) => (
         <li class="answer">
           <div class="answer-q">
-            <p class="answer-meta"><span>{a.date}</span><span>Asked for {a.by}</span></p>
-            <h3>{a.text}</h3>
-            {a.declined ? <Chip tone="usual">She said not today</Chip> : <Chip tone="done">She answered</Chip>}
+            <Avatar size="sm" tone={faces[a.by]?.tone ?? 'paper'} initials={faces[a.by]?.initials ?? ''} />
+            <div>
+              <p class="answer-meta">{a.by} asked · {a.date}</p>
+              <h3>{a.text}</h3>
+            </div>
           </div>
-          <div class="answer-a">
-            <p>{a.summary}</p>
-            {a.quote && <HerWords text={a.quote} cite={`${parent.short}, ${a.date} call`} />}
-          </div>
+          <figure class="answer-a">
+            <Avatar size="sm" tone="acc" initials={parent.initials} />
+            <div>
+              <Bubble as="blockquote" tone="acc"><p>“{a.quote ?? a.summary}”</p></Bubble>
+              {(a.declined || a.note) && (
+                <figcaption>
+                  {a.declined && <Chip tone="info">She said not today</Chip>}
+                  {a.note && <span>{a.note}</span>}
+                </figcaption>
+              )}
+            </div>
+          </figure>
         </li>
       ))}
     </ol>
-  </section>
+  </Part>
 
   <ExampleNote />
 
   <template id="tpl-q">
     <li class="slot">
-      <span class="slot-n num" aria-hidden="true" data-n></span>
-      <div class="slot-body">
-        <p class="slot-text" data-slot="text"></p>
-        <p class="slot-by">Added by <span data-slot="by"></span></p>
-      </div>
-      <button type="button" class="cf-link" data-remove>Remove<span class="sr-only">: <span data-slot="text"></span></span></button>
+      <p class="slot-by"><Avatar size="sm" tone={faces[viewer.short]?.tone ?? 'paper'} initials={faces[viewer.short]?.initials ?? ''} data-slot="face" /><span><span data-slot="by"></span> would like to know</span></p>
+      <Bubble tone="surface" tail="up"><p class="slot-text" data-slot="text"></p></Bubble>
+      <div class="slot-foot"><button type="button" class="cf-link" data-remove>Remove<span class="sr-only">: <span data-slot="text"></span></span></button></div>
     </li>
   </template>
 </AppLayout>
@@ -104,6 +134,7 @@ const open = limit - queued.length;
   const top = document.querySelector<HTMLElement>('[data-limit]');
   const limit = Number(top?.dataset.limit ?? 3);
   const viewer = top?.dataset.viewer ?? 'You';
+  const faces = JSON.parse(top?.dataset.faces ?? '{}') as Record<string, { initials: string; tone: string }>;
   const queue = document.querySelector<HTMLOListElement>('[data-queue]')!;
   const openList = document.querySelector<HTMLOListElement>('[data-open]')!;
   const form = document.querySelector<HTMLFormElement>('[data-add]')!;
@@ -115,26 +146,24 @@ const open = limit - queued.length;
   function build(q: Q) {
     const li = fromTemplate('tpl-q', { text: q.text, by: q.by });
     li.dataset.q = q.id;
+    const face = li.querySelector<HTMLElement>('[data-slot="face"]');
+    const f = faces[q.by];
+    if (face) { face.className = `av av-sm av-${f?.tone ?? 'paper'}`; face.textContent = f?.initials ?? ''; }
     return li;
   }
 
   function refresh() {
-    const items = Array.from(queue.children);
-    items.forEach((li, i) => { const n = li.querySelector('[data-n]'); if (n) n.textContent = String(i + 1); });
-    const used = items.length;
+    const used = queue.children.length;
     const u = document.querySelector('[data-used]');
     if (u) u.textContent = String(used);
-    openList.replaceChildren(...Array.from({ length: Math.max(0, limit - used) }, (_, i) => {
+    openList.replaceChildren(...Array.from({ length: Math.max(0, limit - used) }, () => {
       const li = document.createElement('li');
       li.className = 'slot empty';
-      const n = document.createElement('span'); n.className = 'slot-n num'; n.textContent = String(used + i + 1);
-      const t = document.createElement('span'); t.textContent = 'Open';
+      const n = document.createElement('span'); n.className = 'slot-plus'; n.textContent = '+';
+      const t = document.createElement('span'); t.textContent = 'Room for one more';
       li.append(n, t);
       return li;
     }));
-    // keep the scoped style hook on new elements
-    const cid = Array.from(queue.attributes).find((a) => a.name.startsWith('data-astro-cid'));
-    if (cid) openList.querySelectorAll('*').forEach((el) => el.setAttribute(cid.name, cid.value));
     const full = used >= limit;
     const hadFocus = document.activeElement === submit;
     submit.disabled = full;
@@ -161,7 +190,8 @@ const open = limit - queued.length;
     (document.getElementById('q-text') as HTMLTextAreaElement).focus();
   });
 
-  if (stored) { queue.replaceChildren(...stored.map(build)); refresh(); }
+  // Rows that were on the page keep their own markup (and their links to other pages); rows added in this browser are built.
+  if (stored) { const have = Array.from(queue.children) as HTMLElement[]; queue.replaceChildren(...stored.map((q) => have.find((li) => li.dataset.q === q.id) ?? build(q))); refresh(); }
 
   form.addEventListener('submit', (e) => {
     e.preventDefault();
@@ -187,42 +217,50 @@ const open = limit - queued.length;
 </script>
 
 <style>
-  .top { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--s-5); align-items: start; }
-  .queue { display: flex; flex-direction: column; gap: var(--s-4); padding: var(--s-8); border-radius: var(--r-lg); background: var(--deep); color: var(--on-deep); }
-  .queue-head { display: flex; flex-direction: column; gap: var(--s-2); }
-  .queue-when { display: inline-flex; align-items: center; gap: var(--s-2); font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: 0.06em; text-transform: uppercase; }
-  .queue h2 { font-size: var(--fs-h2); font-weight: 300; line-height: 1.1; letter-spacing: -0.03em; }
-  .queue-limit { font-size: 0.9375rem; line-height: 1.55; }
-  .slots { display: flex; flex-direction: column; gap: var(--s-2); }
-  .slots:empty { display: none; }
-  .slot { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--s-3); padding: var(--s-3) var(--s-3) var(--s-3) var(--s-4); border-radius: var(--r-md); background: var(--surface); color: var(--ink); }
-  .slot-n { display: grid; place-items: center; width: 2.25rem; height: 2.25rem; border-radius: 50%; background: var(--acc); color: var(--on-acc); font-weight: 600; }
-  .slot-body { min-width: 0; }
-  .slot-text { font-weight: 500; line-height: 1.4; overflow-wrap: anywhere; }
-  .slot-by { font-size: var(--fs-sm); color: var(--ink-2); }
-  .slot.empty { grid-template-columns: auto 1fr; background: transparent; color: var(--on-deep); border: 1px dashed currentColor; min-height: 3.5rem; }
-  .slot.empty .slot-n { background: transparent; color: var(--on-deep); border: 1px solid currentColor; }
-  .good { padding: var(--s-4) var(--s-5); border-radius: var(--r-md); background: var(--paper); }
-  .good-title { font-weight: 500; margin-bottom: var(--s-2); }
-  .good ul { display: flex; flex-direction: column; gap: var(--s-2); font-size: 0.9375rem; line-height: 1.5; }
+  /* tomorrow's call: three places, as speech bubbles */
+  .queue { display: flex; flex-direction: column; gap: var(--s-5); padding: var(--s-6); border-radius: var(--r-xl); background: var(--leaf-soft); }
+  .queue-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); }
+  .queue h2 { font-size: 1.5rem; font-weight: 500; line-height: 1.2; letter-spacing: -0.025em; }
+  .queue-when { font-size: 0.9375rem; color: var(--ink-2); }
+  .queue-limit { margin-left: auto; padding: 0.375rem 0.875rem; border-radius: var(--r-pill); background: var(--surface); font-size: 0.9375rem; }
+  .queue-limit b { font-weight: 600; }
+  .slots { display: flex; flex-direction: column; gap: var(--s-4); }
+  .slots ol { display: contents; }
+  .slots :global(.slot:target .bub) { box-shadow: 0 0 0 3px var(--acc); }
+  .slots :global(.slot) { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s-2); min-width: 0; }
+  .slot-by { display: flex; align-items: center; gap: var(--s-2); font-size: var(--fs-sm); color: var(--ink-2); }
+  .slot-by [data-slot='by'] { font-weight: 600; color: var(--ink); }
+  .slot :global(.bub) { align-self: stretch; padding: var(--s-4); box-shadow: var(--shadow-1); }
+  .slot-text { font-size: 1.125rem; font-weight: 500; line-height: 1.4; }
+  .slots :global(.slot-foot) { align-self: stretch; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 var(--s-3); margin-top: calc(var(--s-1) * -1); padding-left: var(--s-2); }
+  .slots :global(.slot-foot .cf-link) { margin-left: auto; }
+  .slots :global(.slot) { scroll-margin-top: var(--s-6); }
+  .slots :global(.slot.empty) { flex-direction: row; align-items: center; justify-content: center; gap: var(--s-2); min-height: 4.5rem; border: 2px dashed var(--leaf); border-radius: var(--r-lg); color: var(--ink-2); font-size: 0.9375rem; }
+  .slots :global(.slot-plus) { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 50%; background: var(--surface); color: var(--ink); font-size: 1.25rem; line-height: 1; }
+
+  .good { padding: var(--s-4) var(--s-5); border-radius: var(--r-xl); background: var(--leaf-soft); }
+  .good-title { font-weight: 500; margin-bottom: var(--s-3); }
+  .good ul { display: flex; flex-direction: column; gap: var(--s-3); }
+  .good li { display: flex; align-items: flex-start; gap: var(--s-3); font-size: 0.9375rem; line-height: 1.45; }
+  .good li > span:last-child { display: flex; flex-direction: column; padding-top: 0.25rem; }
   .good b { font-weight: 500; }
+  .good li span span { color: var(--ink-2); font-size: var(--fs-sm); }
   .err { color: var(--ink); font-weight: 500; }
   .err[hidden] { display: none; }
 
-  .earlier { display: flex; flex-direction: column; gap: var(--s-5); }
-  .answers { display: flex; flex-direction: column; border-top: 1px solid var(--line); }
-  .answer { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: var(--s-4) var(--s-8); padding: var(--s-6) 0; border-bottom: 1px solid var(--line); }
-  .answer-q { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s-2); }
-  .answer-meta { display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-3); font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); }
-  .answer h3 { font-size: 1.1875rem; font-weight: 500; line-height: 1.4; }
-  .answer-a { display: flex; flex-direction: column; gap: var(--s-3); }
-  .answer-a > p { color: var(--ink-2); }
+  /* her answers: the question, then her words */
+  .answers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-4); }
+  .answer { display: grid; grid-template-rows: subgrid; grid-row: span 2; gap: var(--s-4); padding: var(--s-5); border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--line); min-width: 0; }
+  .answer-q { display: flex; align-items: flex-start; gap: var(--s-3); }
+  .answer-meta { font-size: var(--fs-sm); color: var(--ink-2); }
+  .answer h3 { font-size: 1.0625rem; font-weight: 500; line-height: 1.4; }
+  .answer-a { display: flex; align-items: flex-start; gap: var(--s-3); margin: 0; }
+  .answer-a > div { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s-2); min-width: 0; }
+  .answer-a :global(.bub) p { font-size: 1.125rem; line-height: 1.4; }
+  .answer-a figcaption { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1) var(--s-3); font-size: var(--fs-sm); color: var(--ink-2); line-height: 1.5; }
 
-  @media (max-width: 75rem) { .top { grid-template-columns: minmax(0, 1fr); } }
-  @media (max-width: 40rem) {
-    .queue { padding: var(--s-5); }
-    .answer { grid-template-columns: minmax(0, 1fr); }
-    .slot { grid-template-columns: auto minmax(0, 1fr); }
-    .slot :global(.cf-link) { grid-column: 2; justify-self: start; margin-left: calc(var(--s-3) * -1); }
+  @media (max-width: 62rem) {
+    .answers { grid-template-columns: minmax(0, 1fr); }
   }
+  @media (max-width: 40rem) { .queue { padding: var(--s-4); } }
 </style>

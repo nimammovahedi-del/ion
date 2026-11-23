@@ -1,25 +1,49 @@
 ---
-/** One thing on a calendar day. Also used inside a <template> so items added in the browser look the same. */
-import ListRow from './ListRow.astro';
-import Chip from '@/components/ui/Chip.astro';
+/**
+ * One thing on a calendar day, kept compact: the title and time on one line, then one quiet line for what Ion will say.
+ * Also used inside a <template> so items added in the browser look the same.
+ */
 import Icon from '@/components/ui/Icon.astro';
+import IconBadge from '@/components/ui/IconBadge.astro';
+import AlsoOn from './AlsoOn.astro';
 import './care.css';
-interface Props { kind: 'appointment' | 'visit' | 'refill' | 'call'; title?: string; time?: string; note?: string; mention?: string; sort?: number; added?: boolean; id?: string }
-const { kind, title = '', time, note, mention, sort = -1, added = false, id } = Astro.props;
-const KIND = { appointment: { icon: 'clock', label: 'Appointment' }, visit: { icon: 'users', label: 'Visit' }, refill: { icon: 'pill', label: 'Refill' }, call: { icon: 'phone', label: 'Call' } } as const;
+interface Props {
+  kind: 'appointment' | 'visit' | 'refill' | 'call' | 'task'; title?: string; short?: string; time?: string; note?: string; mention?: string; sort?: number; added?: boolean; id?: string;
+  noteLink?: { text: string; href: string; task?: string }; also?: { label: string; href: string }[];
+}
+const { kind, title = '', short, time, note, mention, sort = -1, added = false, id, noteLink, also = [] } = Astro.props;
+const KIND = {
+  appointment: { icon: 'clock', label: 'Appointment', tone: 'acc' }, visit: { icon: 'users', label: 'Visit', tone: 'leaf' },
+  refill: { icon: 'pill', label: 'Refill', tone: 'sky' }, call: { icon: 'phone', label: 'Call', tone: 'butter' },
+  task: { icon: 'tasks', label: 'Task', tone: 'butter' },
+} as const;
 const k = KIND[kind];
 ---
-<ListRow icon={k.icon} data-sort={sort} data-item={id} class="ag">
-  <p class="lr-title" data-slot="title">{title}</p>
-  <p class="lr-meta"><span class="num" data-slot="time">{time ?? ''}</span><Chip tone="info">{k.label}</Chip>{added && <span>Added by you</span>}</p>
-  {(note || added) && <p class="lr-note" data-slot="note" hidden={!note}>{note}</p>}
-  <p class="ag-mention" data-slot-wrap="mention" hidden={!mention}><Icon name="chat" size={16} /><span data-slot="mention">{mention}</span></p>
+<li class="ag" data-sort={sort} data-item={id} data-kind={kind} data-short={short}>
+  <IconBadge name={k.icon} tone={k.tone} size="sm" />
+  <div class="ag-body">
+    <p class="ag-title"><span data-slot="title">{title}</span><span class="ag-time num" data-slot="time">{time ?? ''}</span><span class="ag-kind">{k.label}{added && ', added by you'}</span></p>
+    {(note || noteLink) && <p class="ag-note">{noteLink ? <a href={noteLink.href} data-task-note={noteLink.task}>{noteLink.text}</a> : note}</p>}
+    <p class="ag-mention" data-slot-wrap="mention" hidden={!mention}><Icon name="chat" size={14} /><span data-slot="mention">{mention}</span></p>
+    <AlsoOn links={also} />
+  </div>
   {added && <button type="button" class="cf-link ag-remove" data-remove>Remove<span class="sr-only" data-slot="remove-label"> {title}</span></button>}
-</ListRow>
+</li>
 <style>
-  .ag-mention { display: flex; align-items: flex-start; gap: var(--s-2); margin-top: var(--s-1); font-size: var(--fs-sm); line-height: 1.5; color: var(--acc-text); }
-  .ag-mention :global(svg) { flex: none; margin-top: 0.1875rem; }
-  .ag-mention[hidden], [data-slot='note'][hidden] { display: none; }
-  [data-slot='time']:empty { display: none; }
-  .ag-remove { align-self: flex-start; margin-left: calc(var(--s-3) * -1); }
+  .ag { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: var(--s-2) var(--s-3); padding: var(--s-2) var(--s-3); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); min-width: 0; }
+  .ag-body { display: flex; flex-direction: column; min-width: 0; padding-top: 0.1875rem; }
+  .ag-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--s-3); font-size: 1rem; font-weight: 500; line-height: 1.45; overflow-wrap: anywhere; }
+  .ag-time { font-weight: 400; }
+  .ag-time:empty { display: none; }
+  .ag-kind { font-size: var(--fs-sm); font-weight: 400; color: var(--ink-2); }
+  .ag-note, .ag-mention { font-size: var(--fs-sm); line-height: 1.5; color: var(--ink-2); }
+  .ag-note a { display: inline-block; padding-block: 0.75rem; margin-block: -0.75rem; color: var(--acc-text); font-weight: 500; text-underline-offset: 0.2em; }
+  .ag-mention { display: flex; align-items: flex-start; gap: 0.375rem; }
+  .ag-mention :global(svg) { flex: none; margin-top: 0.25rem; }
+  .ag-mention[hidden] { display: none; }
+  .ag-remove { margin-block: -0.375rem; }
+  @media (max-width: 34rem) {
+    .ag { grid-template-columns: auto minmax(0, 1fr); }
+    .ag-remove { grid-column: 2; justify-self: start; margin-left: calc(var(--s-3) * -1); }
+  }
 </style>

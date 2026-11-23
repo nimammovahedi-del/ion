@@ -8,6 +8,7 @@ import type { Task } from '@/data/types';
 import Button from '@/components/ui/Button.astro';
 import Icon from '@/components/ui/Icon.astro';
 import Chip from '@/components/ui/Chip.astro';
+import IconBadge from '@/components/ui/IconBadge.astro';
 interface Props { tasks: Task[]; viewer?: string }
 const { tasks, viewer = '' } = Astro.props;
 const NUM = ['Nothing', 'One thing', 'Two things', 'Three things', 'Four things', 'Five things'];
@@ -19,10 +20,11 @@ const fromText = (t: Task) => {
   return `From the ${t.from}`;
 };
 ---
-<section class="needs" aria-labelledby="needs-h" data-needs data-viewer={viewer}>
+<section class="needs" id="needs" aria-labelledby="needs-h" data-needs data-viewer={viewer} data-reveal>
   <div class="needs-head">
+    <IconBadge name="tasks" tone="surface" size="md" round />
     <h2 id="needs-h" class="h3"><span data-needs-count>{countText(tasks.length)}</span></h2>
-    <a class="all" href="/app/tasks/">All tasks</a>
+    <a class="all" href="/app/tasks/">All tasks<Icon name="arrow" size={16} /></a>
   </div>
   {tasks.length === 0 ? (
     <p class="calm">Nothing is waiting for you today. If something comes up on a call, it will be here.</p>
@@ -31,13 +33,14 @@ const fromText = (t: Task) => {
       <ol role="list" class="list">
         {tasks.map((t) => (
           <li class="task" data-task={t.id}>
-            <div class="task-main">
-              <span class="task-icon" aria-hidden="true"><Icon name={t.icon} size={20} /></span>
-              <div class="task-text">
-                <h3 class="task-title">{t.title}</h3>
-                <p class="task-detail">{t.detail}</p>
-                <p class="task-meta"><span>{fromText(t)}</span>{t.due && <span>Due {t.due}</span>}</p>
-              </div>
+            <div class="task-top">
+              <IconBadge name={t.icon} tone="butter" size="lg" />
+              {t.due && <span class="task-due"><Icon name="clock" size={14} />Due {t.due}</span>}
+            </div>
+            <div class="task-text">
+              <p class="task-from">{fromText(t)}</p>
+              <h3 class="task-title">{t.title}</h3>
+              <p class="task-detail">{t.detail}</p>
             </div>
             <div class="task-actions" data-actions>
               {t.actions.map((a) => (
@@ -55,6 +58,7 @@ const fromText = (t: Task) => {
       </ol>
       <p class="calm" data-all-done hidden>That is everything for today. Thank you. Ion will add anything new after tomorrow's call.</p>
       <p class="note"><Icon name="lock" size={14} />Example data. Nothing is sent. Changes are kept in this browser only.</p>
+      <noscript><p class="note">Saying yes needs JavaScript in this example.</p></noscript>
     </>
   )}
   <p class="sr-only" aria-live="polite" data-live></p>
@@ -91,27 +95,22 @@ const fromText = (t: Task) => {
       if (done) text.textContent = words;
       card.querySelectorAll<HTMLElement>('[data-chip]').forEach((c) => { c.hidden = (c.dataset.chip === 'done') !== finished; });
     };
-    // Step 4 of "What Ion did today" is the ride. Keep it in step with the ride card.
-    const syncRideStep = () => {
-      const waiting = !state.ride || state.ride.status === 'needs-you';
-      document.querySelectorAll<HTMLElement>('[data-ride-step]').forEach((el) => { el.hidden = !waiting; });
-      document.querySelectorAll<HTMLElement>('[data-ride-step-done]').forEach((el) => { el.hidden = waiting; });
-    };
+    // The same calm line right after a yes and after a reload: who has it, or that it is done.
+    const doneWords = (finished: boolean, who?: string) => (finished ? 'Marked done.' : `${!who || who === viewer ? 'You have' : `${who} has`} this one.`);
     root.querySelectorAll<HTMLElement>('[data-task]').forEach((card) => {
       const id = card.dataset.task as string;
       const title = card.querySelector('.task-title')?.textContent ?? '';
       // Bring back what was chosen earlier in this browser, here or on the Tasks page.
       const before = state[id];
-      if (before && before.status !== 'needs-you') show(card, true, before.status === 'done' ? 'Marked done.' : `${!before.who || before.who === viewer ? 'You have' : `${before.who} has`} this one.`, before.status === 'done');
+      if (before && before.status !== 'needs-you') show(card, true, doneWords(before.status === 'done', before.who), before.status === 'done');
       card.querySelectorAll<HTMLButtonElement>('[data-act]').forEach((btn) => {
         btn.addEventListener('click', () => {
           const label = btn.dataset.act ?? '';
           const finished = /already|done/i.test(label);
           const other = label.match(/^(\w+) will /)?.[1];
-          show(card, true, `You chose "${label}".`, finished);
+          show(card, true, doneWords(finished, other ?? viewer), finished);
           state[id] = { status: finished ? 'done' : 'in-progress', who: other ?? viewer };
           const left = update(true);
-          syncRideStep();
           if (live) live.textContent = `${title}: ${finished ? 'marked done' : 'now in progress'}. ${countText(left)}.`;
           card.querySelector<HTMLButtonElement>('[data-undo]')?.focus();
         });
@@ -120,43 +119,42 @@ const fromText = (t: Task) => {
         show(card, false);
         delete state[id];
         const left = update(true);
-        syncRideStep();
         if (live) live.textContent = `${title} is waiting again. ${countText(left)}.`;
         card.querySelector<HTMLButtonElement>('[data-actions] button')?.focus();
       });
     });
     if (Object.keys(state).length) update(false);
-    syncRideStep();
   });
 </script>
 
 <style>
-  .needs { display: flex; flex-direction: column; gap: var(--s-4); padding: var(--s-6); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-xl); min-width: 0; }
-  .needs-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--s-2) var(--s-4); }
-  .all { display: inline-flex; align-items: center; min-height: var(--tap); font-size: var(--fs-sm); font-weight: 500; color: var(--acc-text); }
-  .list { display: flex; flex-direction: column; gap: var(--s-3); }
-  .task { display: flex; flex-direction: column; gap: var(--s-3); padding: var(--s-4); border-radius: var(--r-lg); background: var(--paper); border: 1px solid transparent; transition: background 0.2s var(--ease); }
-  .task.is-done { background: var(--surface); border-color: var(--line); }
+  .needs { display: flex; flex-direction: column; gap: var(--s-5); padding: var(--s-8); background: var(--butter-soft); border-radius: var(--r-xl); min-width: 0; scroll-margin-top: var(--s-6); }
+  .needs-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3); }
+  .needs-head h2 { margin-right: auto; font-size: 1.625rem; font-weight: 400; letter-spacing: -0.025em; }
+  .all { display: inline-flex; align-items: center; gap: var(--s-2); min-height: var(--tap); font-size: 0.9375rem; font-weight: 500; color: var(--ink); }
+  .all:hover { color: var(--acc-text); }
+  .list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16.5rem), 1fr)); gap: var(--s-4); }
+  .task { display: flex; flex-direction: column; gap: var(--s-4); padding: var(--s-5); border-radius: var(--r-lg); background: var(--surface); box-shadow: var(--shadow-1); min-width: 0; }
+  .task.is-done { background: transparent; box-shadow: none; outline: 1px dashed var(--line-strong); outline-offset: -1px; }
   .task.is-done .task-title { color: var(--ink-2); }
-  .task-main { display: flex; gap: var(--s-3); align-items: flex-start; }
-  .task-icon { flex: none; display: grid; place-items: center; width: 2.5rem; height: 2.5rem; border-radius: 50%; background: var(--acc-soft); color: var(--acc-text); }
+  .task-top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--s-3); }
+  .task-due { display: inline-flex; align-items: center; gap: 0.375rem; min-height: 1.75rem; padding: 0 0.75rem; border-radius: var(--r-pill); background: var(--paper); font-size: 0.8125rem; font-weight: 500; white-space: nowrap; }
   .task-text { display: flex; flex-direction: column; gap: var(--s-1); min-width: 0; }
-  .task-title { font-size: var(--fs-lg); font-weight: 500; line-height: 1.35; }
+  .task-from { font-size: var(--fs-sm); font-weight: 500; color: var(--acc-text); }
+  .task-title { font-size: 1.25rem; font-weight: 500; line-height: 1.25; letter-spacing: -0.015em; }
   .task-detail { font-size: 0.9375rem; line-height: 1.5; color: var(--ink-2); }
-  .task-meta { display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-3); font-size: var(--fs-sm); color: var(--ink-2); }
-  .task-meta span:first-child { color: var(--acc-text); font-weight: 500; }
-  .task-actions { display: flex; flex-wrap: wrap; gap: var(--s-2); padding-left: 3.25rem; }
+  .task-actions { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: auto; }
+  .task-actions :global(.btn) { min-height: var(--tap); }
   .task-actions[hidden], .task-done[hidden] { display: none; }
-  .task-done { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3); padding-left: 3.25rem; font-size: var(--fs-sm); color: var(--ink-2); }
-  .task-done p { flex: 1 1 12rem; }
+  .task-done { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3); margin-top: auto; font-size: var(--fs-sm); color: var(--ink-2); }
+  .task-done p { flex: 1 1 100%; }
   .undo { min-height: var(--tap); padding: 0 var(--s-3); border: 0; border-radius: var(--r-pill); background: transparent; color: var(--acc-text); font-size: var(--fs-sm); font-weight: 500; text-decoration: underline; text-underline-offset: 0.2em; }
   .undo:hover { background: var(--acc-soft); }
-  .calm { font-size: var(--fs-lg); line-height: 1.5; padding: var(--s-4); border-radius: var(--r-lg); background: var(--acc-soft); }
+  .calm { font-size: var(--fs-lg); line-height: 1.5; padding: var(--s-4) var(--s-5); border-radius: var(--r-lg); background: var(--surface); }
   .calm[hidden] { display: none; }
-  .note { display: flex; align-items: center; gap: var(--s-2); font-size: var(--fs-xs); color: var(--ink-2); }
+  .note { display: flex; align-items: center; gap: var(--s-2); font-size: var(--fs-sm); color: var(--ink-2); }
   @media (max-width: 30rem) {
-    .needs { padding: var(--s-4); border-radius: var(--r-lg); }
-    .task-actions, .task-done { padding-left: 0; }
+    .needs { padding: var(--s-5); border-radius: var(--r-lg); }
     .task-actions :global(.btn) { flex: 1 1 auto; }
   }
 </style>

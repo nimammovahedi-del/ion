@@ -1,111 +1,48 @@
 ---
 import AppLayout from '@/layouts/AppLayout.astro';
-import HealthCard from '@/components/ui/HealthCard.astro';
-import StepRow from '@/components/ui/StepRow.astro';
-import Chip from '@/components/ui/Chip.astro';
+import Opening from '@/components/app/today/Opening.astro';
+import Glance from '@/components/app/today/Glance.astro';
 import NeedsYou from '@/components/app/today/NeedsYou.astro';
-import Headline from '@/components/app/today/Headline.astro';
-import HerWords from '@/components/app/today/HerWords.astro';
 import WeekGlance from '@/components/app/today/WeekGlance.astro';
 import MightDo from '@/components/app/today/MightDo.astro';
-import { getHealthCards, getMetrics, getParent, getReport, getSteps, getTasks, getToday, getViewer } from '@/lib/loaders';
+import { getHealthCards, getHerWords, getMedicines, getMetrics, getParent, getReport, getTasks, getToday, getViewer } from '@/lib/loaders';
 
-const [today, parent, viewer, report, cards, tasks, steps, metrics] = await Promise.all([
-  getToday(), getParent(), getViewer(), getReport(), getHealthCards(), getTasks(), getSteps(), getMetrics(),
+const [today, parent, viewer, report, cards, tasks, metrics, words, medicines] = await Promise.all([
+  getToday(), getParent(), getViewer(), getReport(), getHealthCards(), getTasks(), getMetrics(), getHerWords(), getMedicines(),
 ]);
 const needsYou = tasks.filter((t) => t.status === 'needs-you');
-// Things that changed or need a check come first and larger; the steady ones follow, smaller.
-const flagged = cards.filter((c) => c.status !== 'usual');
-const steady = cards.filter((c) => c.status === 'usual');
-const waitingStep = steps.find((s) => s.status === 'needs-you');
-const doneSteps = steps.filter((s) => s.status === 'done').length;
-// The same steps once the family has said yes to the ride. Shown in place of the list above by the task cards' script.
-const stepsAfterYes = steps.map((st) => st.status !== 'needs-you' ? st : {
-  ...st, status: 'done' as const, result: 'Someone in the family said yes. It is on the Tasks page now.',
-  substeps: st.substeps?.map((x, i, all) => ({ ...x, done: true, code: undefined, label: i === all.length - 1 ? 'The family said yes' : x.label })), progress: 100,
-});
 ---
 <AppLayout
   title="Today"
   active="today"
-  eyebrow={`${today.long}`}
   heading={`Good morning, ${viewer.short}.`}
   tone2={`Here is how your mom is today.`}
 >
   <div class="today">
-    <div class="top">
-      <NeedsYou tasks={needsYou} viewer={viewer.short} />
-      <Headline
-        dateLong={today.long}
-        callTime={today.callTime}
-        callMinutes={today.callMinutes}
-        name={parent.short}
-        headline={report.headline}
-        overall={report.overall}
-        overallTone={report.overallTone}
-        changed={report.changed}
-        stayedSame={report.stayedSame}
-      />
-    </div>
+    <Opening
+      name={parent.short}
+      callTime={today.callTime}
+      callMinutes={today.callMinutes}
+      headline={report.headline}
+      overall={report.overall}
+      overallTone={report.overallTone}
+      quotes={report.quotes}
+      said={report.said}
+    />
 
-    <HerWords name={parent.short} quotes={report.quotes} said={report.said} />
+    <Glance cards={cards} metrics={metrics} words={words} medicines={medicines} />
+
+    <NeedsYou tasks={needsYou} viewer={viewer.short} />
 
     <WeekGlance metrics={metrics} />
 
-    <section class="health" aria-labelledby="health-h">
-      <div class="sec-head">
-        <div>
-          <h2 id="health-h" class="h3">From today's call</h2>
-          <p class="muted small">Each card says where it came from. Open one to see the trend.</p>
-        </div>
-        <p class="counts">
-          {flagged.length > 0 && <Chip tone="changed">{flagged.length} to look at</Chip>}
-          <Chip tone="usual">{steady.length} as usual</Chip>
-        </p>
-      </div>
-      {flagged.length > 0 && (
-        <div class="cards-flagged">{flagged.map((c) => <HealthCard card={c} href={`/app/trends/#${c.id}`} />)}</div>
-      )}
-      <div class="cards-steady" tabindex="0" role="group" aria-label="Measures that are as usual">{steady.map((c) => <HealthCard card={c} href={`/app/trends/#${c.id}`} compact />)}</div>
-    </section>
-
-    <div class="bottom">
-      <section class="ion" aria-labelledby="ion-h">
-        <div class="sec-head">
-          <div>
-            <h2 id="ion-h" class="h3">What Ion did today</h2>
-            <p class="muted small"><span data-ride-step>{doneSteps} of {steps.length} steps done{waitingStep ? `. Step ${waitingStep.n} is waiting for you.` : '.'}</span><span data-ride-step-done hidden>{doneSteps + 1} of {steps.length} steps done.</span></p>
-          </div>
-        </div>
-        <ol role="list" class="steps" data-ride-step>{steps.map((s) => <StepRow step={s} total={steps.length} />)}</ol>
-        <ol role="list" class="steps" data-ride-step-done hidden>{stepsAfterYes.map((s) => <StepRow step={s} total={steps.length} />)}</ol>
-      </section>
-      <MightDo items={report.suggestions} />
-    </div>
+    <MightDo items={report.suggestions} />
   </div>
 </AppLayout>
 
 <style>
-  .today { container-type: inline-size; display: flex; flex-direction: column; gap: var(--s-6); min-width: 0; }
-  .top, .bottom { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-6); align-items: start; }
-  .sec-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: var(--s-3) var(--s-6); }
-  .counts { display: flex; flex-wrap: wrap; gap: var(--s-2); }
-  .health { display: flex; flex-direction: column; gap: var(--s-4); }
-  .cards-flagged { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-4); }
-  .cards-steady { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: var(--s-4); }
-  .ion { display: flex; flex-direction: column; gap: var(--s-4); min-width: 0; }
-  .steps { display: flex; flex-direction: column; gap: var(--s-3); }
-  .steps[hidden] { display: none; }
-  /* phones: the steady cards slide sideways so the page stays short */
-  @container (max-width: 43.99rem) {
-    .cards-steady { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: var(--s-2); }
-    .cards-steady > :global(*) { flex: 0 0 78%; scroll-snap-align: start; }
-  }
-  @container (min-width: 44rem) {
-    .cards-flagged { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  }
-  @container (min-width: 60rem) {
-    .top { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-    .bottom { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); }
+  .today { container-type: inline-size; display: flex; flex-direction: column; gap: var(--s-10); min-width: 0; }
+  @media (max-width: 30rem) {
+    .today { gap: var(--s-8); }
   }
 </style>

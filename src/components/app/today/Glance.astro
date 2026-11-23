@@ -1,0 +1,279 @@
+---
+/**
+ * "Today at a glance": one friendly tile per measure. Each has an icon, the value in big type, a tiny picture of it
+ * against her usual, and its status in words. Tiles to look at (changed, or two answers) come first and are larger.
+ * The rest sit in one row of five: "a little different" ones carry a butter chip, "as usual" ones a sage chip.
+ * In the pictures sage means as usual and apricot means different from her usual.
+ * On the large tiles her words and where they came from are shown. For the steady ones they sit behind a native <details>,
+ * so nothing true is lost and it is not all open at once.
+ */
+import type { HealthCardData, HerWords, Medicine, MetricId, MetricSeries, Source, Status } from '@/data/types';
+import Chip from '@/components/ui/Chip.astro';
+import Icon from '@/components/ui/Icon.astro';
+import IconBadge from '@/components/ui/IconBadge.astro';
+import GlancePic, { type Pic } from './GlancePic.astro';
+import { lastDays } from '@/lib/loaders';
+import { ICON, TONE, STATUS_WORD, chartTone, dayLabel, dayState, statusWord, valueWords, listWords } from '@/components/app/trends/measure';
+interface Props { cards: HealthCardData[]; metrics: MetricSeries[]; words: HerWords[]; medicines: Medicine[] }
+const { cards, metrics, words, medicines } = Astro.props;
+
+const metric = (id: MetricId) => metrics.find((m) => m.id === id);
+const card = (id: string) => cards.find((c) => c.id === id);
+const week = (id: MetricId) => { const m = metric(id); return m ? lastDays(m, 7) : []; };
+const letters = (id: MetricId) => week(id).map((p) => dayLabel(p.date, { weekday: 'narrow' }));
+const clean = (s: string) => s.replace(/ · (\w)/g, (_, c: string) => `. ${c.toUpperCase()}`);
+const said = (id: MetricId) => words.find((w) => w.metric === id);
+
+interface Tile {
+  id: MetricId; title: string; value: string; unit?: string; caption: string; status: Status; label: string;
+  evidence: string; sources: Source[]; from?: string; pic?: Pic; answers?: { where: string; text: string }[]; note?: string;
+}
+const tiles: Tile[] = [];
+
+// Sleep: the last seven nights as bars against her usual.
+{
+  const c = card('sleep'), m = metric('sleep');
+  if (c && m) {
+    const w = week('sleep');
+    tiles.push({ id: 'sleep', title: c.title, value: c.value, unit: c.unit, caption: clean(c.caption), status: c.status, label: c.statusLabel, evidence: c.evidence, sources: c.sources, from: c.from,
+      pic: { kind: 'bars', values: w.map((p) => p.value), days: letters('sleep'), usual: m.usual, max: 9.5, low: w.map((p) => dayState(m, p.value) === 'changed'),
+        label: `Hours she said she slept on the last seven nights: ${w.map((p) => `${dayLabel(p.date)} ${p.value ?? 'no answer'}`).join(', ')}. Her usual is ${m.usualLabel}.` } });
+  }
+}
+// Feeling and pain: a seven-day line against her usual.
+for (const id of ['feeling', 'pain'] as const) {
+  const c = card(id), m = metric(id);
+  if (!c || !m) continue;
+  const w = week(id);
+  tiles.push({ id, title: c.title, value: c.value, unit: c.unit, caption: clean(c.caption), status: c.status, label: c.statusLabel, evidence: c.evidence, sources: c.sources, from: c.from,
+    pic: { kind: 'line', tone: chartTone(c.status), values: w.map((p) => p.value), usual: m.usual, min: Math.max(m.min, m.usual - 3), max: Math.min(m.max, m.usual + 3),
+      label: `${c.title} over the last seven days: ${w.map((p) => p.value ?? 'no answer').join(', ')}. Her usual is ${m.usualLabel}.` } });
+}
+// Meals and drinks share a tile: dots filled up to her usual.
+{
+  const c = card('meals'), m = metric('meals'), f = metric('fluids');
+  if (c && m) {
+    const meals = week('meals').at(-1)?.value ?? null;
+    const cups = f ? lastDays(f, 1)[0]?.value ?? null : null;
+    const drink = said('fluids');
+    const rows: Extract<Pic, { kind: 'pips' }>['rows'] = [];
+    if (meals !== null) rows.push({ icon: ICON.meals, filled: meals, of: Math.max(meals, m.usual), tone: 'leaf' });
+    if (cups !== null && f) rows.push({ icon: ICON.fluids, filled: cups, of: Math.max(cups, f.usual), tone: 'sky' });
+    tiles.push({ id: 'meals', title: 'Meals and drinks', value: c.value, unit: c.unit, caption: cups !== null ? `And ${valueWords('fluids', cups)} to drink` : clean(c.caption), status: c.status, label: c.statusLabel,
+      evidence: `${c.evidence}${drink ? ` About her drinks she said, "${drink.text}"` : ''}`, sources: c.sources, from: c.from,
+      pic: { kind: 'pips', rows, label: `${meals !== null ? valueWords('meals', meals) : 'No answer on meals'}, her usual is ${m.usualLabel}.${cups !== null && f ? ` ${valueWords('fluids', cups)} to drink, her usual is ${f.usualLabel}.` : ''}` } });
+  }
+}
+// Medicines: one capsule per pill time. When two answers disagree, both are shown.
+{
+  const c = card('medicines');
+  if (c) {
+    const state = (when: 'morning' | 'evening') => {
+      const list = medicines.filter((x) => x.when === when);
+      if (!list.length) return null;
+      if (list.every((x) => x.takenToday === true)) return 'taken' as const;
+      if (list.some((x) => x.takenToday === null)) return c.disagreement ? 'two' as const : 'unsure' as const;
+      return 'not' as const;
+    };
+    const WORDS = { taken: 'She said she took them', not: 'She said she did not take them', two: 'Two different answers', unsure: 'She was not sure' };
+    const times = ([['evening', 'Last night'], ['morning', 'This morning']] as const).flatMap(([when, label]) => {
+      const s = state(when);
+      return s ? [{ when: label, state: s, words: WORDS[s] }] : [];
+    });
+    const both = words.filter((w) => w.metric === 'medicines').slice(0, 2).reverse();
+    // No big figure here: a number would claim more than she said. The two capsules say it in words.
+    tiles.push({ id: 'medicines', title: c.title, value: '', caption: clean(c.caption), status: c.status, label: c.statusLabel, evidence: c.evidence, sources: c.sources, from: c.from,
+      pic: { kind: 'times', times },
+      answers: c.disagreement && both.length === 2 ? both.map((w) => ({ where: `${dayLabel(w.date, { weekday: 'long' })}, ${w.source ?? 'morning call'}`, text: w.text })) : undefined,
+      note: c.disagreement });
+  }
+}
+// Falls and getting out: one dot per day.
+{
+  const c = card('falls'), m = metric('falls');
+  if (c && m) {
+    const w = week('falls');
+    const n = w.reduce((a, p) => a + (p.value ?? 0), 0);
+    // A week with no falls is one calm mark, not seven empty boxes. A day is only drawn when there is something on it.
+    tiles.push({ id: 'falls', title: c.title, value: c.value, caption: clean(c.caption), status: c.status, label: c.statusLabel, evidence: c.evidence, sources: c.sources, from: c.from,
+      pic: n === 0 && w.every((p) => p.value !== null)
+        ? { kind: 'calm', words: 'None this week' }
+        : { kind: 'days', days: w.map((p, i) => ({ letter: letters('falls')[i], state: p.value === null ? 'none' : p.value > 0 ? 'mark' : 'on' })),
+          label: n === 0 ? 'No falls she told Ion about in the last seven days.' : `Falls she told Ion about in the last seven days: ${n}.` } });
+  }
+}
+{
+  const m = metric('out');
+  if (m) {
+    const w = week('out');
+    const answered = w.filter((p) => p.value !== null);
+    const out = answered.filter((p) => (p.value as number) > 0);
+    const q = said('out');
+    tiles.push({ id: 'out', title: m.title, value: `${out.length} of ${answered.length}`, unit: 'days', caption: 'She went out this week', status: m.status, label: statusWord(m),
+      evidence: `${m.note}${q ? ` On ${dayLabel(q.date, { weekday: 'long' })} she said, "${q.text}"` : ''}`, sources: [{ label: 'This week\'s calls', kind: 'earlier-calls' }], from: 'From this week\'s calls',
+      pic: { kind: 'days', days: w.map((p, i) => ({ letter: letters('out')[i], state: p.value === null ? 'none' : p.value > 0 ? 'on' : 'off' })),
+        label: out.length ? `She went out on ${listWords(out.map((p) => dayLabel(p.date)))}.` : 'She did not go out on the last seven days.' } });
+  }
+}
+const flagged = tiles.filter((t) => t.status === 'changed' || t.status === 'check');
+const steady = tiles.filter((t) => t.status === 'little' || t.status === 'usual');
+const little = steady.filter((t) => t.status === 'little').length;
+const href = (t: Tile) => `/app/trends/#${t.id}`;
+---
+<section class="glance" aria-labelledby="glance-h" data-reveal>
+  <div class="g-head">
+    <div>
+      <h2 id="glance-h" class="h3">Today at a glance</h2>
+      <p class="muted small">Her own answers on this morning's call, not measurements.</p>
+    </div>
+    <p class="g-counts">
+      {flagged.length > 0 && <Chip tone="changed">{flagged.length} to look at</Chip>}
+      {little > 0 && <Chip tone="little">{little} a little different</Chip>}
+      <Chip tone="usual">{steady.length - little} as usual</Chip>
+    </p>
+  </div>
+
+  {flagged.length > 0 && (
+    <div class="g-flagged">
+      {flagged.map((t) => (
+        <article class:list={['g-big', `g-${t.status}`]} aria-labelledby={`g-${t.id}`}>
+          <header class="g-top">
+            <IconBadge name={ICON[t.id]} tone="surface" size="md" />
+            <h3 id={`g-${t.id}`}>{t.title}</h3>
+            <Chip tone={t.status}>{t.label || STATUS_WORD[t.status]}</Chip>
+          </header>
+          {t.value ? (
+            <div class="g-main">
+              <p class="g-figure"><span class="g-value num">{t.value}</span>{t.unit && <span class="g-unit">{t.unit}</span>}<span class="g-cap">{t.caption}</span></p>
+              {t.pic && <GlancePic pic={t.pic} big />}
+            </div>
+          ) : (
+            <div class="g-main g-main-pic">{t.pic && <GlancePic pic={t.pic} big />}</div>
+          )}
+          {t.answers ? (
+            <div class="g-said">
+              <p class="g-said-label">Two answers about last night. Both are kept so you can ask her.</p>
+              <ul role="list">
+                {t.answers.map((a) => <li><q>{a.text}</q><span>{a.where}</span></li>)}
+              </ul>
+            </div>
+          ) : (
+            <div class="g-said">
+              <div class="g-bubble">
+                <p>{t.evidence}{t.note && <span> <b>Two answers.</b> {t.note}</span>}</p>
+                {t.from && <p class="g-from">{t.from}</p>}
+              </div>
+            </div>
+          )}
+          <a class="g-link" href={href(t)}>See the trend<span class="sr-only"> for {t.title.toLowerCase()}</span><Icon name="arrow" size={16} /></a>
+        </article>
+      ))}
+    </div>
+  )}
+
+  <ul role="list" class="g-steady">
+    {steady.map((t, i) => (
+      <li class="draw-pop" style={`--i:${i}`}>
+        <a class="g-small" href={href(t)}>
+          <span class="g-top">
+            <IconBadge name={ICON[t.id]} tone={TONE[t.id]} size="md" />
+            <h3>{t.title}</h3>
+          </span>
+          <span class="g-figure"><span class="g-value num">{t.value}</span>{t.unit && <span class="g-unit">{t.unit}</span>}</span>
+          <span class="g-cap">{t.caption}</span>
+          <span class="g-pic">{t.pic && <GlancePic pic={t.pic} />}</span>
+          <span class="g-state"><Chip tone={t.status}>{t.label || STATUS_WORD[t.status]}</Chip></span>
+        </a>
+      </li>
+    ))}
+  </ul>
+
+  {steady.length > 0 && (
+    <details class="g-why">
+      <summary><Icon name="chat" size={18} />What she said about these<Icon name="down" size={16} class="g-chev" /></summary>
+      <ul role="list">
+        {steady.map((t) => (
+          <li>
+            <IconBadge name={ICON[t.id]} tone={TONE[t.id]} size="sm" />
+            <p><b>{t.title}.</b> {t.evidence}{t.from && <span class="g-whence"> {t.from}.</span>}</p>
+          </li>
+        ))}
+      </ul>
+    </details>
+  )}
+</section>
+<style>
+  .glance { display: flex; flex-direction: column; gap: var(--s-4); min-width: 0; }
+  .g-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: var(--s-3) var(--s-6); }
+  .g-counts { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+  h3 { font-size: 1.0625rem; font-weight: 500; line-height: 1.3; }
+  .g-top { display: flex; align-items: center; gap: var(--s-3); }
+  .g-value { font-weight: 400; font-size: 3rem; line-height: 1; letter-spacing: -0.04em; }
+  .g-unit { font-size: 1.0625rem; }
+  .g-cap { font-size: var(--fs-sm); line-height: 1.4; color: var(--ink-2); }
+
+  /* the ones that changed: big, tinted, first */
+  .g-flagged { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: var(--s-4); }
+  .g-big { display: flex; flex-direction: column; gap: var(--s-4); padding: var(--s-6); border-radius: var(--r-xl); min-width: 0; }
+  .g-changed { background: var(--acc-soft); }
+  .g-check { background: var(--butter-soft); }
+  .g-big .g-top h3 { margin-right: auto; font-size: var(--fs-lg); }
+  .g-main-pic { display: flex; align-items: center; }
+  .g-main { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: var(--s-4) var(--s-6); min-height: 7.5rem; }
+  .g-big .g-figure { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--s-2); }
+  .g-big .g-value { font-size: 3.75rem; }
+  .g-big .g-cap { flex-basis: 100%; margin-top: var(--s-1); color: var(--ink); }
+  .g-said { display: flex; flex-direction: column; gap: var(--s-3); flex: 1; }
+  .g-said-label { font-size: 0.9375rem; line-height: 1.5; }
+  .g-said > ul { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); gap: var(--s-2); flex: 1; }
+  .g-said > ul li, .g-bubble { display: flex; flex-direction: column; gap: var(--s-2); padding: var(--s-4); border-radius: var(--r-md); background: var(--surface); }
+  .g-bubble { flex: 1; justify-content: space-between; }
+  .g-bubble p { font-size: 1.0625rem; line-height: 1.45; }
+  .g-said q { font-size: 0.9375rem; font-weight: 500; line-height: 1.4; }
+  .g-said > ul li span { margin-top: auto; font-size: var(--fs-sm); color: var(--ink-2); }
+  .g-bubble .g-from { font-size: var(--fs-sm); line-height: 1.4; color: var(--ink-2); }
+  .g-link { align-self: flex-start; display: inline-flex; align-items: center; gap: var(--s-2); min-height: var(--tap); margin-bottom: calc(-1 * var(--s-2)); font-size: 0.9375rem; font-weight: 500; color: var(--ink); }
+  .g-link:hover { color: var(--acc-text); }
+  @container (max-width: 30rem) { .g-main { grid-template-columns: minmax(0, 1fr); } }
+
+  /* the others: one row of five small tiles, each a link to its trend */
+  .g-steady { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--s-4); }
+  .g-steady li { display: flex; min-width: 0; }
+  .g-small { flex: 1; display: flex; flex-direction: column; gap: var(--s-1); padding: var(--s-5); border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-1); color: var(--ink); text-decoration: none; min-width: 0; transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease); }
+  .g-small:hover { color: var(--ink); transform: translateY(-3px); box-shadow: var(--shadow-2); }
+  .g-small .g-top { margin-bottom: var(--s-2); min-height: 2.75rem; }
+  .g-small .g-figure { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--s-2); margin-top: var(--s-1); }
+  .g-small .g-value { font-size: 2.5rem; }
+  .g-pic { display: flex; align-items: flex-end; min-height: 3.5rem; margin-top: auto; padding-top: var(--s-3); }
+  .g-state { display: flex; margin-top: var(--s-3); }
+  /* five across still fits at 1280 wide when the tiles are a little tighter */
+  @container (max-width: 64rem) {
+    .g-steady { gap: var(--s-3); }
+    .g-small { padding: var(--s-4); }
+    .g-small .g-top { gap: var(--s-2); }
+    .g-small .g-top :global(.ib) { width: 2.25rem; height: 2.25rem; }
+    .g-small h3 { font-size: 1rem; }
+    .g-small .g-value { font-size: 2.125rem; }
+    .g-small .g-unit { font-size: 0.9375rem; }
+  }
+  @container (max-width: 52rem) {
+    .g-steady { grid-template-columns: repeat(auto-fit, minmax(min(100%, 11.5rem), 1fr)); }
+  }
+
+  .g-why { border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--line); }
+  .g-why summary { display: flex; align-items: center; gap: var(--s-3); min-height: 3.25rem; padding: 0 var(--s-5); font-size: 0.9375rem; font-weight: 500; cursor: pointer; list-style: none; border-radius: var(--r-lg); }
+  .g-why summary::-webkit-details-marker { display: none; }
+  .g-why summary :global(svg:first-child) { color: var(--acc-text); }
+  .g-why summary :global(.g-chev) { margin-left: auto; transition: transform 0.2s var(--ease); }
+  .g-why[open] summary :global(.g-chev) { transform: rotate(180deg); }
+  .g-why ul { display: flex; flex-direction: column; padding: 0 var(--s-5) var(--s-3); }
+  .g-why li { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3); padding: var(--s-3) 0; border-top: 1px solid var(--line); }
+  .g-why li p { flex: 1 1 18rem; font-size: 0.9375rem; line-height: 1.5; }
+  .g-why li b { font-weight: 600; }
+  .g-whence { color: var(--ink-2); }
+
+  @media (max-width: 30rem) {
+    .g-big { padding: var(--s-5); border-radius: var(--r-lg); }
+    .g-big .g-value { font-size: 3rem; }
+  }
+</style>

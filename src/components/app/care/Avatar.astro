@@ -1,0 +1,19 @@
+---
+/** A person as a round badge with their initials, in their own colour. Ion appears as the capybara. Decorative: put the name beside it. */
+import Capybara from '@/components/ui/Capybara.astro';
+interface Props { initials?: string; tone?: 'butter' | 'leaf' | 'sky' | 'acc' | 'paper' | 'surface'; size?: 'sm' | 'md' | 'lg' | 'xl'; ion?: boolean; class?: string; [key: string]: unknown }
+const { initials = '', tone = 'paper', size = 'md', ion = false, class: cls = '', ...rest } = Astro.props;
+---
+<span class:list={['av', `av-${tone}`, `av-${size}`, { 'av-ion': ion }, cls]} aria-hidden="true" {...rest}>{ion ? <Capybara size={64} waves={false} ground="var(--acc-soft)" label="" /> : initials}</span>
+<style is:global>
+  .av { flex: none; display: inline-grid; place-items: center; width: 2.5rem; height: 2.5rem; border-radius: 50%; background: var(--paper); color: var(--ink); font-size: var(--fs-sm); font-weight: 600; line-height: 1; letter-spacing: 0.01em; overflow: hidden; }
+  .av-sm { width: 2rem; height: 2rem; font-size: var(--fs-xs); }
+  .av-lg { width: 3.5rem; height: 3.5rem; font-size: 1.0625rem; }
+  .av-xl { width: 5rem; height: 5rem; font-size: 1.5rem; }
+  .av-butter { background: var(--butter); }
+  .av-leaf { background: var(--leaf); }
+  .av-sky { background: var(--sky); }
+  .av-acc { background: var(--acc); color: var(--on-acc); }
+  .av-surface { background: var(--surface); border: 1px solid var(--line); }
+  .av-ion svg { width: 100%; height: 100%; }
+</style>

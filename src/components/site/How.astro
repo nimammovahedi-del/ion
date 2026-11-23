@@ -1,61 +1,97 @@
 ---
-/** How it works: the day in numbered rows, and the everyday topics Ion asks about. */
+/** How it works: one day drawn as a path from morning to evening, and the everyday topics Ion asks about as icon tiles. */
 import SectionHeading from '@/components/ui/SectionHeading.astro';
-import StepRow from '@/components/ui/StepRow.astro';
-import Icon from '@/components/ui/Icon.astro';
-import { DAY_STEPS, TOPICS } from '@/data/site';
+import IconBadge from '@/components/ui/IconBadge.astro';
+import Doodle from './Doodle.astro';
+import { DAY, TOPICS } from '@/data/site';
+const TONES = ['butter', 'leaf', 'acc', 'sky', 'deep'];
 ---
 <section id="how" class="how wrap" aria-labelledby="how-title">
-  <SectionHeading id="how-title" align="center" eyebrow="How it works" title="One call. One report. A few clear next steps." text="Every day follows the same simple shape. Your parent talks, Ion listens, and the family sees what matters." />
+  <SectionHeading id="how-title" align="center" eyebrow="How it works" title="One call. One report. A few clear next steps." />
 
-  <div class="how-grid">
-    <ol role="list" class="steps" data-reveal aria-label="A day with I-on, in five steps">
-      {DAY_STEPS.map((s) => <StepRow step={s} total={DAY_STEPS.length} animate />)}
+  <div class="day" data-reveal>
+    <div class="sky" aria-hidden="true">
+      <svg class="arc" viewBox="0 0 1000 64" preserveAspectRatio="none"><path d="M100 62Q500-54 900 62" /></svg>
+      <span class="sky-mark sky-sun"><Doodle name="sun" size={44} /><span>Morning</span></span>
+      <span class="sky-mark sky-moon"><Doodle name="moon" size={40} /><span>Evening</span></span>
+    </div>
+    <ol role="list" class="stops" aria-label="A day with I-on, from morning to evening">
+      {DAY.map((s, i) => (
+        <li class="stop">
+          <span class:list={['stop-pic', 'draw-pop', `tone-${TONES[i]}`]} style={`--i:${i * 4 + 2}`}><Doodle name={s.id} size={72} /></span>
+          <span class="stop-time num">{s.time}</span>
+          <h3 class="stop-title">{s.title}</h3>
+          <p class="stop-text">{s.text}</p>
+        </li>
+      ))}
     </ol>
+  </div>
 
-    <aside class="asks" aria-labelledby="asks-title">
+  <div class="asks" data-reveal>
+    <div class="asks-copy">
       <h3 id="asks-title" class="h3">What Ion asks about</h3>
-      <p class="muted small">Everyday questions, the way a friend would ask them. Never a test, and she can skip any of them.</p>
-      <ul role="list" class="topics">
-        {TOPICS.map((t) => (
-          <li>
-            <span class="topic-icon"><Icon name={t.icon} size={18} /></span>
-            <span><strong>{t.label}</strong><span class="topic-text">{t.text}</span></span>
-          </li>
-        ))}
-      </ul>
-      <p class="small asks-foot">You can also add a question of your own for tomorrow's call.</p>
-    </aside>
+      <p>Everyday questions, the way a friend would ask them. Never a test, and she can skip any of them.</p>
+      <p class="asks-own"><IconBadge name="plus" tone="surface" size="sm" round />Add a question of your own for tomorrow's call.</p>
+    </div>
+    <ul role="list" class="topics" aria-labelledby="asks-title">
+      {TOPICS.map((t, i) => (
+        <li class="topic draw-pop" style={`--i:${i}`}>
+          <IconBadge name={t.icon} tone={t.tone} />
+          <span><b>{t.label}</b><span>{t.text}</span></span>
+        </li>
+      ))}
+    </ul>
   </div>
 </section>
 <style>
-  .how { display: flex; flex-direction: column; gap: var(--s-12); padding-top: var(--s-32); scroll-margin-top: var(--s-6); }
-  .how-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: var(--s-6); align-items: start; }
-  .steps { display: flex; flex-direction: column; gap: var(--s-3); }
-  .asks { display: flex; flex-direction: column; gap: var(--s-4); background: var(--paper); border-radius: var(--r-xl); padding: var(--s-8); position: sticky; top: var(--s-6); }
-  .topics { display: flex; flex-direction: column; gap: var(--s-3); }
-  .topics li { display: flex; gap: var(--s-3); align-items: flex-start; line-height: 1.4; }
-  .topics strong { display: block; font-weight: 500; }
-  .topic-text { display: block; font-size: var(--fs-sm); color: var(--ink-2); }
-  .topic-icon { flex: none; display: grid; place-items: center; width: 2.25rem; height: 2.25rem; border-radius: 50%; background: var(--surface); color: var(--acc-text); border: 1px solid var(--line); }
-  .asks-foot { border-top: 1px solid var(--line-strong); padding-top: var(--s-3); }
+  .how { display: flex; flex-direction: column; gap: var(--s-10); padding-top: var(--s-24); }
 
-  /* The rows arrive one after another when the list comes into view. Without JavaScript, or with reduced motion, they are simply there. */
-  @media (prefers-reduced-motion: no-preference) {
-    :global(.js) .steps[data-reveal] { opacity: 1; transform: none; }
-    :global(.js) .steps :global([data-step]) { opacity: 0; transform: translateX(-12px); transition: opacity 0.5s var(--ease), transform 0.5s var(--ease); }
-    :global(.js) .steps.is-in :global([data-step]) { opacity: 1; transform: none; }
-    :global(.js) .steps.is-in :global([data-step='2']) { transition-delay: 0.25s; }
-    :global(.js) .steps.is-in :global([data-step='3']) { transition-delay: 0.5s; }
-    :global(.js) .steps.is-in :global([data-step='4']) { transition-delay: 0.75s; }
-    :global(.js) .steps.is-in :global([data-step='5']) { transition-delay: 1s; }
-  }
+  .day { display: flex; flex-direction: column; gap: var(--s-2); }
+  /* the sun's path over the day: it starts above the first stop and comes down over the last */
+  .sky { position: relative; height: 4.5rem; }
+  .arc { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .arc path { fill: none; stroke: var(--line-strong); stroke-width: 2; stroke-dasharray: 2 7; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+  .sky-mark { position: absolute; bottom: -0.5rem; display: flex; align-items: center; gap: var(--s-2); font-size: var(--fs-sm); font-weight: 500; color: var(--ink-2); }
+  .sky-sun { right: 90%; translate: 1.375rem 0; flex-direction: row-reverse; }
+  .sky-moon { left: 90%; translate: -1.25rem 0; }
+
+  .stops { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .stop { position: relative; display: flex; flex-direction: column; align-items: center; gap: var(--s-1); padding: var(--s-5) var(--s-3) 0; text-align: center; min-width: 0; }
+  /* the path that joins one stop to the next */
+  .stop + .stop::before { content: ''; position: absolute; top: calc(var(--s-5) + 3.5rem); left: calc(-50% + 4.25rem); right: calc(50% + 4.25rem); border-top: 3px dotted var(--line-strong); }
+  .stop-pic { display: grid; place-items: center; width: 7rem; height: 7rem; margin-bottom: var(--s-3); border-radius: 50%; }
+  .tone-butter { background: var(--butter-soft); }
+  .tone-deep { background: var(--deep); }
+  .tone-acc { background: var(--acc-soft); }
+  .tone-leaf { background: var(--leaf-soft); }
+  .tone-sky { background: var(--sky-soft); }
+  .stop-time { font-size: var(--fs-sm); font-weight: 500; color: var(--acc-text); }
+  .stop-title { font-size: var(--fs-lg); font-weight: 500; line-height: 1.3; letter-spacing: -0.01em; text-wrap: balance; }
+  .stop-text { max-width: 14rem; font-size: 0.9375rem; line-height: 1.5; color: var(--ink-2); text-wrap: pretty; }
+
+  .asks { display: grid; grid-template-columns: minmax(0, 19rem) minmax(0, 1fr); align-items: center; gap: var(--s-10); background: var(--paper); border-radius: var(--r-xl); padding: var(--s-8) var(--s-8) var(--s-8) var(--s-10); }
+  .asks-copy { display: flex; flex-direction: column; gap: var(--s-3); line-height: 1.55; }
+  .asks-copy p { color: var(--ink-2); }
+  .asks-own { display: flex; align-items: center; gap: var(--s-2); font-size: 0.9375rem; line-height: 1.4; }
+  .topics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-3); }
+  .topic { display: flex; align-items: center; gap: var(--s-3); padding: var(--s-3) var(--s-4) var(--s-3) var(--s-3); background: var(--surface); border-radius: var(--r-lg); min-width: 0; }
+  .topic > span { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
+  .topic b { font-weight: 500; }
+  .topic span span { font-size: var(--fs-sm); color: var(--ink-2); }
+
   @media (max-width: 60rem) {
-    .how-grid { grid-template-columns: minmax(0, 1fr); }
-    .asks { position: static; }
+    .sky { display: none; }
+    .stops { grid-template-columns: minmax(0, 1fr); gap: var(--s-2); }
+    .stop { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: var(--s-4); align-items: center; justify-items: start; padding: var(--s-2) 0; text-align: left; }
+    .stop + .stop::before { display: none; }
+    .stop-pic { grid-row: span 3; width: 5.5rem; height: 5.5rem; margin: 0; }
+    .stop-pic :global(svg) { width: 3.5rem; }
+    .stop-text { max-width: none; }
+    .asks { grid-template-columns: minmax(0, 1fr); gap: var(--s-6); padding: var(--s-6); }
+    .topics { grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr)); }
   }
   @media (max-width: 40rem) {
-    .how { padding-top: var(--s-24); gap: var(--s-10); }
-    .asks { padding: var(--s-6); border-radius: var(--r-lg); }
+    .how { padding-top: var(--s-16); gap: var(--s-8); }
+    .asks { padding: var(--s-5) var(--s-4); border-radius: var(--r-lg); }
   }
 </style>

@@ -1,137 +1,166 @@
 ---
 import AppLayout from '@/layouts/AppLayout.astro';
 import Icon from '@/components/ui/Icon.astro';
-import Card from '@/components/ui/Card.astro';
+import IconBadge from '@/components/ui/IconBadge.astro';
 import Capybara from '@/components/ui/Capybara.astro';
 import Switch from '@/components/app/care/Switch.astro';
+import Part from '@/components/app/care/Part.astro';
+import Avatar from '@/components/app/care/Avatar.astro';
+import Bubble from '@/components/app/care/Bubble.astro';
+import HeadArt from '@/components/app/care/HeadArt.astro';
+import TopicToggle from '@/components/app/care/TopicToggle.astro';
+import DayPills from '@/components/app/care/DayPills.astro';
 import ExampleNote from '@/components/app/care/ExampleNote.astro';
 import LiveRegion from '@/components/app/care/LiveRegion.astro';
 import '@/components/app/care/care.css';
-import { STANDING_LINE } from '@/data/nav';
 import { getCallSettings, getParent, getViewer } from '@/lib/loaders';
 import { minutesOf } from '@/lib/loaders-care';
-import { openingTopics } from '@/components/app/care/words';
 
 const [settings, parent, viewer] = await Promise.all([getCallSettings(), getParent(), getViewer()]);
 const mins = minutesOf(settings.time);
-const timeValue = `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
-const WEEK = [['Mon', 'Monday'], ['Tue', 'Tuesday'], ['Wed', 'Wednesday'], ['Thu', 'Thursday'], ['Fri', 'Friday'], ['Sat', 'Saturday'], ['Sun', 'Sunday']] as const;
+const hhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+const clock = (m: number) => `${Math.floor(m / 60) % 12 || 12}:${String(m % 60).padStart(2, '0')} ${m < 720 ? 'AM' : 'PM'}`;
+const timeValue = hhmm(mins);
 const voices = [settings.voice, 'Ion, bright and cheerful', 'Ion, slower, with longer pauses'];
 const fixed = settings.topics.filter((t) => t.fixed);
 const optional = settings.topics.filter((t) => !t.fixed);
-const topicIds = settings.topics.filter((t) => t.on && t.id !== 'story').map((t) => t.id);
-const story = settings.topics.find((t) => t.id === 'story')?.on;
-const tries = settings.retry.match(/\d{1,2}:\d{2}/g) ?? [];
+const voiceWords = (v: string) => v.replace('Ion, ', '');
+const ICONS: Record<string, string> = { sleep: 'moon', meals: 'bowl', pain: 'spark', medicines: 'pill', falls: 'walk', out: 'walk', food: 'cart', mood: 'heart', story: 'book' };
+// Retries, as minutes after the call time, read from the plain sentence in the settings.
+const retryOffsets = (settings.retry.match(/\d{1,2}:\d{2}/g) ?? []).map((t) => {
+  const [h, m] = t.split(':').map(Number);
+  const asMorning = h * 60 + m;
+  return (asMorning < mins ? asMorning + 720 : asMorning) - mins;
+});
+// The picture of her day has two parts: the time around the call, drawn large enough to show each retry, and the evening.
+// Stops sit at fixed places along the first part (the call, then each retry by how long after the call it is), so only the times written under them change.
+const EVENING_TIME = '6:00 PM';
+const lastRetry = Math.max(60, ...retryOffsets);
+const at = (offset: number) => `${(14 + (offset / lastRetry) * 72).toFixed(1)}%`;
+const partOfDay = (m: number) => (m < 720 ? 'Morning' : m < 1020 ? 'Afternoon' : 'Evening');
+const daysWords = (n: number) => (n === 7 ? 'Every day' : n === 0 ? 'No days chosen' : `${n} ${n === 1 ? 'day' : 'days'} a week`);
+const dayLabel = `Her day. Ion calls at ${settings.time}${retryOffsets.length ? `, and tries again at ${retryOffsets.map((o) => clock(mins + o)).join(' and ')} if she does not answer` : ''}. The evening reminder is at ${EVENING_TIME}.`;
 ---
-<AppLayout title="Call settings" active="settings" eyebrow="Call settings"
-  heading="How Ion's call works." tone2="You choose when, and what Ion asks."
-  lede={`When Ion calls ${parent.short}, what it asks about, and what happens if she does not pick up. Changes take effect from the next call.`}>
+<AppLayout title="Call settings" active="settings"
+  heading="Her daily call."
+  lede="When Ion calls and what it asks. Changes take effect from the next call.">
+  <HeadArt slot="head-art" name="phone" />
   <LiveRegion />
   <p class="paused-banner" data-paused-banner hidden><Icon name="clock" size={18} /><span>Calls are paused. Ion will not call {parent.short} until you switch this off.</span></p>
 
   <div class="layout" data-settings data-parent={parent.short}>
     <div class="main">
-      <Card as="section" pad="lg" class="block" aria-labelledby="when-title">
-        <h2 id="when-title" class="bt"><Icon name="clock" size={20} />When Ion calls</h2>
-        <div class="when-grid">
-          <div class="cf-field">
-            <label for="call-time">Time of the call</label>
-            <input class="cf-input time" id="call-time" name="time" type="time" value={timeValue} step="300" />
+      <Part id="when" title="When Ion calls" icon="clock" tone="sky">
+        <div class="when">
+          <figure class="day" data-draw>
+            <div class="day-parts" role="img" aria-label={dayLabel} data-day-picture>
+              <div class="day-part">
+                <span class="day-part-label" data-part-label>{partOfDay(mins)}</span>
+                <div class="day-track">
+                  <span class="day-stop" style={`left: ${at(0)}`}><span class="day-mark day-call draw-pop"><Icon name="phone" size={18} /></span><b class="num" data-try="0">{settings.time}</b></span>
+                  {retryOffsets.map((o, i) => <span class="day-stop" style={`left: ${at(o)}`}><span class="day-retry draw-pop" style={`--i: ${i + 2}`}></span><b class="num" data-try-short={o}>{clock(mins + o).replace(/ [AP]M$/, '')}</b></span>)}
+                </div>
+              </div>
+              <span class="day-gap"><i></i><i></i><i></i></span>
+              <div class="day-part day-evening">
+                <span class="day-part-label">Evening</span>
+                <div class="day-track">
+                  <span class="day-stop" style="left: 50%"><span class="day-mark day-eve draw-pop" style="--i: 4"><Icon name="moon" size={16} /></span><b class="num">{EVENING_TIME}</b></span>
+                </div>
+              </div>
+            </div>
+            <figcaption class="day-key">
+              <span><i class="k-call"></i>Ion's call</span>
+              {retryOffsets.length > 0 && <span><i class="k-retry"></i>Tries again if she does not answer</span>}
+              <span><i class="k-eve"></i>Evening reminder, on days that have one</span>
+            </figcaption>
+          </figure>
+          <div class="when-controls">
+            <div class="cf-field">
+              <label for="call-time">Time of the call</label>
+              <input class="cf-input time" id="call-time" name="time" type="time" value={timeValue} step="300" aria-describedby="time-error" />
+              <p class="cf-hint err" id="time-error" data-time-error hidden>Ion needs a time to call. The time has not changed.</p>
+            </div>
+            <fieldset class="cf-set">
+              <legend class="cf-legend">Days</legend>
+              <div class="days"><DayPills name="days" checked={settings.days} /></div>
+              <p class="days-sum" data-days-sum>{daysWords(settings.days.length)}</p>
+            </fieldset>
           </div>
+        </div>
+      </Part>
+
+      <Part id="retry" title="If she does not pick up" icon="phone" tone="sky">
+        <ol role="list" class="tries">
+          <li><IconBadge name="phone" tone="sky" size="md" round /><span><b class="num" data-try="0">{settings.time}</b>Ion calls</span></li>
+          {retryOffsets.map((o) => <li><IconBadge name="clock" tone="paper" size="md" round /><span><b class="num" data-try={o}>{clock(mins + o)}</b>Tries again</span></li>)}
+          <li><Avatar size="md" tone="butter" initials={viewer.initials} /><span><b>{viewer.short}</b>is told</span></li>
+        </ol>
+        <p class="note"><Icon name="heart" size={16} /><span>A missed call is not a sign that anything is wrong, but it is worth a call from someone in the family. If you are worried she is in danger, call her, a neighbor or your local emergency number.</span></p>
+      </Part>
+
+      <Part id="topics" title="What Ion asks about" icon="chat" tone="sky">
+        <div class="topic-groups">
+          <div>
+            <h3 class="tt-head">Every call <span>always asked, so changes show up in the trends</span></h3>
+            <ul role="list" class="topic-grid fixed">
+              {fixed.map((t) => <li><TopicToggle fixed label={t.label} icon={ICONS[t.id] ?? 'chat'} id={t.id} /></li>)}
+            </ul>
+          </div>
+          <div>
+            <h3 class="tt-head">You choose <span>switch off any that do not suit her</span></h3>
+            <ul role="list" class="topic-grid">
+              {optional.map((t) => <li><TopicToggle label={t.label} icon={ICONS[t.id] ?? 'chat'} id={t.id} on={t.on} /></li>)}
+            </ul>
+          </div>
+        </div>
+      </Part>
+
+      <div class="pair">
+        <section class="block" aria-labelledby="voice-title">
           <fieldset class="cf-set">
-            <legend class="cf-legend">Days</legend>
-            <div class="cf-choices days">
-              {WEEK.map(([d, long]) => <label class="cf-choice day"><input type="checkbox" name="days" value={d} checked={settings.days.includes(d)} /><span aria-hidden="true">{d}</span><span class="sr-only">{long}</span></label>)}
+            <legend><h2 id="voice-title" class="bt"><IconBadge name="chat" tone="sky" size="sm" round />Ion's voice</h2></legend>
+            <div class="cf-choices">
+              {voices.map((v, i) => <label class="cf-choice"><input type="radio" name="voice" value={v} checked={i === 0} />{voiceWords(v).replace(/^./, (c) => c.toUpperCase())}</label>)}
             </div>
           </fieldset>
-        </div>
-      </Card>
-
-      <Card as="section" pad="lg" class="block" aria-labelledby="retry-title">
-        <h2 id="retry-title" class="bt"><Icon name="phone" size={20} />If she does not pick up</h2>
-        <p>{settings.retry}</p>
-        <ol role="list" class="tries">
-          <li><b class="num">{settings.time.replace(' AM', '')}</b><span>Ion calls</span></li>
-          {tries.map((t) => <li><b class="num">{t}</b><span>Tries again</span></li>)}
-          <li><b><Icon name="users" size={16} /></b><span>{viewer.short} is told</span></li>
-        </ol>
-        <p class="small muted">These times follow the starting call time of {settings.time}. In this example, a new call time is kept on this page only, and the other pages keep showing {settings.time}.</p>
-        <p class="muted small">Ion does not keep calling after that. A missed call is not a sign that anything is wrong, but it is worth a call from someone in the family.</p>
-      </Card>
-
-      <Card as="section" pad="lg" class="block" aria-labelledby="voice-title">
-        <fieldset class="cf-set">
-          <legend><h2 id="voice-title" class="bt"><Icon name="chat" size={20} />Ion's voice</h2></legend>
-          <div class="cf-choices">
-            {voices.map((v, i) => <label class="cf-choice"><input type="radio" name="voice" value={v} checked={i === 0} />{v.replace('Ion, ', '').replace(/^./, (c) => c.toUpperCase())}</label>)}
-          </div>
-        </fieldset>
-      </Card>
-
-      <Card as="section" pad="lg" class="block" aria-labelledby="topics-title">
-        <h2 id="topics-title" class="bt"><Icon name="tasks" size={20} />What Ion asks about</h2>
-        <div class="topics">
-          <div>
-            <h3 class="tt">Every call</h3>
-            <p class="muted small">The everyday questions. They are always asked, so changes show up in the trends.</p>
-            <ul role="list" class="fixed">
-              {fixed.map((t) => <li><span>{t.label}</span><span class="always"><Icon name="lock" size={14} />Always on</span></li>)}
-            </ul>
-          </div>
-          <div>
-            <h3 class="tt">You choose</h3>
-            <p class="muted small">Switch these off if they do not suit her.</p>
-            <ul role="list" class="optional">
-              {optional.map((t) => <li><Switch label={t.label} checked={t.on} name="topic" value={t.id} data-topic={t.id} /></li>)}
-            </ul>
-          </div>
-        </div>
-      </Card>
-
-      <Card as="section" pad="lg" class="block pause" aria-labelledby="pause-title">
-        <h2 id="pause-title" class="sr-only">Pause calls</h2>
-        <Switch label="Pause calls while she is away" hint="For a hospital stay, a trip or a visit to family. Ion will not call until you switch this back off." data-pause />
-      </Card>
+        </section>
+        <section class="block" aria-labelledby="pause-title">
+          <h2 id="pause-title" class="bt"><IconBadge name="moon" tone="sky" size="sm" round />Away for a while?</h2>
+          <Switch label="Pause calls" hint="For a hospital stay, a trip or a visit to family." data-pause />
+        </section>
+      </div>
     </div>
 
     <aside class="side" aria-labelledby="preview-title">
-      <Card tone="soft" pad="lg" class="preview">
+      <div class="preview">
         <div class="preview-head">
-          <Capybara size={96} ground="var(--surface)" label="Ion the capybara, on the phone" />
+          <Capybara size={88} ground="var(--surface)" label="Ion the capybara, on the phone" />
           <div>
             <h2 id="preview-title">How the call opens</h2>
-            <p class="next" aria-live="off"><Icon name="today" size={16} /><span data-next>Next call: Wednesday at {settings.time}</span></p>
+            <p class="next"><Icon name="today" size={16} /><span data-next>Next call: Wednesday at {settings.time}</span></p>
           </div>
         </div>
-        <div class="bubble">
-          <p>Good morning, {parent.short}. It's Ion. Is now a good time for a little chat?</p>
-          <p data-opening>{openingTopics(topicIds)}</p>
-          <p data-story-line hidden={!story}>And at the end, I have a story question for you.</p>
-          <p>You can say no to any question, and we can stop whenever you like.</p>
+        <div class="say">
+          <Bubble tone="surface" tail="up" class="preview-bubble"><p>Good morning, {parent.short}. It's Ion. Is now a good time for a little chat?</p></Bubble>
+          <div class="asks">
+            <p id="asks-label">Then Ion asks about</p>
+            <ul role="list" class="ask-chips" aria-labelledby="asks-label">
+              {settings.topics.map((t) => <li data-chip={t.id} hidden={!t.on}><Icon name={ICONS[t.id] ?? 'chat'} size={14} />{t.label}</li>)}
+            </ul>
+          </div>
+          <Bubble tone="surface" tail="none" class="preview-bubble"><p>You can say no to any question, and we can stop whenever you like.</p></Bubble>
         </div>
-        <p class="muted small">Said in the voice you chose. Ion then asks each question in turn, with time for her to answer.</p>
-      </Card>
+        <p class="voice-line"><Icon name="chat" size={16} /><span>Voice: <span data-voice-line>{voiceWords(settings.voice)}</span></span></p>
+      </div>
     </aside>
   </div>
-
-  <section class="truth" aria-labelledby="truth-title">
-    <span class="truth-icon"><Icon name="shield" size={26} /></span>
-    <div>
-      <h2 id="truth-title">{STANDING_LINE}</h2>
-      <p>Ion talks with {parent.short} once a day, and the family reads what she said. Between calls nobody is listening. If you are worried she is in danger, call her, a neighbor, or your local emergency number.</p>
-    </div>
-  </section>
-
-  <section class="reset" aria-labelledby="reset-title">
-    <h2 id="reset-title" class="tt">Reset the example</h2>
-    <p class="muted small">Everything you have changed on these pages is kept in this browser only. Reset to start again with the example family as it was.</p>
-    <ExampleNote />
-  </section>
+  <noscript><p class="cf-hint">Adding and changing things needs JavaScript in this example.</p></noscript>
+  <ExampleNote more={`Changes here do not reach the other pages, which keep showing ${settings.time}.`} />
 </AppLayout>
 
 <script>
   import { announce, clock, load, save } from '@/components/app/care/store';
-  import { openingTopics } from '@/components/app/care/words';
 
   interface S { time?: string; days?: string[]; voice?: string; topics?: Record<string, boolean>; paused?: boolean }
   const s = load<S>('settings', {});
@@ -144,31 +173,52 @@ const tries = settings.retry.match(/\d{1,2}:\d{2}/g) ?? [];
   const FIXED = ['sleep', 'meals', 'pain', 'medicines', 'falls'];
   const LONG: Record<string, string> = { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday' };
   const ORDER = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const DEFAULT_TIME = timeIn.value || '09:00';
 
   // Bring back earlier changes.
   if (s.time) timeIn.value = s.time;
+  let lastTime = timeIn.value || DEFAULT_TIME;
   if (s.days) dayIns.forEach((i) => { i.checked = s.days!.includes(i.value); });
   if (s.voice) voiceIns.forEach((i) => { i.checked = i.value === s.voice; });
   if (s.topics) topicIns.forEach((i) => { if (i.value in s.topics!) i.checked = s.topics![i.value]; });
   if (s.paused !== undefined) pauseIn.checked = s.paused;
 
+  /** Write the call time and each retry under their stops in the picture of her day, and in the steps below it. */
+  function drawDay() {
+    const [h, m] = (timeIn.value || lastTime).split(':').map(Number);
+    const call = h * 60 + m;
+    const asClock = (x: number) => clock(`${String(Math.floor(x / 60) % 24).padStart(2, '0')}:${String(x % 60).padStart(2, '0')}`);
+    const tries = Array.from(root.querySelectorAll<HTMLElement>('[data-try]'));
+    tries.forEach((el) => { el.textContent = asClock(call + Number(el.dataset.try)); });
+    // Under the retry stops in the picture the times are written short ("9:20"), so two close stops do not run together.
+    root.querySelectorAll<HTMLElement>('[data-try-short]').forEach((el) => { el.textContent = asClock(call + Number(el.dataset.tryShort)).replace(/ [AP]M$/, ''); });
+    const part = root.querySelector('[data-part-label]');
+    if (part) part.textContent = call < 720 ? 'Morning' : call < 1020 ? 'Afternoon' : 'Evening';
+    const retries = [...new Set(tries.map((el) => Number(el.dataset.try)).filter((o) => o > 0))].map((o) => asClock(call + o));
+    root.querySelector('[data-day-picture]')?.setAttribute('aria-label', `Her day. Ion calls at ${asClock(call)}${retries.length ? `, and tries again at ${retries.join(' and ')} if she does not answer` : ''}. The evening reminder is at 6:00 PM.`);
+  }
+
   function preview() {
     const on = topicIns.filter((i) => i.checked).map((i) => i.value);
-    const op = document.querySelector('[data-opening]');
-    if (op) op.textContent = openingTopics([...FIXED, ...on.filter((id) => id !== 'story')]);
-    const st = document.querySelector<HTMLElement>('[data-story-line]');
-    if (st) st.hidden = !on.includes('story');
+    // The topic chips in the preview follow the switches: a topic switched off disappears.
+    document.querySelectorAll<HTMLElement>('[data-chip]').forEach((c) => { const id = c.dataset.chip as string; c.hidden = !(FIXED.includes(id) || on.includes(id)); });
+    const voice = voiceIns.find((i) => i.checked)?.value ?? '';
+    const vl = document.querySelector('[data-voice-line]');
+    if (vl && voice) vl.textContent = voice.replace('Ion, ', '');
     const days = dayIns.filter((i) => i.checked).map((i) => i.value);
+    const sum = document.querySelector('[data-days-sum]');
+    if (sum) sum.textContent = days.length === 7 ? 'Every day' : days.length === 0 ? 'No days chosen. Ion will not call.' : `${days.length} ${days.length === 1 ? 'day' : 'days'} a week`;
     const next = document.querySelector('[data-next]');
     const banner = document.querySelector<HTMLElement>('[data-paused-banner]');
     if (banner) banner.hidden = !pauseIn.checked;
+    drawDay();
     if (!next) return;
     if (pauseIn.checked) { next.textContent = 'Next call: paused'; return; }
-    if (!days.length) { next.textContent = 'Next call: no days chosen'; return; }
+    if (!days.length) { next.textContent = 'No days chosen'; return; }
     // Today in the example is Tuesday and the call is done, so look from Wednesday.
     const start = ORDER.indexOf('Wed');
     const day = Array.from({ length: 7 }, (_, k) => ORDER[(start + k) % 7]).find((d) => days.includes(d))!;
-    next.textContent = `Next call: ${LONG[day]} at ${clock(timeIn.value || '09:00')}`;
+    next.textContent = `Next call: ${LONG[day]} at ${clock(timeIn.value || lastTime)}`;
   }
 
   function store(msg: string) {
@@ -180,9 +230,16 @@ const tries = settings.retry.match(/\d{1,2}:\d{2}/g) ?? [];
     announce(`${msg} Kept in this browser.`);
   }
 
-  timeIn.addEventListener('change', () => store(`Ion will call at ${clock(timeIn.value)}.`));
-  dayIns.forEach((i) => i.addEventListener('change', () => store(`${LONG[i.value]} ${i.checked ? 'on' : 'off'}.`)));
-  voiceIns.forEach((i) => i.addEventListener('change', () => store(`Voice: ${i.value}.`)));
+  timeIn.addEventListener('change', () => {
+    const err = root.querySelector<HTMLElement>('[data-time-error]');
+    // An emptied time field keeps the time it had, and says a time is needed.
+    if (!timeIn.value) { timeIn.value = lastTime; if (err) err.hidden = false; announce(`Ion needs a time to call. It stays at ${clock(lastTime)}.`); return; }
+    if (err) err.hidden = true;
+    lastTime = timeIn.value;
+    store(`Ion will call at ${clock(timeIn.value)}.`);
+  });
+  dayIns.forEach((i) => i.addEventListener('change', () => store(`${LONG[i.value]} ${i.checked ? 'on' : 'off'}.${dayIns.some((d) => d.checked) ? '' : ' No days chosen, so Ion will not call.'}`)));
+  voiceIns.forEach((i) => i.addEventListener('change', () => store(`Voice: ${i.value.replace('Ion, ', '')}.`)));
   topicIns.forEach((i) => i.addEventListener('change', () => store(`${i.closest('label')?.querySelector('.sw-label')?.textContent ?? 'Topic'} ${i.checked ? 'on' : 'off'}.`)));
   pauseIn.addEventListener('change', () => store(pauseIn.checked ? 'Calls are paused.' : 'Calls are back on.'));
   preview();
@@ -192,51 +249,85 @@ const tries = settings.retry.match(/\d{1,2}:\d{2}/g) ?? [];
   .paused-banner { display: flex; align-items: center; gap: var(--s-3); padding: var(--s-4) var(--s-5); border-radius: var(--r-lg); background: var(--deep); color: var(--on-deep); font-weight: 500; }
   .paused-banner[hidden] { display: none; }
   .paused-banner :global(svg) { flex: none; }
-  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 24rem; gap: var(--s-6); align-items: start; }
-  .main { display: flex; flex-direction: column; gap: var(--s-4); min-width: 0; }
-  :global(.block) { display: flex; flex-direction: column; gap: var(--s-4); }
-  .bt { display: flex; align-items: center; gap: var(--s-3); font-size: 1.25rem; font-weight: 500; line-height: 1.3; letter-spacing: -0.01em; }
-  .bt :global(svg) { color: var(--acc-text); flex: none; }
-  .tt { font-size: 1.0625rem; font-weight: 500; }
-  .when-grid { display: grid; grid-template-columns: 11rem minmax(0, 1fr); gap: var(--s-5); align-items: start; }
-  .time { font-size: 1.25rem; font-variant-numeric: tabular-nums; }
-  .days { gap: var(--s-2); }
-  .day { min-width: 3.75rem; justify-content: center; padding: 0 var(--s-3); }
-  .tries { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 7rem), 1fr)); gap: var(--s-2); }
-  .tries li { display: flex; flex-direction: column; gap: 0.125rem; padding: var(--s-3) var(--s-4); border-radius: var(--r-md); background: var(--paper); font-size: var(--fs-sm); color: var(--ink-2); }
-  .tries b { display: flex; align-items: center; min-height: 1.75rem; font-size: 1.25rem; font-weight: 500; color: var(--ink); }
-  .tries li:last-child { background: var(--acc-soft); color: var(--ink); }
-  .topics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-6); }
-  .topics > div { display: flex; flex-direction: column; gap: var(--s-2); }
-  .fixed, .optional { display: flex; flex-direction: column; margin-top: var(--s-2); }
-  .fixed li { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); min-height: var(--tap); border-bottom: 1px solid var(--line); }
-  .optional li { border-bottom: 1px solid var(--line); }
-  .always { display: inline-flex; align-items: center; gap: var(--s-1); font-size: var(--fs-sm); color: var(--ink-2); }
-  :global(.pause) { padding-block: var(--s-5) !important; }
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 23rem; gap: var(--s-8); align-items: start; }
+  .main { display: flex; flex-direction: column; gap: var(--s-10); min-width: 0; }
 
-  .side { position: sticky; top: var(--s-6); }
-  :global(.preview) { display: flex; flex-direction: column; gap: var(--s-5); }
+  /* her day, morning to evening */
+  .when { display: flex; flex-direction: column; gap: var(--s-6); padding: var(--s-6); border-radius: var(--r-xl); background: var(--sky-soft); }
+  .day { display: flex; flex-direction: column; gap: var(--s-4); margin: 0; }
+  .day-parts { display: grid; grid-template-columns: minmax(0, 3fr) auto minmax(0, 1fr); align-items: end; gap: var(--s-2); }
+  .day-part { display: flex; flex-direction: column; gap: var(--s-5); min-width: 0; }
+  .day-part-label { font-size: var(--fs-sm); font-weight: 500; }
+  .day-track { position: relative; height: 1rem; margin-bottom: 2.25rem; border-radius: var(--r-pill); background: var(--butter); }
+  .day-evening .day-track { background: var(--deep); }
+  .day-gap { display: flex; align-items: center; gap: 0.25rem; height: 1rem; margin-bottom: 2.25rem; }
+  .day-gap i { width: 0.3125rem; height: 0.3125rem; border-radius: 50%; background: var(--line-strong); }
+  .day-stop { position: absolute; top: 50%; width: 0; height: 0; }
+  .day-stop b { position: absolute; top: 1.625rem; left: 0; transform: translateX(-50%); white-space: nowrap; font-size: var(--fs-sm); font-weight: 600; color: var(--ink); }
+  .day-mark { position: absolute; display: grid; place-items: center; width: 2.5rem; height: 2.5rem; margin: -1.25rem 0 0 -1.25rem; border-radius: 50%; background: var(--acc); color: var(--ink); border: 3px solid var(--surface); box-shadow: var(--shadow-1); }
+  .day-eve { width: 2.25rem; height: 2.25rem; margin: -1.125rem 0 0 -1.125rem; background: var(--sky); }
+  .day-retry { position: absolute; width: 1.375rem; height: 1.375rem; margin: -0.6875rem 0 0 -0.6875rem; border-radius: 50%; background: var(--surface); border: 3px solid var(--deep); }
+  .day-key { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-5); font-size: var(--fs-sm); color: var(--ink-2); }
+  .day-key span { display: inline-flex; align-items: center; gap: var(--s-2); }
+  .day-key i { display: inline-block; width: 0.875rem; height: 0.875rem; border-radius: 50%; }
+  .k-call { background: var(--acc); }
+  .k-retry { background: var(--surface); border: 2px solid var(--deep); }
+  .k-eve { background: var(--sky); border: 1px solid var(--hair); }
+  .when-controls { display: flex; flex-wrap: wrap; gap: var(--s-5) var(--s-6); align-items: flex-start; padding-top: var(--s-5); border-top: 1px solid var(--hair); }
+  .when-controls > .cf-field { flex: 0 0 11rem; }
+  .when-controls > .cf-set { flex: 1 1 26rem; }
+  .time { font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+  .days :global(.cf-days) { gap: var(--s-2); }
+  .days :global(.dayp) { width: 3rem; height: 3rem; min-height: 3rem; font-size: 0.9375rem; }
+  .days-sum { font-size: var(--fs-sm); color: var(--ink-2); }
+  .err { color: var(--ink); font-weight: 500; }
+  .err[hidden] { display: none; }
+
+  /* if she does not pick up */
+  .tries { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr)); gap: var(--s-3); }
+  .tries li { display: flex; align-items: center; gap: var(--s-3); padding: var(--s-3); border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--line); min-width: 0; }
+  .tries li > span:last-child { display: flex; flex-direction: column; line-height: 1.3; font-size: var(--fs-sm); color: var(--ink-2); white-space: nowrap; }
+  .tries b { font-size: 1.0625rem; font-weight: 600; color: var(--ink); }
+  .note { display: flex; align-items: flex-start; gap: var(--s-2); font-size: 0.9375rem; color: var(--ink-2); line-height: 1.5; }
+  .note :global(svg) { flex: none; margin-top: 0.1875rem; color: var(--acc-text); }
+
+  /* topics */
+  .topic-groups { display: flex; flex-direction: column; gap: var(--s-5); }
+  .tt-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-1) var(--s-2); margin-bottom: var(--s-3); font-size: 1.0625rem; font-weight: 500; }
+  .tt-head span { font-size: var(--fs-sm); font-weight: 400; color: var(--ink-2); }
+  .topic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr)); gap: var(--s-3); }
+  .topic-grid.fixed { grid-template-columns: repeat(auto-fill, minmax(min(100%, 11.5rem), 1fr)); gap: var(--s-2); }
+
+  .pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-4); }
+  .block { display: flex; flex-direction: column; gap: var(--s-3); padding: var(--s-5); border-radius: var(--r-xl); background: var(--surface); border: 1px solid var(--line); min-width: 0; }
+  .bt { display: flex; align-items: center; gap: var(--s-3); margin-bottom: var(--s-2); font-size: 1.1875rem; font-weight: 500; line-height: 1.3; }
+
+  /* the live preview */
+  .side { position: sticky; top: var(--s-6); display: flex; flex-direction: column; gap: var(--s-4); }
+  .preview { display: flex; flex-direction: column; gap: var(--s-5); padding: var(--s-6); border-radius: var(--r-xl); background: var(--acc-soft); }
   .preview-head { display: flex; align-items: center; gap: var(--s-4); }
   .preview-head :global(svg.capy) { flex: none; }
-  .preview-head h2 { font-size: var(--fs-h3); font-weight: 400; line-height: 1.2; letter-spacing: -0.02em; }
+  .preview-head h2 { font-size: 1.375rem; font-weight: 500; line-height: 1.2; letter-spacing: -0.02em; }
   .next { display: flex; align-items: center; gap: var(--s-2); margin-top: var(--s-2); font-size: var(--fs-sm); font-weight: 500; }
-  .bubble { display: flex; flex-direction: column; gap: var(--s-3); padding: var(--s-5); border-radius: var(--r-lg); border-top-left-radius: var(--r-sm); background: var(--surface); font-size: 1.125rem; line-height: 1.55; }
-  .bubble [hidden] { display: none; }
-
-  .truth { display: flex; gap: var(--s-5); align-items: flex-start; padding: var(--s-8); border-radius: var(--r-xl); background: var(--deep); color: var(--on-deep); }
-  .truth-icon { display: grid; place-items: center; flex: none; width: 3.5rem; height: 3.5rem; border-radius: 50%; background: var(--acc); color: var(--on-acc); }
-  .truth h2 { font-size: var(--fs-h3); font-weight: 400; line-height: 1.3; letter-spacing: -0.02em; max-width: 44rem; }
-  .truth p { margin-top: var(--s-3); max-width: 44rem; line-height: 1.6; }
-  .reset { display: flex; flex-direction: column; gap: var(--s-2); }
+  .say { display: flex; flex-direction: column; gap: var(--s-4); }
+  .preview :global(.preview-bubble) { padding: var(--s-4); font-size: 1.0625rem; line-height: 1.5; }
+  .asks { display: flex; flex-direction: column; gap: var(--s-2); padding-inline: var(--s-1); }
+  .asks p { font-size: var(--fs-sm); font-weight: 500; }
+  .ask-chips { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+  .ask-chips li { display: inline-flex; align-items: center; gap: 0.375rem; min-height: 1.875rem; padding: 0 0.75rem 0 0.625rem; border-radius: var(--r-pill); background: var(--surface); font-size: var(--fs-sm); line-height: 1.3; }
+  .ask-chips li[hidden] { display: none; }
+  .ask-chips :global(svg) { flex: none; color: var(--acc-text); }
+  .voice-line { display: flex; align-items: center; gap: var(--s-2); font-size: var(--fs-sm); color: var(--ink-2); }
 
   @media (max-width: 75rem) {
     .layout { grid-template-columns: minmax(0, 1fr); }
-    .side { position: static; order: -1; }
+    .side { position: static; }
   }
-  @media (max-width: 40rem) {
-    .when-grid, .topics { grid-template-columns: minmax(0, 1fr); }
-    .truth { flex-direction: column; padding: var(--s-5); }
-    .preview-head :global(svg.capy) { width: 88px; height: 88px; }
-    .day { min-width: 3.25rem; }
+  @media (max-width: 48rem) {
+    .when { padding: var(--s-4); }
+    .when-controls, .pair { grid-template-columns: minmax(0, 1fr); }
+    .days :global(.dayp) { width: 2.75rem; height: 2.75rem; min-height: 2.75rem; }
+    .days :global(.cf-days) { gap: var(--s-1); }
+    .day-stop b { font-size: var(--fs-xs); }
   }
 </style>

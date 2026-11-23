@@ -1,0 +1,102 @@
+---
+/**
+ * "This week" as a picture: a ring of how many measures stayed as usual, three counts in words (as usual, a little
+ * different, to look at), the steady ones as links, and one small tile for each thing that is different.
+ * The weeks before sit behind a native <details>.
+ */
+import type { MetricSeries, WeekNote } from '@/data/types';
+import Chip from '@/components/ui/Chip.astro';
+import Icon from '@/components/ui/Icon.astro';
+import IconBadge from '@/components/ui/IconBadge.astro';
+import Ring from '@/components/ui/Ring.astro';
+import { ICON, TONE, statusWord } from './measure';
+interface Props { measures: MetricSeries[]; notes: WeekNote[] }
+const { measures, notes } = Astro.props;
+const [now, ...earlier] = notes;
+const look = measures.filter((m) => m.status === 'changed' || m.status === 'check');
+const little = measures.filter((m) => m.status === 'little');
+const steady = measures.filter((m) => m.status === 'usual');
+const different = [...look, ...little];
+const nothing = (w: WeekNote) => w.changed.length === 1 && /^Nothing changed/.test(w.changed[0]);
+---
+<section class="tw" aria-labelledby="tw-h" data-reveal>
+  <div class="tw-steady">
+    <Ring value={steady.length} max={measures.length} tone="leaf" size={112} thickness={11} label={`${steady.length} of ${measures.length} measures were as usual this week`}>{steady.length} of {measures.length}</Ring>
+    <div class="tw-words">
+      <h2 id="tw-h" class="h3">This week{now && <span class="tw-dates">{now.week}</span>}</h2>
+      <ul role="list" class="tw-counts" aria-label="This week in three counts">
+        <li><Chip tone="usual">{steady.length} as usual</Chip></li>
+        {little.length > 0 && <li><Chip tone="little">{little.length} a little different</Chip></li>}
+        {look.length > 0 && <li><Chip tone="changed">{look.length} to look at</Chip></li>}
+      </ul>
+      {steady.length > 0 && (
+        <ul role="list" class="tw-chips" aria-label="As usual this week">
+          {steady.map((m) => (
+            <li><a href={`#${m.id}`}><Icon name={ICON[m.id]} size={16} />{m.title}</a></li>
+          ))}
+        </ul>
+      )}
+    </div>
+  </div>
+  {different.length > 0 && (
+    <ul role="list" class="tw-list" aria-label="Different from her usual this week">
+      {different.map((m) => (
+        <li>
+          <a class:list={['tw-card', `tw-${m.status}`]} href={`#${m.id}`}>
+            <span class="tw-top"><IconBadge name={ICON[m.id]} tone={m.status === 'little' ? TONE[m.id] : 'surface'} size="md" /><b>{m.title}</b><Chip tone={m.status}>{statusWord(m)}</Chip></span>
+            <span class="tw-note">{m.note}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  )}
+  {earlier.length > 0 && (
+    <details class="tw-before">
+      <summary><Icon name="down" size={16} />The weeks before</summary>
+      <ul role="list">
+        {earlier.map((w) => (
+          <li>
+            <b>{w.week}</b>
+            <span>{nothing(w) ? 'Nothing changed.' : w.changed.join(' ')} <span class="muted">{w.steady.join(' ')}</span></span>
+          </li>
+        ))}
+      </ul>
+    </details>
+  )}
+</section>
+<style>
+  .tw { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-5) var(--s-6); padding: var(--s-8); border-radius: var(--r-xl); background: var(--surface); border: 1px solid var(--line); min-width: 0; }
+  .tw-steady { display: flex; align-items: center; gap: var(--s-6); min-width: 0; }
+  .tw-words { display: flex; flex-direction: column; gap: var(--s-3); min-width: 0; }
+  .tw-dates { margin-left: var(--s-3); font-size: 0.9375rem; font-weight: 400; letter-spacing: 0; color: var(--ink-2); }
+  .tw-counts { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+  .tw-chips { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+  .tw-chips a { display: inline-flex; align-items: center; gap: var(--s-2); min-height: var(--tap); padding: 0 var(--s-4) 0 var(--s-3); border-radius: var(--r-pill); border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); font-size: 0.9375rem; font-weight: 500; text-decoration: none; transition: background 0.15s var(--ease); }
+  .tw-chips a :global(svg) { color: var(--leaf-text); }
+  .tw-chips a:hover { background: var(--leaf-soft); color: var(--ink); }
+  .tw-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: var(--s-3); align-content: stretch; }
+  .tw-list li { display: flex; min-width: 0; }
+  .tw-card { flex: 1; display: flex; flex-direction: column; gap: var(--s-2); min-height: var(--tap); padding: var(--s-4) var(--s-5); border-radius: var(--r-lg); background: var(--paper); color: var(--ink); text-decoration: none; transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease); }
+  .tw-card:hover { color: var(--ink); transform: translateY(-2px); box-shadow: var(--shadow-1); }
+  .tw-card.tw-changed { background: var(--acc-soft); }
+  .tw-card.tw-check { background: var(--butter-soft); }
+  .tw-top { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3); }
+  .tw-top b { margin-right: auto; font-size: var(--fs-lg); font-weight: 500; }
+  .tw-note { font-size: 0.9375rem; line-height: 1.5; }
+  .tw-before { grid-column: 1 / -1; border-top: 1px solid var(--line); }
+  .tw-before summary { display: inline-flex; align-items: center; gap: var(--s-2); min-height: var(--tap); margin-top: var(--s-2); font-size: 0.9375rem; font-weight: 500; color: var(--acc-text); cursor: pointer; list-style: none; border-radius: var(--r-sm); }
+  .tw-before summary::-webkit-details-marker { display: none; }
+  .tw-before summary :global(svg) { transition: transform 0.2s var(--ease); }
+  .tw-before[open] summary :global(svg) { transform: rotate(180deg); }
+  .tw-before ul { display: flex; flex-direction: column; gap: var(--s-3); padding: var(--s-2) 0 var(--s-1); font-size: 0.9375rem; line-height: 1.55; }
+  .tw-before li { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: var(--s-4); }
+  .tw-before b { font-weight: 500; }
+  @media (min-width: 80rem) {
+    .tw { grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); align-items: center; }
+  }
+  @media (max-width: 34rem) {
+    .tw { padding: var(--s-5); border-radius: var(--r-lg); }
+    .tw-steady { flex-direction: column; align-items: flex-start; }
+    .tw-before li { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  }
+</style>

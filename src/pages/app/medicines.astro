@@ -1,134 +1,132 @@
 ---
 import AppLayout from '@/layouts/AppLayout.astro';
 import Icon from '@/components/ui/Icon.astro';
-import Chip from '@/components/ui/Chip.astro';
-import Card from '@/components/ui/Card.astro';
+import IconBadge from '@/components/ui/IconBadge.astro';
 import Button from '@/components/ui/Button.astro';
-import ListRow from '@/components/app/care/ListRow.astro';
 import DoseStrip from '@/components/app/care/DoseStrip.astro';
-import HerWords from '@/components/app/care/HerWords.astro';
+import MedRow from '@/components/app/care/MedRow.astro';
+import SkyArt from '@/components/app/care/SkyArt.astro';
+import AlsoOn from '@/components/app/care/AlsoOn.astro';
+import Avatar from '@/components/app/care/Avatar.astro';
+import Bubble from '@/components/app/care/Bubble.astro';
+import HeadArt from '@/components/app/care/HeadArt.astro';
 import FormCard from '@/components/app/care/FormCard.astro';
 import Field from '@/components/app/care/Field.astro';
 import ExampleNote from '@/components/app/care/ExampleNote.astro';
 import LiveRegion from '@/components/app/care/LiveRegion.astro';
-import { getMedicineAnswers, getMedicineGroups } from '@/lib/loaders-care';
+import { getParent } from '@/lib/loaders';
+import { getAlso, getMedicineAnswers, getMedicineGroups } from '@/lib/loaders-care';
 
-const [groups, answers] = await Promise.all([getMedicineGroups(), getMedicineAnswers()]);
-const total = groups.reduce((n, g) => n + g.items.length, 0);
-const pills = (n: number) => (n === 1 ? '1 pill' : `${n} pills`);
+const [groups, answers, parent, also] = await Promise.all([getMedicineGroups(), getMedicineAnswers(), getParent(), getAlso()]);
+const promises = [
+  { icon: 'note', text: 'It writes down what she says about taking her pills.' },
+  { icon: 'lock', text: 'It never names a medicine and never gives advice about doses.' },
+  { icon: 'question', text: 'It cannot confirm that a pill was really taken.' },
+];
 const older = [...answers].sort((a, b) => a.date.localeCompare(b.date));
+// The evening with two different answers, from the 14-day strip, so the note names the same day the "?" marks.
+const twoDay = groups.find((g) => g.when === 'evening')?.days.find((d) => d.answer === 'two');
+const twoLong = twoDay ? new Date(`${twoDay.date}T00:00:00Z`).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' }) : '';
 ---
-<AppLayout title="Medicines" active="medicines" eyebrow="Medicines"
-  heading="Her pills, in your words." tone2="And what she said about taking them."
-  lede={`${total} things on her list, by the names your family uses. Ion asks about each pill time on the morning call and writes down her answer.`}>
+<AppLayout title="Medicines" active="medicines"
+  heading="Her pills."
+  lede="Under your family's own names. Ion asks about them on the morning call and writes down what she says.">
+  <HeadArt slot="head-art" name="pills" />
+  <Button slot="head-actions" href="#add" variant="secondary" size="sm"><Icon name="plus" size={16} />Add a label</Button>
   <LiveRegion />
 
-  <Card as="section" tone="surface" pad="lg" class="two" aria-labelledby="two-title">
-    <div class="two-head">
-      <Chip tone="check">Check</Chip>
-      <h2 id="two-title">Two different answers about Monday evening's pills.</h2>
-      <p class="muted">Both answers are kept here, as she gave them. Neither one is treated as the right one.</p>
-    </div>
-    <div class="two-quotes">
-      {older.map((a) => <HerWords text={a.text} cite={`${a.day} ${a.source ?? 'call'}`} />)}
-    </div>
-    <p class="two-might"><Icon name="chat" size={18} /><span>You might gently ask her about Monday evening next time you talk. If she is often unsure, her pharmacist can suggest ways to keep track.</span></p>
-  </Card>
-
-  <div class="groups">
-    {groups.map((g) => (
-      <Card as="section" tone="surface" pad="none" class="group" aria-labelledby={`h-${g.when}`}>
-        <div class:list={['group-top', `top-${g.when}`]}>
-          <span class="group-icon"><Icon name={g.when === 'morning' ? 'spark' : 'moon'} size={20} /></span>
-          <div>
-            <h2 id={`h-${g.when}`}>{g.title}</h2>
-            <p class="group-asked">{g.asked}</p>
+  <div class="care-cols">
+    <div class="groups">
+      {groups.map((g) => (
+        <section class:list={['group', `group-${g.when}`]} id={`med-${g.when}`} aria-labelledby={`h-${g.when}`}>
+          <div class="group-top">
+            <SkyArt name={g.when === 'morning' ? 'sun' : 'moon'} />
+            <div>
+              <h2 id={`h-${g.when}`}>{g.title}</h2>
+              <p class="group-asked">{g.asked}</p>
+              <AlsoOn links={also('medicines', g.when)} />
+            </div>
           </div>
-        </div>
-        <div class="group-body">
-          <p class="group-today">{g.todayLine}</p>
-          <ul role="list" class="meds" data-meds={g.when}>
-            {g.items.map((m) => (
-              <ListRow icon="pill" tone="quiet">
-                <p class="lr-title">{m.label}</p>
-                <p class="lr-meta"><span>{pills(m.count)}</span>
-                  {m.refillDaysLeft !== undefined && <span>About {m.refillDaysLeft} days left{m.refillOn && `, refill due ${m.refillOn}`}</span>}
-                  {m.refillDaysLeft === undefined && <span>Supply not tracked</span>}
-                </p>
-                {m.note && <p class="lr-note">{m.note}</p>}
-                <Fragment slot="end">
-                  {m.takenToday === true && <Chip tone="done">Today: she said yes</Chip>}
-                  {m.takenToday === false && <Chip tone="check">Today: she said no</Chip>}
-                  {m.takenToday === null && <Chip tone="waiting">Today: not asked yet</Chip>}
-                </Fragment>
-              </ListRow>
-            ))}
-          </ul>
-          <DoseStrip days={g.days} id={`strip-${g.when}`} title={`${g.title}, the last 14 days`} />
-        </div>
-      </Card>
-    ))}
-  </div>
+          <div class="group-body">
+            <p class="group-today"><Icon name={g.when === 'morning' ? 'check' : 'clock'} size={18} /><span>{g.todayLine}</span></p>
+            <ul role="list" class="meds" data-meds={g.when}>
+              {g.items.map((m) => (
+                <MedRow id={`med-${m.id}`} label={m.label} today={m.takenToday} note={m.note} also={also('medicines', m.id)}
+                  refill={m.refillDaysLeft !== undefined ? `About ${m.refillDaysLeft} days left${m.refillOn ? `, refill due ${m.refillOn}` : ''}` : undefined} />
+              ))}
+            </ul>
+            <DoseStrip days={g.days} id={`strip-${g.when}`} title="The last 14 days" />
+            {g.when === 'evening' && twoDay && (
+              <section class="two" aria-labelledby="two-title">
+                <h3 id="two-title"><span class="two-mark" aria-hidden="true">?</span>{twoLong}, evening: two different answers</h3>
+                <ol role="list" class="two-quotes">
+                  {older.map((a) => (
+                    <li>
+                      <Avatar initials={parent.initials} tone="acc" size="sm" />
+                      <figure>
+                        <Bubble as="blockquote" tone="surface"><p>“{a.text}”</p></Bubble>
+                        <figcaption>{a.day}, {a.source ?? 'morning call'}</figcaption>
+                      </figure>
+                    </li>
+                  ))}
+                </ol>
+                <p>Both are kept, just as she said them. You might gently ask her about it.</p>
+                <p class="two-might"><Icon name="heart" size={16} /><span>If she is often unsure, her pharmacist can suggest ways to keep track.</span></p>
+              </section>
+            )}
+          </div>
+        </section>
+      ))}
+    </div>
 
-  <div class="bottom">
-    <FormCard id="add" title="Add a medicine label" sub="Use the name your family uses, so everyone knows which one is meant. Ion will start asking about it from tomorrow's call.">
-      <form class="cf" data-add novalidate>
-        <Field label="Label" for="med-label" hint="The words your family already uses for it. There is no need for its real name.">
-          <input class="cf-input" id="med-label" name="label" type="text" required maxlength="60" autocomplete="off" placeholder="Small white pill" aria-describedby="med-label-hint med-error" />
-        </Field>
-        <div class="cf-grid">
+    <div class="care-side">
+      <FormCard title="Add a label" sub="Ion will ask about it from tomorrow's call.">
+        <form class="cf" data-add novalidate>
+          <Field label="What your family calls it" for="med-label" hint="There is no need for its real name.">
+            <input class="cf-input" id="med-label" name="label" type="text" required maxlength="60" autocomplete="off" placeholder="Blue capsule" aria-describedby="med-label-hint med-error" />
+          </Field>
           <fieldset class="cf-set">
             <legend class="cf-legend">When she takes it</legend>
-            <div class="cf-choices">
+            <div class="cf-choices when-choices">
               <label class="cf-choice"><input type="radio" name="when" value="morning" checked />Morning</label>
               <label class="cf-choice"><input type="radio" name="when" value="evening" />Evening</label>
             </div>
           </fieldset>
-          <Field label="How many at a time" for="med-count">
-            <input class="cf-input" id="med-count" name="count" type="number" min="1" max="6" value="1" inputmode="numeric" />
-          </Field>
-        </div>
-        <p class="cf-hint err" id="med-error" hidden>Please give it a label.</p>
-        <div class="cf-actions"><Button type="submit" variant="dark"><Icon name="plus" size={16} />Add label</Button></div>
-        <p class="cf-done" data-done hidden><Icon name="check" size={16} /><span data-msg></span></p>
-      </form>
-    </FormCard>
+          <p class="cf-hint err" id="med-error" hidden>Please give it a label.</p>
+          <div class="cf-actions"><Button type="submit" variant="dark"><Icon name="plus" size={16} />Add label</Button></div>
+          <p class="cf-done" data-done hidden><Icon name="check" size={16} /><span data-msg></span></p>
+        </form>
+      </FormCard>
 
-    <div class="side">
-      <Card tone="deep" pad="lg" class="firm">
-        <Icon name="shield" size={24} />
-        <h2 class="firm-title">What I-on does, and does not do, with medicines</h2>
-        <ul role="list">
-          <li>It writes down what she says about taking her pills.</li>
-          <li>It never names a medicine and never gives advice about doses.</li>
-          <li>It cannot confirm that a pill was really taken.</li>
+      <section class="firm" aria-labelledby="firm-title">
+        <h2 id="firm-title">What I-on does and does not do with medicines</h2>
+        <ul role="list" class="firm-points">
+          {promises.map((p) => (
+            <li>
+              <IconBadge name={p.icon} tone="surface" size="sm" round />
+              <span>{p.text}</span>
+            </li>
+          ))}
         </ul>
-        <p>For anything about her medicines, her doctor or pharmacist is the right person to ask.</p>
-      </Card>
-      <ExampleNote />
+        <p class="firm-ask"><Icon name="heart" size={18} /><span>For anything about her medicines, her doctor or pharmacist is the right person to ask.</span></p>
+      </section>
     </div>
   </div>
+  <ExampleNote />
 
-  <template id="tpl-med">
-    <ListRow icon="pill" tone="quiet">
-      <p class="lr-title" data-slot="label"></p>
-      <p class="lr-meta"><span data-slot="count"></span><span>Added by you</span></p>
-      <button type="button" class="cf-link remove" data-remove>Remove<span class="sr-only" data-slot="remove-label"></span></button>
-      <Fragment slot="end"><Chip tone="info">Ion asks from tomorrow</Chip></Fragment>
-    </ListRow>
-  </template>
+  <template id="tpl-med"><MedRow added /></template>
 </AppLayout>
 
 <script>
   import { announce, fromTemplate, load, save, uid } from '@/components/app/care/store';
-  interface Added { id: string; label: string; when: 'morning' | 'evening'; count: number }
+  // `count` may still be in labels saved by an earlier version. It is kept as it is, and never shown or asked for.
+  interface Added { id: string; label: string; when: 'morning' | 'evening'; count?: number }
   let added = load<Added[]>('medicines', []);
-  const pills = (n: number) => (n === 1 ? '1 pill' : `${n} pills`);
 
   function render(a: Added) {
     const list = document.querySelector(`[data-meds="${a.when}"]`);
     if (!list) return;
-    const row = fromTemplate('tpl-med', { label: a.label, count: pills(a.count), 'remove-label': ` ${a.label}` });
+    const row = fromTemplate('tpl-med', { label: a.label, 'remove-label': ` ${a.label}` });
     row.querySelector('[data-remove]')?.addEventListener('click', () => {
       added = added.filter((x) => x.id !== a.id);
       save('medicines', added);
@@ -150,8 +148,7 @@ const older = [...answers].sort((a, b) => a.date.localeCompare(b.date));
     if (!label) { if (err) err.hidden = false; input.setAttribute('aria-invalid', 'true'); input.focus(); return; }
     if (err) err.hidden = true;
     input.removeAttribute('aria-invalid');
-    const count = Math.min(6, Math.max(1, Number(fd.get('count')) || 1));
-    const a: Added = { id: uid(), label, when: fd.get('when') === 'evening' ? 'evening' : 'morning', count };
+    const a: Added = { id: uid(), label, when: fd.get('when') === 'evening' ? 'evening' : 'morning' };
     added.push(a);
     save('medicines', added);
     render(a);
@@ -166,41 +163,41 @@ const older = [...answers].sort((a, b) => a.date.localeCompare(b.date));
 </script>
 
 <style>
-  :global(.two) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: var(--s-5) var(--s-8); border-color: var(--deep) !important; }
-  .two-head { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s-3); }
-  .two-head h2 { font-size: var(--fs-h3); font-weight: 400; line-height: 1.25; letter-spacing: -0.02em; }
-  .two-quotes { display: flex; flex-direction: column; gap: var(--s-5); justify-content: center; }
-  .two-might { grid-column: 1 / -1; display: flex; gap: var(--s-2); align-items: flex-start; padding-top: var(--s-4); border-top: 1px solid var(--line); font-size: 0.9375rem; line-height: 1.55; }
+  /* morning and evening */
+  .groups { display: flex; flex-direction: column; gap: var(--s-5); min-width: 0; }
+  .group { display: flex; flex-direction: column; border-radius: var(--r-xl); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-1); overflow: hidden; min-width: 0; scroll-margin-top: var(--s-6); }
+  .group-top { display: flex; align-items: center; gap: var(--s-4); padding: var(--s-4) var(--s-6); background: var(--butter-soft); }
+  .group-evening .group-top { background: var(--sky-soft); }
+  .group-top h2 { font-size: 1.5rem; font-weight: 500; line-height: 1.2; letter-spacing: -0.025em; }
+  .group-asked { font-size: var(--fs-sm); color: var(--ink-2); line-height: 1.45; }
+  .group-body { display: flex; flex-direction: column; gap: var(--s-4); padding: var(--s-5) var(--s-6) var(--s-6); }
+  .group-today { display: flex; align-items: flex-start; gap: var(--s-2); font-weight: 500; line-height: 1.45; }
+  .group-today :global(svg) { flex: none; margin-top: 0.1875rem; color: var(--leaf-text); }
+  .meds { display: flex; flex-direction: column; border-block: 1px solid var(--line); }
+  .meds :global(.med:target) { box-shadow: 0 0 0 3px var(--acc); border-radius: var(--r-sm); }
+
+  /* two answers, both kept: a calm note beside the "?" day */
+  .two { display: flex; flex-direction: column; gap: var(--s-3); padding: var(--s-4) var(--s-5); border-radius: var(--r-lg); background: var(--butter-soft); line-height: 1.5; }
+  .two h3 { display: flex; align-items: center; gap: var(--s-2); font-size: 1.0625rem; font-weight: 500; line-height: 1.35; }
+  .two-mark { flex: none; display: grid; place-items: center; width: 1.5rem; height: 1.5rem; border-radius: 50%; background: var(--butter); box-shadow: inset 0 0 0 2px var(--ink); font-size: var(--fs-sm); font-weight: 600; }
+  .two-quotes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: var(--s-3) var(--s-4); }
+  .two-quotes li { display: flex; align-items: flex-start; gap: var(--s-3); }
+  .two-quotes figure { display: flex; flex-direction: column; gap: var(--s-1); min-width: 0; margin: 0; }
+  .two-quotes figcaption { font-size: var(--fs-sm); color: var(--ink-2); padding-left: var(--s-2); }
+  .two-might { display: flex; gap: var(--s-2); align-items: flex-start; font-size: var(--fs-sm); color: var(--ink-2); }
   .two-might :global(svg) { flex: none; margin-top: 0.1875rem; color: var(--acc-text); }
 
-  .groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-5); align-items: start; }
-  :global(.group) { display: flex; flex-direction: column; }
-  .group-top { display: flex; align-items: center; gap: var(--s-3); padding: var(--s-5); background: var(--acc-soft); }
-  .top-evening { background: var(--deep); color: var(--on-deep); }
-  .top-evening .group-asked { color: var(--on-deep); }
-  .group-icon { display: grid; place-items: center; flex: none; width: 2.75rem; height: 2.75rem; border-radius: 50%; background: var(--surface); color: var(--ink); }
-  .group-top h2 { font-size: var(--fs-h3); font-weight: 400; line-height: 1.2; letter-spacing: -0.02em; }
-  .group-asked { font-size: var(--fs-sm); color: var(--ink-2); }
-  .group-body { display: flex; flex-direction: column; gap: var(--s-5); padding: var(--s-5); }
-  .group-today { font-weight: 500; }
-  .meds { display: flex; flex-direction: column; gap: var(--s-2); }
-  .remove { align-self: flex-start; margin-left: calc(var(--s-3) * -1); }
-
-  .bottom { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: var(--s-5); align-items: start; }
-  .side { display: flex; flex-direction: column; gap: var(--s-4); }
-  :global(.firm) { display: flex; flex-direction: column; gap: var(--s-4); }
-  .firm-title { font-size: 1.25rem; font-weight: 500; line-height: 1.35; }
-  .firm ul { display: flex; flex-direction: column; gap: var(--s-2); }
-  .firm li { position: relative; padding-left: var(--s-5); line-height: 1.5; }
-  .firm li::before { content: ''; position: absolute; left: 0; top: 0.6em; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--acc); }
-  .firm p { color: var(--on-deep); border-top: 1px solid color-mix(in srgb, var(--on-deep) 25%, transparent); padding-top: var(--s-3); font-size: 0.9375rem; }
+  .when-choices { flex-wrap: nowrap; }
+  .firm { display: flex; flex-direction: column; gap: var(--s-4); padding: var(--s-5); border-radius: var(--r-xl); background: var(--leaf-soft); min-width: 0; }
+  .firm h2 { font-size: 1.1875rem; font-weight: 500; line-height: 1.3; letter-spacing: -0.015em; text-wrap: balance; }
+  .firm-points { display: flex; flex-direction: column; gap: var(--s-3); }
+  .firm-points li { display: flex; align-items: flex-start; gap: var(--s-3); font-size: 0.9375rem; line-height: 1.45; }
+  .firm-ask { display: flex; align-items: flex-start; gap: var(--s-2); padding: var(--s-3) var(--s-4); border-radius: var(--r-lg); background: var(--surface); font-size: 0.9375rem; font-weight: 500; line-height: 1.45; }
+  .firm-ask :global(svg) { flex: none; margin-top: 0.125rem; color: var(--leaf-text); }
   .err { color: var(--ink); font-weight: 500; }
   .err[hidden] { display: none; }
 
-  @media (max-width: 75rem) {
-    .groups, .bottom { grid-template-columns: minmax(0, 1fr); }
-  }
   @media (max-width: 48rem) {
-    :global(.two) { grid-template-columns: minmax(0, 1fr); }
+    .group-top, .group-body { padding-inline: var(--s-4); }
   }
 </style>

@@ -1,0 +1,38 @@
+---
+/**
+ * A small flow chart: a row of steps joined by arrows, read left to right (it stacks top to bottom when narrow).
+ * Use it to explain how something works instead of a paragraph: "You add a reminder", "Ion says it on the call", "She answers", "You see it here".
+ * It is an ordered list, so it reads in order to a screen reader. Keep each step to a few words.
+ */
+import IconBadge from './IconBadge.astro';
+export interface FlowStep { icon: string; title: string; text?: string; tone?: 'acc' | 'leaf' | 'butter' | 'sky' | 'paper' | 'deep' | 'surface' }
+interface Props { steps: FlowStep[]; label: string; size?: 'sm' | 'md'; card?: boolean; class?: string }
+const { steps, label, size = 'md', card = false, class: cls = '' } = Astro.props;
+---
+<ol class:list={['flow', `flow-${size}`, { 'flow-card': card }, cls]} role="list" aria-label={label} data-draw>
+  {steps.map((s, i) => (
+    <li class="flow-step draw-pop" style={`--i:${i * 2}`}>
+      <IconBadge name={s.icon} tone={s.tone ?? 'acc'} size={size === 'sm' ? 'md' : 'lg'} round />
+      <span class="flow-words"><b>{s.title}</b>{s.text && <span>{s.text}</span>}</span>
+      {i < steps.length - 1 && <span class="flow-arrow" aria-hidden="true"></span>}
+    </li>
+  ))}
+</ol>
+<style>
+  .flow { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: var(--s-4); align-items: start; }
+  .flow-card { padding: var(--s-6); border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--line); }
+  .flow-step { position: relative; display: flex; flex-direction: column; align-items: center; gap: var(--s-3); text-align: center; min-width: 0; }
+  .flow-words { display: flex; flex-direction: column; gap: 0.125rem; line-height: 1.4; }
+  .flow-words b { font-weight: 500; }
+  .flow-words span { font-size: var(--fs-sm); color: var(--ink-2); }
+  .flow-sm .flow-words b { font-size: 0.9375rem; }
+  /* the arrow sits between this badge and the next */
+  .flow-arrow { position: absolute; top: 1.75rem; left: calc(50% + 2.5rem); width: calc(100% - 5rem + var(--s-4)); border-top: 2px dashed var(--line-strong); }
+  .flow-arrow::after { content: ''; position: absolute; right: -1px; top: -1px; width: 0.5rem; height: 0.5rem; border-top: 2px solid var(--line-strong); border-right: 2px solid var(--line-strong); transform: translateY(-50%) rotate(45deg); transform-origin: center; margin-top: -0.25rem; }
+  .flow-sm .flow-arrow { top: 1.375rem; left: calc(50% + 2rem); width: calc(100% - 4rem + var(--s-4)); }
+  @media (max-width: 44rem) {
+    .flow { grid-auto-flow: row; }
+    .flow-step { flex-direction: row; text-align: left; align-items: center; }
+    .flow-arrow { display: none; }
+  }
+</style>

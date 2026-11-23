@@ -1,56 +1,45 @@
 ---
 import AppLayout from '@/layouts/AppLayout.astro';
 import Icon from '@/components/ui/Icon.astro';
-import Card from '@/components/ui/Card.astro';
 import TaskCard from '@/components/app/care/TaskCard.astro';
-import BlockHead from '@/components/app/care/BlockHead.astro';
+import Part from '@/components/app/care/Part.astro';
+import HeadArt from '@/components/app/care/HeadArt.astro';
 import EmptyState from '@/components/app/care/EmptyState.astro';
 import ExampleNote from '@/components/app/care/ExampleNote.astro';
 import LiveRegion from '@/components/app/care/LiveRegion.astro';
+import { facesOf } from '@/components/app/care/people';
 import { getFamily, getViewer } from '@/lib/loaders';
-import { getCareTasks } from '@/lib/loaders-care';
+import { getAlso, getCareTasks } from '@/lib/loaders-care';
 
-const [tasks, family, viewer] = await Promise.all([getCareTasks(), getFamily(), getViewer()]);
+const [tasks, family, viewer, also] = await Promise.all([getCareTasks(), getFamily(), getViewer(), getAlso()]);
 const groups = [
-  { id: 'needs-you', title: 'Waiting for you', sub: 'Say yes, and choose who will do it.', empty: 'Nothing is waiting for you. Well done.', icon: 'bell' },
-  { id: 'in-progress', title: 'In progress', sub: 'Someone has said they will do these.', empty: 'Nothing in progress right now.', icon: 'clock' },
-  { id: 'done', title: 'Done', sub: 'Finished this week.', empty: 'Nothing finished yet this week.', icon: 'check' },
+  { id: 'needs-you', title: 'Waiting for you', sub: 'Say yes, and pick who will do it.', empty: 'Nothing is waiting for you. Well done.', icon: 'bell' },
+  { id: 'in-progress', title: 'Someone is on it', sub: '', empty: 'Nobody has a task right now.', icon: 'users' },
+  { id: 'done', title: 'Done', sub: '', empty: 'Nothing finished yet.', icon: 'check' },
 ] as const;
 ---
-<AppLayout title="Tasks" active="tasks" eyebrow="Tasks"
-  heading="What came out of the calls." tone2="Say yes to the ones you want done."
-  lede="Each task says where it came from, when it is due and who has it. Nothing happens until someone in the family says yes.">
+<AppLayout title="Tasks" active="tasks"
+  heading="What needs doing."
+  lede="Tasks come from her calls and from the family's notes. Nothing happens until someone in the family says yes.">
+  <HeadArt slot="head-art" name="tasks" />
+  <p slot="head-actions" class="honest"><Icon name="shield" size={16} /><span>Nothing is booked, bought or sent by I-on in this version. The family does the doing.</span></p>
   <LiveRegion />
-  <div class="layout" data-viewer={viewer.short}>
-    <div class="groups">
-      {groups.map((g) => {
-        const list = tasks.filter((t) => t.status === g.id);
-        return (
-          <section class="group" aria-labelledby={`g-${g.id}`}>
-            <BlockHead id={`g-${g.id}`} title={g.title} count={list.length} countLabel={list.length === 1 ? 'task' : 'tasks'} countId={`count-${g.id}`} sub={g.sub} />
-            <ul role="list" class="cards" data-list={g.id}>
-              {list.map((t) => <li><TaskCard task={t} people={family} viewerId={viewer.id} /></li>)}
-            </ul>
-            <EmptyState icon={g.icon} text={g.empty} hidden={list.length > 0} data-empty={g.id} />
-          </section>
-        );
-      })}
-    </div>
+  <div hidden data-viewer={viewer.short} data-faces={JSON.stringify(facesOf(family))}></div>
 
-    <aside class="side" aria-label="How tasks work">
-      <Card tone="surface" pad="lg" class="how">
-        <span class="how-icon"><Icon name="shield" size={22} /></span>
-        <h2 class="how-title">I-on only acts after someone in the family says yes.</h2>
-        <ol role="list" class="how-steps">
-          <li><b class="num">1</b><span>She mentions something on the call, or you add it.</span></li>
-          <li><b class="num">2</b><span>I-on writes it up here as a task, with where it came from.</span></li>
-          <li><b class="num">3</b><span>You approve it and choose who will do it. Ion lets her know on the next call.</span></li>
-        </ol>
-        <p class="how-foot">Nothing is booked, bought or sent by I-on in this version. The family does the doing.</p>
-      </Card>
-      <ExampleNote />
-    </aside>
-  </div>
+  {groups.map((g) => {
+    const list = tasks.filter((t) => t.status === g.id);
+    return (
+      <Part id={g.id} title={g.title} icon={g.icon} tone={g.id === 'done' ? 'leaf' : 'butter'} sub={g.sub || undefined}
+        count={list.length} countLabel={list.length === 1 ? 'task' : 'tasks'} countId={`count-${g.id}`}>
+        <ul role="list" class:list={['cards', `cards-${g.id}`]} data-list={g.id}>
+          {list.map((t) => <li><TaskCard task={t} people={family} viewerId={viewer.id} also={also('tasks', t.id)} /></li>)}
+        </ul>
+        <EmptyState icon={g.icon} text={g.empty} hidden={list.length > 0} data-empty={g.id} />
+      </Part>
+    );
+  })}
+
+  <ExampleNote />
 </AppLayout>
 
 <script>
@@ -59,8 +48,10 @@ const groups = [
   type State = Record<string, { status: 'needs-you' | 'in-progress' | 'done'; who?: string }>;
   const root = document.querySelector<HTMLElement>('[data-viewer]');
   const viewer = root?.dataset.viewer ?? '';
+  const faces = JSON.parse(root?.dataset.faces ?? '{}') as Record<string, { initials: string; tone: string }>;
   const state = load<State>('tasks', {});
   const you = (who?: string) => (who && who === viewer ? 'You' : who ?? '');
+  const GROUP = { 'needs-you': 'Waiting for you', 'in-progress': 'Someone is on it', done: 'Done' } as const;
 
   function refreshCounts() {
     let waiting = 0;
@@ -81,14 +72,20 @@ const groups = [
 
   function apply(card: HTMLElement, status: State[string]['status'], who?: string) {
     card.dataset.status = status;
-    const whoEl = card.querySelector<HTMLElement>('[data-slot="who"]');
+    const whoEl = card.querySelector<HTMLElement>('[data-who]');
     const doingEl = card.querySelector<HTMLElement>('[data-slot="doing"]');
-    if (whoEl) whoEl.textContent = who ? you(who) : 'Nobody yet';
+    const faceEl = card.querySelector<HTMLElement>('[data-slot="face"]');
+    if (whoEl) whoEl.hidden = status === 'needs-you';
     if (doingEl) {
-      doingEl.hidden = status === 'needs-you';
       doingEl.textContent = status === 'done'
         ? (who ? `Marked done by ${who === viewer ? 'you' : who}.` : 'Done.')
         : `${you(who)} will ${card.dataset.doing}.`;
+    }
+    if (faceEl) {
+      const f = who ? faces[who] : undefined;
+      faceEl.className = `av av-sm av-${f?.tone ?? 'paper'}`;
+      faceEl.textContent = f?.initials ?? '';
+      faceEl.hidden = !f;
     }
     const li = card.closest('li');
     const list = document.querySelector(`[data-list="${status}"]`);
@@ -112,7 +109,7 @@ const groups = [
       apply(card, 'in-progress', who);
       save('tasks', state);
       refreshCounts();
-      announce(`${title}: approved. ${you(who)} will ${card.dataset.doing}. Moved to In progress.`);
+      announce(`${title}: approved. ${you(who)} will ${card.dataset.doing}. Moved to ${GROUP['in-progress']}.`);
       card.querySelector<HTMLButtonElement>('.when-in-progress [data-done]')?.focus();
     });
     card.querySelectorAll<HTMLButtonElement>('[data-done]').forEach((b) => b.addEventListener('click', () => {
@@ -121,7 +118,7 @@ const groups = [
       apply(card, 'done', who);
       save('tasks', state);
       refreshCounts();
-      announce(`${title}: marked done. Moved to Done.`);
+      announce(`${title}: marked done. Moved to ${GROUP.done}.`);
       card.setAttribute('tabindex', '-1');
       card.focus();
     }));
@@ -129,23 +126,9 @@ const groups = [
 </script>
 
 <style>
-  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 20rem; gap: var(--s-8); align-items: start; }
-  .groups { display: flex; flex-direction: column; gap: var(--s-10); min-width: 0; }
-  .group { display: flex; flex-direction: column; gap: var(--s-4); }
+  .honest { display: flex; align-items: flex-start; gap: var(--s-2); font-size: var(--fs-sm); line-height: 1.5; color: var(--ink-2); }
+  .honest :global(svg) { flex: none; margin-top: 0.1875rem; }
   .cards { display: flex; flex-direction: column; gap: var(--s-3); }
-  .side { position: sticky; top: var(--s-6); display: flex; flex-direction: column; gap: var(--s-4); }
-  :global(.how) { display: flex; flex-direction: column; gap: var(--s-4); }
-  .how-icon { display: grid; place-items: center; flex: none; width: 2.75rem; height: 2.75rem; border-radius: 50%; background: var(--acc-soft); color: var(--acc-text); }
-  .how-title { font-size: 1.25rem; font-weight: 500; line-height: 1.35; letter-spacing: -0.01em; }
-  .how-steps { display: flex; flex-direction: column; gap: var(--s-3); }
-  .how-steps li { display: flex; gap: var(--s-3); font-size: 0.9375rem; line-height: 1.5; }
-  .how-steps b { display: grid; place-items: center; flex: none; width: 1.75rem; height: 1.75rem; border-radius: 50%; background: var(--paper); border: 1px solid var(--line-strong); font-size: var(--fs-sm); font-weight: 500; }
-  .how-foot { font-size: var(--fs-sm); color: var(--ink-2); border-top: 1px solid var(--line); padding-top: var(--s-3); }
-  @media (max-width: 75rem) {
-    .layout { grid-template-columns: minmax(0, 1fr); }
-    .side { display: contents; }
-    :global(.how) { order: -1; padding: var(--s-5) !important; flex-direction: row !important; align-items: center; }
-    .how-steps { display: none; }
-    .how-foot { display: none; }
-  }
+  .cards-needs-you { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr)); gap: var(--s-4); }
+  .cards:empty { display: none; }
 </style>

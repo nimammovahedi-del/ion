@@ -1,0 +1,41 @@
+---
+/**
+ * A topic Ion asks about, as an icon tile with an on/off switch. A real checkbox with role="switch".
+ * Fixed topics are drawn the same way with the words "Asked on every call", and have no control.
+ */
+import IconBadge from '@/components/ui/IconBadge.astro';
+interface Props { label: string; icon: string; id: string; on?: boolean; fixed?: boolean }
+const { label, icon, id, on = true, fixed = false } = Astro.props;
+---
+{fixed ? (
+  <div class="tt tt-fixed">
+    <IconBadge name={icon} tone="surface" size="sm" round />
+    <span class="tt-words"><span class="sw-label">{label}</span><span class="tt-state">Asked on every call</span></span>
+  </div>
+) : (
+  <label class="tt">
+    <IconBadge name={icon} tone="sky" size="md" round />
+    <span class="tt-words"><span class="sw-label">{label}</span><span class="tt-state" aria-hidden="true"><span class="tt-on">On</span><span class="tt-off">Off</span></span></span>
+    <input class="tt-input" type="checkbox" role="switch" name="topic" value={id} checked={on} data-topic={id} />
+    <span class="tt-track" aria-hidden="true"><span class="tt-thumb"></span></span>
+  </label>
+)}
+<style>
+  .tt { position: relative; display: flex; align-items: center; gap: var(--s-3); min-height: 4.5rem; padding: var(--s-3) var(--s-4); border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--line); cursor: pointer; transition: background 0.15s var(--ease), border-color 0.15s var(--ease); min-width: 0; }
+  .tt-fixed { cursor: default; min-height: 3.5rem; padding: var(--s-2) var(--s-3); background: var(--sky-soft); border-color: transparent; }
+  .tt-words { flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0; line-height: 1.3; }
+  .sw-label { font-weight: 500; }
+  .tt-state { display: inline-flex; align-items: center; gap: 0.25rem; font-size: var(--fs-sm); color: var(--ink-2); }
+  .tt-input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+  .tt-track { flex: none; position: relative; width: 3rem; height: 1.75rem; border-radius: var(--r-pill); background: var(--grey-2); border: 1px solid var(--line-strong); transition: background 0.15s var(--ease); }
+  .tt-thumb { position: absolute; top: 0.1875rem; left: 0.1875rem; width: 1.25rem; height: 1.25rem; border-radius: 50%; background: var(--surface); box-shadow: var(--shadow-1); transition: transform 0.15s var(--ease); }
+  .tt-on { display: none; }
+  .tt:has(.tt-input:checked) .tt-on { display: inline; }
+  .tt:has(.tt-input:checked) .tt-off { display: none; }
+  .tt-input:checked ~ .tt-track { background: var(--acc); border-color: var(--acc-text); }
+  .tt-input:checked ~ .tt-track .tt-thumb { transform: translateX(1.25rem); background: var(--deep); }
+  .tt:has(.tt-input:not(:checked)) { background: transparent; border-style: dashed; border-color: var(--line-strong); }
+  .tt:has(.tt-input:not(:checked)) :global(.ib) { background: var(--grey-1); }
+  .tt:has(.tt-input:focus-visible) { outline: 3px solid var(--focus); outline-offset: 2px; }
+  .tt:hover:not(.tt-fixed) { border-color: var(--line-strong); }
+</style>

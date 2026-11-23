@@ -1,46 +1,59 @@
 ---
 import AppLayout from '@/layouts/AppLayout.astro';
 import Icon from '@/components/ui/Icon.astro';
-import Card from '@/components/ui/Card.astro';
 import Button from '@/components/ui/Button.astro';
-import Capybara from '@/components/ui/Capybara.astro';
 import ReminderRow from '@/components/app/care/ReminderRow.astro';
-import BlockHead from '@/components/app/care/BlockHead.astro';
+import SkyArt from '@/components/app/care/SkyArt.astro';
+import HeadArt from '@/components/app/care/HeadArt.astro';
 import FormCard from '@/components/app/care/FormCard.astro';
 import Field from '@/components/app/care/Field.astro';
+import DayPills from '@/components/app/care/DayPills.astro';
 import ExampleNote from '@/components/app/care/ExampleNote.astro';
 import LiveRegion from '@/components/app/care/LiveRegion.astro';
-import { ionLead } from '@/components/app/care/words';
-import { getCallSettings, getParent, getReminders, getViewer } from '@/lib/loaders';
+import { facesOf } from '@/components/app/care/people';
+import { getCallSettings, getFamily, getParent, getReminders, getViewer } from '@/lib/loaders';
+import { getAlso } from '@/lib/loaders-care';
 
-const [reminders, parent, settings, viewer] = await Promise.all([getReminders(), getParent(), getCallSettings(), getViewer()]);
+const [reminders, parent, settings, viewer, family, also] = await Promise.all([getReminders(), getParent(), getCallSettings(), getViewer(), getFamily(), getAlso()]);
+const faces = facesOf(family);
+const EVENING = '6:00 PM';
 const blocks = [
-  { id: 'call', title: `On the morning call, ${settings.time}`, open: `Good morning, ${parent.short}. It's Ion.`, close: 'Shall we start with how you slept?' },
-  { id: 'evening-reminder', title: 'Evening reminder, 6:00 PM', open: `Hello ${parent.short}, it's Ion, with your evening reminder.`, close: 'That\'s all from me. Have a lovely evening.' },
+  { id: 'call', art: 'sun', title: 'On the morning call', sub: `Every day at ${settings.time}.` },
+  { id: 'evening-reminder', art: 'moon', title: 'Evening reminder', sub: `A short call at ${EVENING}, only on days that have a reminder.` },
 ] as const;
 const kinds = ['medicine', 'appointment', 'other'] as const;
 const kindLabel = { medicine: 'Pills', appointment: 'An appointment', other: 'Something else' };
 ---
-<AppLayout title="Reminders" active="reminders" eyebrow="Reminders"
-  heading={`What Ion says to ${parent.short}.`} tone2="Kindly, in your words."
-  lede="The things your family has asked Ion to remind her about: pills, appointments and everyday things. Switch one off and Ion stops saying it, straight away.">
+<AppLayout title="Reminders" active="reminders"
+  heading={`What Ion says to ${parent.short}.`}
+  lede="Switch one off and Ion stops saying it, straight away.">
+  <HeadArt slot="head-art" name="bell" />
+  <Button slot="head-actions" href="#add" variant="secondary" size="sm"><Icon name="plus" size={16} />Add a reminder</Button>
   <LiveRegion />
-  <div class="layout">
-    <div class="main">
-      <section class="list" aria-labelledby="list-title">
-        <BlockHead id="list-title" title="Reminders" sub="Ion says each one in the morning call or as a short evening reminder, on the days set." />
-        <ul role="list" class="rows" data-rows>
-          {reminders.map((r) => <ReminderRow id={r.id} kind={r.kind} text={r.text} when={r.when} spokenBy={r.spokenBy} setBy={r.setBy} active={r.active} />)}
-        </ul>
-      </section>
 
-      <FormCard id="add" title="Add a reminder" sub="Write it as you would say it to her: short, warm and about one thing.">
-        <form class="cf" data-add novalidate>
-          <Field label="What Ion should say" for="rem-text" hint="For example: Put the bins out tonight.">
-            <textarea class="cf-textarea" id="rem-text" name="text" required maxlength="140" rows="2" aria-describedby="rem-text-hint rem-error"></textarea>
-          </Field>
-          <Field label="When" for="rem-when" hint="Which days, and a time for evening reminders.">
-            <input class="cf-input" id="rem-when" name="when" type="text" maxlength="60" autocomplete="off" placeholder="Every Wednesday" aria-describedby="rem-when-hint" />
+  <div class="care-cols">
+    <div class="moments">
+      {blocks.map((b) => (
+        <section class:list={['moment', `moment-${b.id}`]} aria-labelledby={`m-${b.id}`}>
+          <header class="moment-head">
+            <SkyArt name={b.art} />
+            <div>
+              <h2 id={`m-${b.id}`}>{b.title}</h2>
+              <p>{b.sub}</p>
+            </div>
+          </header>
+          <ul role="list" class="rows" data-rows={b.id}>
+            {reminders.filter((r) => r.spokenBy === b.id).map((r) => <ReminderRow id={r.id} kind={r.kind} text={r.text} when={r.when} spokenBy={r.spokenBy} setBy={r.setBy} active={r.active} face={faces[r.setBy]} also={also('reminders', r.id)} />)}
+          </ul>
+        </section>
+      ))}
+    </div>
+
+    <div class="care-side">
+      <FormCard title="Add a reminder" sub="Write it as you would say it to her.">
+        <form class="cf" data-add novalidate data-call-time={settings.time} data-evening-time={EVENING}>
+          <Field label="What Ion should say" for="rem-text">
+            <textarea class="cf-textarea" id="rem-text" name="text" required maxlength="140" rows="2" placeholder="One short sentence" aria-describedby="rem-error"></textarea>
           </Field>
           <fieldset class="cf-set">
             <legend class="cf-legend">How Ion says it</legend>
@@ -49,6 +62,10 @@ const kindLabel = { medicine: 'Pills', appointment: 'An appointment', other: 'So
               <label class="cf-choice"><input type="radio" name="spokenBy" value="evening-reminder" />As an evening reminder</label>
             </div>
           </fieldset>
+          <fieldset class="cf-set" aria-describedby="rem-days-error">
+            <legend class="cf-legend">Which days</legend>
+            <DayPills name="days" />
+          </fieldset>
           <fieldset class="cf-set">
             <legend class="cf-legend">What it is about</legend>
             <div class="cf-choices">
@@ -56,46 +73,16 @@ const kindLabel = { medicine: 'Pills', appointment: 'An appointment', other: 'So
             </div>
           </fieldset>
           <p class="cf-hint err" id="rem-error" hidden>Please write what Ion should say.</p>
+          <p class="cf-hint err" id="rem-days-error" hidden>Please pick at least one day.</p>
           <div class="cf-actions"><Button type="submit" variant="dark"><Icon name="plus" size={16} />Add reminder</Button></div>
           <p class="cf-done" data-done hidden><Icon name="check" size={16} /><span data-msg></span></p>
         </form>
       </FormCard>
-      <ExampleNote />
     </div>
-
-    <aside class="hear" aria-labelledby="hear-title">
-      <Card tone="surface" pad="lg" class="hear-card">
-        <div class="hear-head">
-          <Capybara size={72} waves={false} ground="var(--acc-soft)" label="Ion the capybara" />
-          <div>
-            <h2 id="hear-title">What {parent.short} will hear</h2>
-            <p class="muted small">Ion's own words. Each line is said only on its days.</p>
-          </div>
-        </div>
-        {blocks.map((b) => (
-          <section class="say" aria-labelledby={`say-${b.id}`}>
-            <h3 id={`say-${b.id}`}><Icon name={b.id === 'call' ? 'phone' : 'bell'} size={16} />{b.title}</h3>
-            <div class="bubble">
-              <p>{b.open}</p>
-              <ul role="list" data-say={b.id}>
-                {reminders.filter((r) => r.spokenBy === b.id).map((r) => <li data-for={r.id} hidden={!r.active}>{ionLead(r.setBy)} {r.text}</li>)}
-              </ul>
-              <p class="say-none" data-none={b.id} hidden={reminders.some((r) => r.spokenBy === b.id && r.active)}>No reminders are on for this.</p>
-              <p>{b.close}</p>
-            </div>
-          </section>
-        ))}
-        <p class="later"><Icon name="heart" size={16} /><span>This page is the start of {parent.short}'s own side of I-on. A simple view for her, with just her reminders, is coming later.</span></p>
-      </Card>
-    </aside>
   </div>
+  <ExampleNote />
 
-  {kinds.map((k) => (
-    <>
-      <template id={`tpl-${k}-call`}><ReminderRow kind={k} spokenBy="call" added /></template>
-      <template id={`tpl-${k}-evening-reminder`}><ReminderRow kind={k} spokenBy="evening-reminder" added /></template>
-    </>
-  ))}
+  {kinds.map((k) => <template id={`tpl-${k}`}><ReminderRow kind={k} spokenBy="call" added face={faces[viewer.short]} /></template>)}
   <div hidden data-viewer={viewer.short}></div>
 </AppLayout>
 
@@ -108,50 +95,30 @@ const kindLabel = { medicine: 'Pills', appointment: 'An appointment', other: 'So
   let added = load<Added[]>('reminders', []);
   const viewer = document.querySelector<HTMLElement>('[data-viewer]')?.dataset.viewer ?? 'You';
 
-  function refreshNone() {
-    document.querySelectorAll<HTMLElement>('[data-say]').forEach((ul) => {
-      const any = Array.from(ul.children).some((li) => !(li as HTMLElement).hidden);
-      const none = document.querySelector<HTMLElement>(`[data-none="${ul.dataset.say}"]`);
-      if (none) none.hidden = any;
-    });
-  }
-
-  function setOn(row: HTMLElement, on: boolean) {
-    row.classList.toggle('off', !on);
-    const line = document.querySelector<HTMLElement>(`[data-for="${row.dataset.reminder}"]`);
-    if (line) line.hidden = !on;
-  }
-
   function wire(row: HTMLElement) {
     const id = row.dataset.reminder as string;
     const input = row.querySelector<HTMLInputElement>('[data-toggle]');
     const words = row.querySelector('[data-slot="text"]')?.textContent ?? '';
     if (!input) return;
-    if (id in toggles) { input.checked = toggles[id]; setOn(row, toggles[id]); }
+    if (id in toggles) { input.checked = toggles[id]; row.classList.toggle('off', !toggles[id]); }
     input.addEventListener('change', () => {
       toggles[id] = input.checked;
       save('reminders-on', toggles);
-      setOn(row, input.checked);
-      refreshNone();
+      row.classList.toggle('off', !input.checked);
       announce(input.checked ? `On. Ion will say: ${words}` : `Off. Ion will stop saying: ${words}`);
     });
   }
 
   function render(a: Added) {
-    const row = fromTemplate(`tpl-${a.kind}-${a.spokenBy}`, { text: a.text, when: a.when || 'Every day', setBy: a.setBy });
+    const row = fromTemplate(`tpl-${a.kind}`, { text: a.text, when: a.when || 'Every day', setBy: a.setBy, lead: ionLead(a.setBy) });
     row.dataset.reminder = a.id;
     const label = row.querySelector('.sw-label');
     if (label) label.textContent = `Ion says: ${a.text}`;
-    document.querySelector('[data-rows]')?.append(row);
-    const li = document.createElement('li');
-    li.dataset.for = a.id;
-    li.textContent = `${ionLead(a.setBy)} ${a.text}`;
-    document.querySelector(`[data-say="${a.spokenBy}"]`)?.append(li);
+    document.querySelector(`[data-rows="${a.spokenBy}"]`)?.append(row);
     row.querySelector('[data-remove]')?.addEventListener('click', () => {
       added = added.filter((x) => x.id !== a.id);
       save('reminders', added);
-      row.remove(); li.remove();
-      refreshNone();
+      row.remove();
       announce(`Reminder removed: ${a.text}`);
       document.getElementById('rem-text')?.focus();
     });
@@ -160,7 +127,6 @@ const kindLabel = { medicine: 'Pills', appointment: 'An appointment', other: 'So
 
   document.querySelectorAll<HTMLElement>('[data-rows] > [data-reminder]').forEach(wire);
   added.forEach(render);
-  refreshNone();
 
   const form = document.querySelector<HTMLFormElement>('[data-add]');
   form?.addEventListener('submit', (e) => {
@@ -172,11 +138,16 @@ const kindLabel = { medicine: 'Pills', appointment: 'An appointment', other: 'So
     if (!text) { if (err) err.hidden = false; area.setAttribute('aria-invalid', 'true'); area.focus(); return; }
     if (err) err.hidden = true;
     area.removeAttribute('aria-invalid');
-    const a: Added = { id: uid(), text, when: String(fd.get('when') ?? '').trim(), kind: (fd.get('kind') as Added['kind']) ?? 'other', spokenBy: fd.get('spokenBy') === 'evening-reminder' ? 'evening-reminder' : 'call', setBy: viewer };
+    const days = fd.getAll('days').map(String);
+    const daysErr = document.getElementById('rem-days-error');
+    if (daysErr) daysErr.hidden = days.length > 0;
+    if (!days.length) { form.querySelector<HTMLInputElement>('input[name="days"]')?.focus(); announce('Please pick at least one day.'); return; }
+    const evening = fd.get('spokenBy') === 'evening-reminder';
+    const when = `${days.length === 7 ? 'Every day' : days.join(', ')}, ${evening ? form.dataset.eveningTime : `on the ${form.dataset.callTime} call`}`;
+    const a: Added = { id: uid(), text, when, kind: (fd.get('kind') as Added['kind']) ?? 'other', spokenBy: fd.get('spokenBy') === 'evening-reminder' ? 'evening-reminder' : 'call', setBy: viewer };
     added.push(a);
     save('reminders', added);
     render(a);
-    refreshNone();
     const msg = `Reminder added. Ion will say it ${a.spokenBy === 'call' ? 'on the morning call' : 'as an evening reminder'}.`;
     const m = form.querySelector('[data-msg]');
     if (m) m.textContent = msg;
@@ -184,36 +155,20 @@ const kindLabel = { medicine: 'Pills', appointment: 'An appointment', other: 'So
     if (done) done.hidden = false;
     announce(msg);
     area.value = '';
-    (document.getElementById('rem-when') as HTMLInputElement).value = '';
+    form.querySelectorAll<HTMLInputElement>('input[name="days"]').forEach((i) => { i.checked = true; });
   });
 </script>
 
 <style>
-  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 26rem; gap: var(--s-8); align-items: start; }
-  .main { display: flex; flex-direction: column; gap: var(--s-8); min-width: 0; }
-  .list { display: flex; flex-direction: column; gap: var(--s-4); }
-  .rows { display: flex; flex-direction: column; gap: var(--s-2); }
-  .hear { position: sticky; top: var(--s-6); }
-  :global(.hear-card) { display: flex; flex-direction: column; gap: var(--s-6); }
-  .hear-head { display: flex; align-items: center; gap: var(--s-4); }
-  .hear-head :global(svg) { flex: none; }
-  .hear-head h2 { font-size: var(--fs-h3); font-weight: 400; line-height: 1.2; letter-spacing: -0.02em; }
-  .say { display: flex; flex-direction: column; gap: var(--s-2); }
-  .say h3 { display: flex; align-items: center; gap: var(--s-2); font-family: var(--mono); font-size: var(--fs-xs); font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); }
-  .bubble { display: flex; flex-direction: column; gap: var(--s-2); padding: var(--s-4) var(--s-5); border-radius: var(--r-lg); border-top-left-radius: var(--r-sm); background: var(--acc-soft); font-size: 1.0625rem; line-height: 1.55; }
-  .bubble ul { display: flex; flex-direction: column; gap: var(--s-2); }
-  .bubble li { padding-left: var(--s-3); border-left: 3px solid var(--acc); }
-  .bubble li[hidden], .say-none[hidden] { display: none; }
-  .say-none { color: var(--ink-2); font-style: italic; font-size: 0.9375rem; }
-  .later { display: flex; gap: var(--s-2); align-items: flex-start; padding-top: var(--s-4); border-top: 1px solid var(--line); font-size: var(--fs-sm); color: var(--ink-2); line-height: 1.5; }
-  .later :global(svg) { flex: none; margin-top: 0.1875rem; color: var(--acc-text); }
+  .moments { display: flex; flex-direction: column; gap: var(--s-5); min-width: 0; }
+  .moment { display: flex; flex-direction: column; gap: var(--s-4); padding: var(--s-5); border-radius: var(--r-xl); background: var(--butter-soft); min-width: 0; }
+  .moment-evening-reminder { background: var(--sky-soft); }
+  .moment-head { display: flex; align-items: center; gap: var(--s-4); padding: 0 var(--s-1); }
+  .moment-head h2 { font-size: 1.5rem; font-weight: 500; line-height: 1.2; letter-spacing: -0.025em; }
+  .moment-head p { color: var(--ink-2); font-size: 0.9375rem; line-height: 1.45; }
+  .rows { display: flex; flex-direction: column; gap: var(--s-3); }
+  .moment-evening-reminder :global(.rem:not(.off) .bub) { --bub: var(--sky-soft); }
   .err { color: var(--ink); font-weight: 500; }
   .err[hidden] { display: none; }
-  @media (max-width: 75rem) {
-    .layout { grid-template-columns: minmax(0, 1fr); }
-    .hear { position: static; grid-row: 1; }
-    .main { display: contents; }
-    .list { grid-row: 1; }
-    .hear { grid-row: 2; }
-  }
+  @media (max-width: 40rem) { .moment { padding: var(--s-3); } }
 </style>

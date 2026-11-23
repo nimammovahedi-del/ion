@@ -1,29 +1,34 @@
 ---
-/** Gentle suggestions from today's report. Never medical advice: "you might ask" is as strong as it gets. */
+/** Gentle suggestions from today's report, one per card. Never advice: "you might ask" is as strong as it gets. */
 import Icon from '@/components/ui/Icon.astro';
+import IconBadge from '@/components/ui/IconBadge.astro';
 interface Props { items: { text: string; why: string; href?: string; link?: string }[] }
 const { items } = Astro.props;
+const ICONS: Record<string, string> = { '/app/ask/': 'chat', '/app/trends/doctor-visit/': 'print', '/app/medicines/': 'pill' };
 ---
-<section class="might" aria-labelledby="might-h">
-  <h2 id="might-h" class="h3">What you might do</h2>
-  <p class="muted small">Ideas, not instructions. You know her best.</p>
+<section class="might" aria-labelledby="might-h" data-reveal>
+  <div class="might-head">
+    <h2 id="might-h" class="h3">Ideas for today</h2>
+    <p class="muted small">Ideas, not instructions. You know her best.</p>
+  </div>
   <ul role="list" class="list">
     {items.map((s) => (
       <li>
+        <IconBadge name={(s.href && ICONS[s.href]) || 'spark'} tone="surface" size="md" round />
         <p class="text">{s.text}</p>
         <p class="why">{s.why}</p>
-        {s.href && <a href={s.href}>{s.link}<Icon name="arrow" size={14} /></a>}
+        {s.href && <a href={s.href}>{s.link}<Icon name="arrow" size={16} /></a>}
       </li>
     ))}
   </ul>
 </section>
 <style>
-  .might { display: flex; flex-direction: column; gap: var(--s-2); padding: var(--s-6); border-radius: var(--r-xl); background: var(--surface); border: 1px solid var(--line); min-width: 0; }
-  .list { display: flex; flex-direction: column; margin-top: var(--s-2); }
-  .list li { display: flex; flex-direction: column; gap: var(--s-1); padding: var(--s-4) 0; border-top: 1px solid var(--line); }
-  .list li:last-child { padding-bottom: 0; }
-  .text { font-size: 1.0625rem; font-weight: 500; line-height: 1.4; }
-  .why { font-size: var(--fs-sm); color: var(--ink-2); }
-  a { display: inline-flex; align-items: center; gap: var(--s-1); align-self: flex-start; min-height: var(--tap); font-size: var(--fs-sm); font-weight: 500; color: var(--acc-text); }
-  @media (max-width: 30rem) { .might { padding: var(--s-4); border-radius: var(--r-lg); } }
+  .might { display: flex; flex-direction: column; gap: var(--s-4); min-width: 0; }
+  .might-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-1) var(--s-4); }
+  .list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16.5rem), 1fr)); gap: var(--s-4); }
+  .list li { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s-2); padding: var(--s-5); border-radius: var(--r-lg); background: var(--leaf-soft); min-width: 0; }
+  .text { margin-top: var(--s-2); font-size: 1.125rem; font-weight: 500; line-height: 1.35; letter-spacing: -0.01em; text-wrap: balance; }
+  .why { font-size: var(--fs-sm); line-height: 1.5; color: var(--ink-2); }
+  a { display: inline-flex; align-items: center; gap: var(--s-2); min-height: var(--tap); margin-top: auto; font-size: 0.9375rem; font-weight: 500; color: var(--ink); }
+  a:hover { color: var(--leaf-text); }
 </style>

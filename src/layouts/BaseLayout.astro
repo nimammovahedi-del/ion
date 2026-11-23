@@ -12,7 +12,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <title>{title}</title>
     <meta name="description" content={description} />
     <meta name="robots" content="noindex, nofollow" />
-    <meta name="theme-color" content="#1b2b4b" />
+    <meta name="theme-color" content="#fbf6ee" />
     <link rel="canonical" href={canonical} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <meta property="og:title" content={title} />
@@ -26,7 +26,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <slot />
     <script>
       // Reveal on scroll. Without JavaScript or with reduced motion, everything is simply visible.
-      const els = document.querySelectorAll<HTMLElement>('[data-reveal]');
+      const els = document.querySelectorAll<HTMLElement>('[data-reveal], [data-draw]');
       if ('IntersectionObserver' in window && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
         const io = new IntersectionObserver((entries) => {
           for (const e of entries) if (e.isIntersecting) { e.target.classList.add('is-in'); io.unobserve(e.target); }
