@@ -1,0 +1,110 @@
+---
+/**
+ * Frame for every caregiver app page: top bar, section menu (side rail on wide screens, scrolling pill row on phones),
+ * page header with the approvals badge, and the standing line.
+ */
+import BaseLayout from './BaseLayout.astro';
+import Icon from '@/components/ui/Icon.astro';
+import { appNav, STANDING_LINE } from '@/data/nav';
+import { getFamily, getParent, getToday, getViewer, needsYouCount } from '@/lib/loaders';
+interface Props { title: string; active: string; eyebrow?: string; heading: string; tone2?: string; lede?: string }
+const { title, active, eyebrow, heading, tone2, lede } = Astro.props;
+const [parent, family, viewer, today, waiting] = await Promise.all([getParent(), getFamily(), getViewer(), getToday(), needsYouCount()]);
+const groups = [
+  { id: 'main', label: 'Every day' },
+  { id: 'care', label: 'Care' },
+  { id: 'setup', label: 'Set up' },
+] as const;
+---
+<BaseLayout title={`${title} · I-on`} bodyClass="app">
+  <div class="shell">
+    <header class="topbar">
+      <a class="brand" href="/app/" aria-label="I-on, today">I-on<span class="brand-dot" aria-hidden="true"></span></a>
+      <div class="who">
+        <span class="who-avatar" aria-hidden="true">{parent.initials}</span>
+        <span class="who-text"><b>{parent.short}</b><span>{today.short} · call done {today.callTime}</span></span>
+      </div>
+      <span class="example">Example data</span>
+      <ul role="list" class="circle" aria-label="Family circle">
+        {family.map((p) => <li title={`${p.name}, ${p.relation}`} class:list={{ me: p.id === viewer.id }}><span aria-hidden="true">{p.initials}</span><span class="sr-only">{p.name}, {p.relation}{p.id === viewer.id ? ' (you)' : ''}</span></li>)}
+      </ul>
+      <a class="approvals" href="/app/tasks/"><Icon name="bell" size={18} />Waiting for you<b>{waiting}</b></a>
+    </header>
+
+    <nav class="menu" aria-label="App sections">
+      {groups.map((g) => (
+        <div class="menu-group">
+          <p class="menu-label">{g.label}</p>
+          <ul role="list">
+            {appNav.filter((n) => n.group === g.id).map((n) => (
+              <li><a href={n.href} aria-current={n.id === active ? 'page' : undefined}><Icon name={n.icon} size={18} /><span>{n.label}</span>{n.soon && <em>Soon</em>}</a></li>
+            ))}
+          </ul>
+        </div>
+      ))}
+      <a class="menu-site" href="/">Back to the website</a>
+    </nav>
+
+    <main id="main" class="content">
+      <div class="page-head">
+        {eyebrow && <p class="page-eyebrow"><span aria-hidden="true"></span>{eyebrow}</p>}
+        <h1 class="h1">{heading}{tone2 && <span class="tone-2">{tone2}</span>}</h1>
+        {lede && <p class="lede">{lede}</p>}
+        <slot name="head-actions" />
+      </div>
+      <slot />
+      <p class="standing">{STANDING_LINE}</p>
+    </main>
+  </div>
+</BaseLayout>
+<style>
+  :global(body.app) { background: var(--paper); }
+  .shell { display: grid; grid-template-columns: 15rem minmax(0, 1fr); grid-template-areas: 'top top' 'menu content'; gap: var(--s-6); max-width: 90rem; margin-inline: auto; padding: var(--s-5) var(--s-6) var(--s-12); }
+  .topbar { grid-area: top; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3) var(--s-5); padding: var(--s-2) var(--s-3) var(--s-2) var(--s-6); background: var(--surface); border: 1px solid var(--line); border-radius: 2rem; box-shadow: var(--shadow-1); }
+  .brand { display: inline-flex; align-items: center; gap: 0.25rem; min-height: var(--tap); font-size: 1.5rem; font-weight: 600; letter-spacing: -0.04em; color: var(--ink); text-decoration: none; }
+  .brand-dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--acc); }
+  .who { display: flex; align-items: center; gap: var(--s-3); margin-right: auto; padding-left: var(--s-5); border-left: 1px solid var(--line); }
+  .who-avatar { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; border-radius: 50%; background: var(--deep); color: var(--on-deep); font-size: var(--fs-sm); font-weight: 500; }
+  .who-text { display: flex; flex-direction: column; line-height: 1.3; }
+  .who-text b { font-weight: 500; }
+  .who-text span { font-size: var(--fs-sm); color: var(--ink-2); }
+  .example { font-size: var(--fs-xs); color: var(--ink-2); background: var(--grey-1); border-radius: var(--r-pill); padding: 0.25rem 0.625rem; }
+  .circle { display: flex; }
+  .circle li { display: grid; place-items: center; width: 2.25rem; height: 2.25rem; margin-left: -0.375rem; border-radius: 50%; background: var(--acc-soft); border: 2px solid var(--surface); font-size: var(--fs-xs); font-weight: 500; }
+  .circle li.me { background: var(--acc); }
+  .approvals { display: inline-flex; align-items: center; gap: var(--s-2); min-height: var(--tap); padding: 0 var(--s-3) 0 var(--s-4); border-radius: var(--r-pill); background: var(--deep); color: var(--on-deep); font-size: var(--fs-sm); font-weight: 500; text-decoration: none; }
+  .approvals:hover { color: var(--on-deep); background: #24375f; }
+  .approvals b { display: grid; place-items: center; min-width: 1.5rem; height: 1.5rem; padding: 0 0.375rem; border-radius: var(--r-pill); background: var(--acc); color: var(--on-acc); font-weight: 600; }
+  .menu { grid-area: menu; align-self: start; display: flex; flex-direction: column; gap: var(--s-5); padding: var(--s-4); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); }
+  .menu-group ul { display: flex; flex-direction: column; gap: 0.125rem; }
+  .menu-label { font-family: var(--mono); font-size: 0.6875rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2); padding: 0 var(--s-3) var(--s-2); }
+  .menu a { display: flex; align-items: center; gap: var(--s-3); min-height: var(--tap); padding: 0 var(--s-3); border-radius: var(--r-md); color: var(--ink); text-decoration: none; font-size: 0.9375rem; }
+  .menu a:hover { background: var(--paper); color: var(--ink); }
+  .menu a[aria-current='page'] { background: var(--acc-soft); font-weight: 500; }
+  .menu a[aria-current='page'] :global(svg) { color: var(--acc-text); }
+  .menu em { margin-left: auto; font-style: normal; font-size: 0.6875rem; color: var(--ink-2); background: var(--grey-1); border-radius: var(--r-pill); padding: 0.125rem 0.5rem; }
+  .menu-site { color: var(--ink-2) !important; font-size: var(--fs-sm) !important; border-top: 1px solid var(--line); border-radius: 0 !important; padding-top: var(--s-3) !important; }
+  .content { grid-area: content; display: flex; flex-direction: column; gap: var(--s-8); min-width: 0; }
+  .page-head { display: flex; flex-direction: column; gap: var(--s-3); padding: var(--s-2) var(--s-1) 0; }
+  .page-eyebrow { display: inline-flex; align-items: center; gap: var(--s-2); font-size: 0.9375rem; }
+  .page-eyebrow span { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--acc); box-shadow: 0 0 0 3px var(--acc-soft); }
+  .page-head .lede { max-width: 44rem; }
+  .standing { margin-top: var(--s-4); font-size: var(--fs-sm); color: var(--ink-2); border-top: 1px solid var(--line); padding-top: var(--s-4); }
+  @media (max-width: 62rem) {
+    .shell { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'top' 'menu' 'content'; gap: var(--s-4); padding: var(--s-3) var(--s-4) var(--s-10); }
+    .topbar { padding: var(--s-3) var(--s-4); border-radius: 1.5rem; }
+    .who { order: 5; flex: 1 1 100%; margin: 0; padding: var(--s-3) 0 0; border-left: 0; border-top: 1px solid var(--line); }
+    .brand { margin-right: auto; }
+    .circle { display: none; }
+    .menu { flex-direction: row; gap: var(--s-2); padding: var(--s-2); overflow-x: auto; border-radius: var(--r-pill); scroll-snap-type: x proximity; }
+    .menu-group { display: contents; }
+    .menu-group ul { flex-direction: row; gap: var(--s-1); }
+    .menu-label, .menu-site { display: none !important; }
+    .menu a { white-space: nowrap; border-radius: var(--r-pill); padding: 0 var(--s-4); scroll-snap-align: start; }
+    .menu em { margin-left: var(--s-1); }
+  }
+  @media print {
+    .topbar, .menu { display: none; }
+    .shell { display: block; padding: 0; }
+  }
+</style>

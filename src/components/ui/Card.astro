@@ -1,0 +1,24 @@
+---
+/** White rounded surface. tone="paper" for a soft grey-blue panel, "deep" for navy, "acc" for sky blue. */
+interface Props {
+  as?: 'div' | 'article' | 'section' | 'li';
+  tone?: 'surface' | 'paper' | 'deep' | 'acc' | 'soft';
+  pad?: 'none' | 'sm' | 'md' | 'lg';
+  class?: string;
+  [key: string]: unknown;
+}
+const { as: Tag = 'div', tone = 'surface', pad = 'md', class: cls = '', ...rest } = Astro.props;
+---
+<Tag class:list={['card', `card-${tone}`, `pad-${pad}`, cls]} {...rest}><slot /></Tag>
+<style>
+  .card { border-radius: var(--r-lg); min-width: 0; }
+  .card-surface { background: var(--surface); border: 1px solid var(--line); }
+  .card-paper { background: var(--paper); }
+  .card-soft { background: var(--acc-soft); }
+  .card-deep { background: var(--deep); color: var(--on-deep); }
+  .card-acc { background: var(--acc); color: var(--on-acc); }
+  .pad-none { padding: 0; overflow: hidden; }
+  .pad-sm { padding: var(--s-4); }
+  .pad-md { padding: var(--s-5); }
+  .pad-lg { padding: var(--s-8); }
+</style>

@@ -1,0 +1,41 @@
+---
+/** The "patient story" card: a large value, where it came from, its state, and the evidence in her words. */
+import type { HealthCardData } from '@/data/types';
+import Chip from './Chip.astro';
+import Icon from './Icon.astro';
+interface Props { card: HealthCardData; href?: string; compact?: boolean }
+const { card, href, compact = false } = Astro.props;
+---
+<article class:list={['hc', `hc-${card.status}`, { compact }]}>
+  <div class="hc-top">
+    <div class="hc-title"><Icon name={card.icon} size={18} /><h3>{card.title}</h3><Chip tone={card.status}>{card.statusLabel}</Chip></div>
+    <p class="hc-value num"><span class="hc-num">{card.value}</span>{card.unit && <span class="hc-unit">{card.unit}</span>}</p>
+    <p class="hc-caption">{card.caption}</p>
+  </div>
+  <div class="hc-body">
+    <ul class="hc-sources" role="list" aria-label="Where this came from">
+      {card.sources.map((s) => <li><Chip tone="source">{s.label}</Chip></li>)}
+    </ul>
+    <p class="hc-evidence">{card.evidence}</p>
+    {card.disagreement && <p class="hc-disagree"><strong>Two answers.</strong> {card.disagreement}</p>}
+    {href && <a class="hc-link" href={href}>See the trend<Icon name="arrow" size={16} /></a>}
+  </div>
+</article>
+<style>
+  .hc { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; min-width: 0; }
+  .hc-top { display: flex; flex-direction: column; gap: var(--s-2); padding: var(--s-5); background: var(--paper); }
+  .hc-changed .hc-top { background: var(--acc-soft); }
+  .hc-title { display: flex; align-items: center; gap: var(--s-2); color: var(--ink); }
+  .hc-title h3 { font-size: 1rem; font-weight: 500; margin-right: auto; }
+  .hc-value { display: flex; align-items: baseline; gap: var(--s-2); margin-top: var(--s-2); }
+  .hc-num { font-weight: 300; font-size: 3.5rem; line-height: 1; letter-spacing: -0.04em; }
+  .hc-unit { font-size: 1.125rem; color: var(--ink); }
+  .hc-caption { border-top: 1px solid rgba(17, 17, 17, 0.2); padding-top: var(--s-2); font-size: var(--fs-sm); color: var(--ink); }
+  .hc-body { display: flex; flex-direction: column; gap: var(--s-3); padding: var(--s-5); flex: 1; }
+  .hc-sources { display: flex; flex-wrap: wrap; gap: 0.375rem; }
+  .hc-evidence { font-size: 0.9375rem; line-height: 1.6; }
+  .hc-disagree { font-size: 0.9375rem; line-height: 1.6; background: var(--paper); border-radius: var(--r-md); padding: var(--s-3) var(--s-4); }
+  .hc-link { display: inline-flex; align-items: center; gap: var(--s-1); min-height: var(--tap); margin-top: auto; font-size: var(--fs-sm); font-weight: 500; color: var(--acc-text); text-decoration: none; }
+  .hc-link:hover { text-decoration: underline; }
+  .compact .hc-num { font-size: 2.5rem; }
+</style>

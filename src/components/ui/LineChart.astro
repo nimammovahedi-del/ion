@@ -1,0 +1,70 @@
+---
+/**
+ * Line chart drawn as inline SVG at build time. No chart library.
+ * points: oldest first. Null values are days with no answer and break the line.
+ * Always pass `summary`: it is what a screen reader hears, and a data table is rendered next to the chart.
+ */
+import type { DayPoint } from '@/data/types';
+interface Props {
+  points: DayPoint[]; min: number; max: number; usual?: number; usualLabel?: string; unit: string;
+  summary: string; height?: number; ticks?: number[]; area?: boolean; id?: string; stepped?: boolean;
+}
+const { points, min, max, usual, usualLabel, unit, summary, height = 220, ticks, area = true, stepped = false } = Astro.props;
+const W = 720, H = height, L = 40, R = 16, T = 16, B = 30;
+const iw = W - L - R, ih = H - T - B;
+const x = (i: number) => L + (points.length === 1 ? iw / 2 : (i / (points.length - 1)) * iw);
+const y = (v: number) => T + ih - ((v - min) / (max - min)) * ih;
+const tk = ticks ?? [min, min + (max - min) / 2, max];
+// split into runs of answered days
+const runs: { i: number; v: number }[][] = [];
+let cur: { i: number; v: number }[] = [];
+points.forEach((p, i) => { if (p.value === null) { if (cur.length) runs.push(cur); cur = []; } else cur.push({ i, v: p.value }); });
+if (cur.length) runs.push(cur);
+const linePath = (run: { i: number; v: number }[]) => run.map((p, k) => {
+  if (k === 0) return `M${x(p.i).toFixed(1)} ${y(p.v).toFixed(1)}`;
+  return stepped ? `H${x(p.i).toFixed(1)} V${y(p.v).toFixed(1)}` : `L${x(p.i).toFixed(1)} ${y(p.v).toFixed(1)}`;
+}).join(' ');
+const areaPath = (run: { i: number; v: number }[]) => `${linePath(run)} L${x(run[run.length - 1].i).toFixed(1)} ${T + ih} L${x(run[0].i).toFixed(1)} ${T + ih} Z`;
+const last = [...points].map((p, i) => ({ ...p, i })).reverse().find((p) => p.value !== null);
+const labelEvery = Math.max(1, Math.round(points.length / 6));
+const fmt = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1));
+---
+<figure class="chart">
+  <div class="scroll" tabindex="0" role="group" aria-label={`${summary} Scroll sideways to see the whole chart.`}>
+  <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={summary} preserveAspectRatio="xMidYMid meet">
+    <g class="grid">
+      {tk.map((t) => <line x1={L} x2={W - R} y1={y(t)} y2={y(t)} />)}
+    </g>
+    <g class="axis">
+      {tk.map((t) => <text x={L - 8} y={y(t) + 4} text-anchor="end">{fmt(t)}</text>)}
+      {points.map((p, i) => (i % labelEvery === 0 || i === points.length - 1) && (i === points.length - 1 || points.length - 1 - i >= labelEvery * 0.6) ? <text x={x(i)} y={H - 8} text-anchor={i === 0 ? 'start' : i === points.length - 1 ? 'end' : 'middle'}>{p.label}</text> : null)}
+    </g>
+    {usual !== undefined && <line class="usual" x1={L} x2={W - R} y1={y(usual)} y2={y(usual)} />}
+    {area && runs.filter((r) => r.length > 1).map((r) => <path class="area" d={areaPath(r)} />)}
+    {runs.map((r) => r.length > 1 ? <path class="line" d={linePath(r)} /> : <circle class="pt" cx={x(r[0].i)} cy={y(r[0].v)} r="3" />)}
+    {last && <circle class="last" cx={x(last.i)} cy={y(last.value as number)} r="5.5" />}
+  </svg>
+  </div>
+  <figcaption>
+    {usual !== undefined && <span class="key"><span class="key-dash" aria-hidden="true"></span>Her usual{usualLabel ? `: ${usualLabel}` : ''}</span>}
+    <span class="key"><span class="key-line" aria-hidden="true"></span>{unit}</span>
+    <span class="key"><span class="key-gap" aria-hidden="true"></span>A gap means no answer that day</span>
+  </figcaption>
+</figure>
+<style>
+  .chart { display: flex; flex-direction: column; gap: var(--s-2); min-width: 0; }
+  .scroll { overflow-x: auto; border-radius: var(--r-sm); }
+  svg { display: block; width: 100%; min-width: 32rem; height: auto; }
+  .grid line { stroke: var(--line); stroke-width: 1; }
+  .axis text { font-family: var(--font); font-size: 12px; fill: var(--ink-2); }
+  .usual { stroke: var(--ink-2); stroke-width: 1.5; stroke-dasharray: 5 5; }
+  .area { fill: var(--acc); fill-opacity: 0.22; }
+  .line { fill: none; stroke: var(--acc-text); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+  .pt { fill: var(--acc-text); }
+  .last { fill: var(--deep); stroke: var(--surface); stroke-width: 2; }
+  figcaption { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-5); font-size: var(--fs-sm); color: var(--ink-2); }
+  .key { display: inline-flex; align-items: center; gap: var(--s-2); }
+  .key-dash { width: 1.25rem; border-top: 2px dashed var(--ink-2); }
+  .key-line { width: 1.25rem; border-top: 3px solid var(--acc-text); border-radius: 2px; }
+  .key-gap { width: 1.25rem; border-top: 3px dotted var(--line-strong); }
+</style>

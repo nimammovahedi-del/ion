@@ -1,0 +1,69 @@
+---
+/** Frame for the marketing pages: floating nav pill on top, footer and the standing line below. */
+import BaseLayout from './BaseLayout.astro';
+import Button from '@/components/ui/Button.astro';
+import { siteNav, STANDING_LINE } from '@/data/nav';
+interface Props { title: string; description?: string; active?: string }
+const { title, description, active = 'home' } = Astro.props;
+const links = siteNav.filter((n) => ['home', 'why', 'how', 'questions'].includes(n.id));
+---
+<BaseLayout title={title} description={description} bodyClass="site">
+  <header class="site-head wrap">
+    <div class="navpill">
+      <a class="brand" href="/" aria-label="I-on home">I-on<span class="brand-dot" aria-hidden="true"></span></a>
+      <nav aria-label="Main">
+        <ul role="list" class="navtrack">
+          {links.map((n) => <li><a href={n.href} aria-current={n.id === active ? 'page' : undefined}>{n.label}</a></li>)}
+        </ul>
+      </nav>
+      <div class="navcta">
+        <a class="applink" href="/app/">See the app</a>
+        <Button href="/#waitlist" arrow>Join the waitlist</Button>
+      </div>
+    </div>
+  </header>
+  <main id="main"><slot /></main>
+  <footer class="site-foot wrap">
+    <div class="foot-top">
+      <div class="stack" style="--gap: var(--s-2)">
+        <a class="brand" href="/" aria-label="I-on home">I-on<span class="brand-dot" aria-hidden="true"></span></a>
+        <p class="small muted">A daily call for your parent. A clear picture for you.</p>
+      </div>
+      <nav aria-label="Footer">
+        <ul role="list" class="foot-links">
+          <li><a href="/#how">How it works</a></li>
+          <li><a href="/#questions">Questions</a></li>
+          <li><a href="/app/">Example app</a></li>
+          <li><a href="/privacy/">Privacy</a></li>
+        </ul>
+      </nav>
+    </div>
+    <p class="standing">{STANDING_LINE} In an emergency, call 911.</p>
+    <p class="small muted">© 2026 I-on. In development. The family shown on this site is invented.</p>
+  </footer>
+</BaseLayout>
+<style>
+  .site-head { padding-top: var(--s-6); position: relative; z-index: 10; }
+  .navpill { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-3) var(--s-4); max-width: 62rem; margin-inline: auto; padding: var(--s-2) var(--s-2) var(--s-2) var(--s-6); background: var(--surface); border: 1px solid var(--line); border-radius: 2rem; box-shadow: var(--shadow-2); }
+  .brand { display: inline-flex; align-items: center; gap: 0.25rem; min-height: var(--tap); font-size: 1.625rem; font-weight: 600; letter-spacing: -0.04em; color: var(--ink); text-decoration: none; }
+  .brand:hover { color: var(--ink); }
+  .brand-dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--acc); }
+  .navtrack { display: flex; align-items: center; gap: 0.25rem; padding: 0.25rem; border-radius: var(--r-pill); background: var(--grey-1); overflow-x: auto; }
+  .navtrack a { display: flex; align-items: center; min-height: var(--tap); padding: 0 1rem; border-radius: var(--r-pill); font-size: 0.9375rem; color: var(--ink-2); text-decoration: none; white-space: nowrap; }
+  .navtrack a:hover { color: var(--ink); }
+  .navtrack a[aria-current='page'] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(17, 17, 17, 0.1); }
+  .navcta { display: flex; align-items: center; gap: var(--s-2); }
+  .applink { display: inline-flex; align-items: center; min-height: var(--tap); padding: 0 var(--s-3); font-size: 0.9375rem; color: var(--ink-2); text-decoration: none; }
+  .applink:hover { color: var(--acc-text); }
+  @media (max-width: 56rem) {
+    .navpill { padding: var(--s-3) var(--s-4); border-radius: 1.5rem; }
+    .navpill nav { order: 3; flex: 1 1 100%; min-width: 0; }
+    .applink { display: none; }
+  }
+  .site-foot { display: flex; flex-direction: column; gap: var(--s-5); margin-top: var(--s-24); padding-block: var(--s-10) var(--s-12); border-top: 1px solid var(--line); }
+  .foot-top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--s-6); }
+  .foot-links { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-6); }
+  .foot-links a { display: inline-flex; align-items: center; min-height: var(--tap); color: var(--ink); text-decoration: none; }
+  .foot-links a:hover { color: var(--acc-text); text-decoration: underline; }
+  .standing { max-width: 44rem; font-size: 0.9375rem; color: var(--ink); background: var(--paper); border-radius: var(--r-md); padding: var(--s-3) var(--s-4); }
+</style>

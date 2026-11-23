@@ -1,0 +1,9 @@
+# Cloudflare Pages project in the "unvault" account. Static site in ./dist plus Pages Functions in ./functions.
+name = "i-on"
+compatibility_date = "2026-11-20"
+pages_build_output_dir = "./dist"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "i-on-waitlist"
+database_id = "8fb69f81-0eaf-4cb3-b86e-c83396913484"

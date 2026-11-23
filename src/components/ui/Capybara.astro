@@ -1,0 +1,51 @@
+---
+/** Ion the capybara. Placeholder illustration until a real one is commissioned. */
+interface Props { size?: number; ground?: string; waves?: boolean; class?: string; label?: string }
+const { size = 320, ground = 'var(--paper)', waves = true, class: cls = '', label = 'Ion, a cartoon capybara in a blue scarf with a small orange on its head' } = Astro.props;
+const id = `capy-${Math.random().toString(36).slice(2, 8)}`;
+---
+<svg class:list={['capy', cls]} viewBox="0 0 320 320" width={size} height={size} role="img" aria-label={label}>
+  <defs><clipPath id={id}><circle cx="160" cy="160" r="150" /></clipPath></defs>
+  <circle cx="160" cy="160" r="150" fill={ground} />
+  <g clip-path={`url(#${id})`}>
+    <path d="M118 340 C104 262 138 204 208 200 C272 198 318 244 326 340 Z" fill="#A9743F" />
+    <rect x="132" y="258" width="38" height="90" rx="18" fill="#96642F" />
+    <rect x="182" y="266" width="38" height="90" rx="18" fill="#96642F" />
+    <path d="M138 214 Q196 240 252 204 L260 232 Q198 268 134 242 Z" fill="var(--acc)" />
+    <path d="M150 246 L176 252 L170 300 L146 294 Z" fill="var(--acc)" />
+  </g>
+  <ellipse cx="216" cy="92" rx="13" ry="17" fill="#8A5A2E" transform="rotate(18 216 92)" />
+  <ellipse cx="217" cy="95" rx="6" ry="9" fill="#5E3B1E" transform="rotate(18 217 95)" />
+  <g class="capy-head">
+    <rect x="60" y="94" width="184" height="124" rx="50" fill="#A9743F" transform="rotate(-5 152 156)" />
+    <path d="M66 132 Q62 112 84 108 Q98 106 100 124 L100 176 Q98 196 82 196 Q64 196 64 176 Z" fill="#8F5F31" />
+    <ellipse cx="80" cy="130" rx="6" ry="4" fill="#3A2A20" />
+    <path d="M68 178 Q98 192 134 182" fill="none" stroke="#3A2A20" stroke-width="3" stroke-linecap="round" />
+    <g class="capy-eye">
+      <ellipse cx="170" cy="130" rx="7" ry="8" fill="#111111" />
+      <circle cx="168" cy="127" r="2.2" fill="#FFFFFF" />
+    </g>
+    <path d="M158 120 Q170 112 182 120" fill="none" stroke="#5E3B1E" stroke-width="3" stroke-linecap="round" />
+    <circle cx="146" cy="170" r="9" fill="#E8866A" fill-opacity="0.4" />
+    <circle cx="156" cy="74" r="17" fill="var(--sun)" />
+    <path d="M156 59 Q166 46 178 54 Q168 64 156 59 Z" fill="#3E8E5A" />
+  </g>
+  {waves && (
+    <g class="capy-waves" fill="none" stroke="var(--acc-text)" stroke-width="5" stroke-linecap="round">
+      <path d="M50 140 Q43 153 50 166" />
+      <path d="M36 130 Q24 153 36 176" />
+    </g>
+  )}
+</svg>
+<style>
+  .capy { height: auto; max-width: 100%; }
+  @media (prefers-reduced-motion: no-preference) {
+    .capy-eye { transform-origin: 170px 130px; animation: capy-blink 5.5s infinite; }
+    .capy-head { transform-origin: 200px 200px; animation: capy-nod 7s ease-in-out infinite; }
+    .capy-waves path { animation: capy-wave 2.4s ease-in-out infinite; }
+    .capy-waves path:last-child { animation-delay: 0.3s; }
+  }
+  @keyframes capy-blink { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(0.1); } }
+  @keyframes capy-nod { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-1.5deg); } }
+  @keyframes capy-wave { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+</style>

@@ -1,0 +1,17 @@
+---
+import AppLayout from '@/layouts/AppLayout.astro';
+import HealthCard from '@/components/ui/HealthCard.astro';
+import StepRow from '@/components/ui/StepRow.astro';
+import StatTile from '@/components/ui/StatTile.astro';
+import LineChart from '@/components/ui/LineChart.astro';
+import { getHealthCards, getSteps, getMetric, lastDays } from '@/lib/loaders';
+const cards = await getHealthCards();
+const steps = await getSteps();
+const sleep = await getMetric('sleep');
+---
+<AppLayout title="Today" active="today" eyebrow="Today" heading="Placeholder" tone2="to check the frame">
+  <div class="grid-auto"><StatTile label="Sleep" value="5.5" unit="h" caption="usual 7.5" flag /><StatTile label="Feeling" value="6 / 10" caption="usual 7" tone="soft" /></div>
+  <div class="grid-auto" style="--min: 20rem">{cards.map((c) => <HealthCard card={c} href="/app/trends/" />)}</div>
+  <ol role="list" class="stack">{steps.map((s) => <StepRow step={s} total={steps.length} />)}</ol>
+  <LineChart points={lastDays(sleep, 30)} min={sleep.min} max={sleep.max} usual={sleep.usual} usualLabel={sleep.usualLabel} unit="Hours of sleep" summary="Sleep over 30 days" />
+</AppLayout>

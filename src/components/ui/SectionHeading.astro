@@ -1,0 +1,21 @@
+---
+/** Section opener. align="center" gives the bold centred marketing style; "left" the light two-tone app style. */
+import Eyebrow from './Eyebrow.astro';
+interface Props { eyebrow?: string; title: string; tone2?: string; sub?: string; text?: string; align?: 'left' | 'center'; level?: 'h1' | 'h2'; id?: string }
+const { eyebrow, title, tone2, sub, text, align = 'left', level = 'h2', id } = Astro.props;
+const H = level;
+---
+<div class:list={['sh', `sh-${align}`]}>
+  {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
+  <H id={id} class:list={[level === 'h1' ? 'h1' : 'h2', { 'h-strong': align === 'center' }]}>{title}{tone2 && <span class="tone-2">{tone2}</span>}</H>
+  {sub && <p class="sh-sub">{sub}</p>}
+  {text && <p class="sh-text">{text}</p>}
+  <slot />
+</div>
+<style>
+  .sh { display: flex; flex-direction: column; gap: var(--s-4); min-width: 0; }
+  .sh-center { align-items: center; text-align: center; }
+  .sh-center :global(.h2), .sh-center :global(.h1) { max-width: 56rem; }
+  .sh-sub { font-size: 1.25rem; line-height: 1.4; font-weight: 600; }
+  .sh-text { max-width: 38rem; font-size: 1.0625rem; line-height: 1.65; color: var(--ink-2); }
+</style>

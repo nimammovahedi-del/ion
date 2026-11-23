@@ -1,0 +1,53 @@
+/* I-on design tokens. Look "Bright desk" in the "Morning sky" colour.
+   Change colours here only. Never hard-code a hex in a component. */
+:root {
+  /* colour */
+  --acc: #8dbbf2;        /* main sky blue: fills, dots, lines, large shapes */
+  --on-acc: #111111;     /* text and icons on --acc (white fails contrast on this blue) */
+  --acc-text: #1f5aa8;   /* blue for text, links and thin icons on white or paper */
+  --acc-soft: #e4effc;   /* tint: chips, card tops, hover fills */
+  --deep: #1b2b4b;       /* navy: dark panels, "Check" chips */
+  --on-deep: #ffffff;
+  --paper: #f5f7fa;      /* page ground for the app, soft panels on the site */
+  --surface: #ffffff;
+  --line: #e4e8ee;       /* hairlines and card borders */
+  --line-strong: #cfd5de;
+  --ink: #111111;
+  --ink-2: #5a5a5a;      /* secondary text (7:1 on white) */
+  --ink-3: #6b6b70;      /* second tone of two-tone headlines; never below 16px */
+  --grey-1: #f2f2f2;
+  --grey-2: #e2e2e2;
+  --sun: #f2a93b;        /* the orange on the capybara's head. Decoration only, never text. */
+  --ok: #1f7a4d;
+  --focus: #1f5aa8;
+
+  /* type */
+  --font: 'Outfit Variable', 'Outfit', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
+  --fs-display: clamp(2.75rem, 6vw, 4.75rem);
+  --fs-h1: clamp(2.25rem, 4.6vw, 3.375rem);
+  --fs-h2: clamp(1.875rem, 3.6vw, 2.75rem);
+  --fs-h3: 1.5rem;
+  --fs-lg: 1.125rem;
+  --fs-body: 1rem;
+  --fs-sm: 0.875rem;
+  --fs-xs: 0.75rem;
+
+  /* space: 4px base */
+  --s-1: 0.25rem; --s-2: 0.5rem; --s-3: 0.75rem; --s-4: 1rem; --s-5: 1.25rem; --s-6: 1.5rem;
+  --s-8: 2rem; --s-10: 2.5rem; --s-12: 3rem; --s-16: 4rem; --s-24: 6rem; --s-32: 8rem;
+
+  /* shape */
+  --r-pill: 9999px;
+  --r-sm: 0.5rem;
+  --r-md: 0.75rem;
+  --r-lg: 1.25rem;   /* cards */
+  --r-xl: 2rem;      /* big panels */
+  --shadow-1: 0 1px 2px rgba(17, 17, 17, 0.04), 0 6px 16px rgba(17, 17, 17, 0.05);
+  --shadow-2: 0 1px 2px rgba(17, 17, 17, 0.04), 0 12px 32px rgba(17, 17, 17, 0.08);
+  --shadow-3: 0 16px 40px rgba(17, 17, 17, 0.18);
+
+  --tap: 2.75rem;    /* 44px minimum touch target */
+  --page: 80rem;     /* 1280px content width */
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
