@@ -1,0 +1,58 @@
+---
+/** Her own words from today's call. The emotional centre of Today: one quote set large, two smaller beside it. */
+import Capybara from '@/components/ui/Capybara.astro';
+interface Props { name: string; quotes: { text: string; about: string }[]; said: string }
+const { name, quotes, said } = Astro.props;
+const [main, ...rest] = quotes;
+---
+<section class="words" aria-labelledby="words-h">
+  <div class="words-main">
+    <div class="label-row">
+      <Capybara size={56} waves={false} ground="var(--surface)" class="capy-mini" label="Ion the capybara, who makes the call" />
+      <h2 id="words-h" class="label">In her own words, on today's call</h2>
+    </div>
+    {main && (
+      <figure class="big">
+        <blockquote><p>&ldquo;{main.text}&rdquo;</p></blockquote>
+        <figcaption>{name}, {main.about.charAt(0).toLowerCase() + main.about.slice(1)}</figcaption>
+      </figure>
+    )}
+    <p class="said"><span class="said-label">On the call:</span> {said}</p>
+  </div>
+  <div class="words-side">
+    {rest.length > 0 && (
+      <ul role="list" class="small-quotes">
+        {rest.map((q) => (
+          <li>
+            <figure>
+              <blockquote><p>&ldquo;{q.text}&rdquo;</p></blockquote>
+              <figcaption>{q.about}</figcaption>
+            </figure>
+          </li>
+        ))}
+      </ul>
+    )}
+  </div>
+</section>
+<style>
+  .words { container-type: inline-size; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-6); padding: var(--s-8); border-radius: var(--r-xl); background: var(--acc-soft); min-width: 0; }
+  .words-main { display: flex; flex-direction: column; gap: var(--s-4); min-width: 0; }
+  .label { font-size: var(--fs-sm); font-weight: 600; letter-spacing: 0.02em; }
+  .big blockquote { margin: 0; }
+  .big blockquote p { font-size: clamp(2rem, 4.4vw, 3.5rem); font-weight: 300; line-height: 1.08; letter-spacing: -0.035em; text-wrap: balance; }
+  .big figcaption { margin-top: var(--s-3); font-size: var(--fs-sm); color: var(--ink-2); }
+  .said { max-width: 40rem; font-size: 0.9375rem; line-height: 1.6; padding-top: var(--s-4); border-top: 1px solid var(--line-strong); }
+  .said-label { font-weight: 600; }
+  .words-side { display: flex; flex-direction: column; gap: var(--s-4); min-width: 0; }
+  .label-row { display: flex; align-items: center; gap: var(--s-3); }
+  .label-row :global(.capy-mini) { flex: none; width: 3.5rem; height: 3.5rem; }
+  .small-quotes { display: flex; flex-direction: column; gap: var(--s-3); }
+  .small-quotes figure { padding: var(--s-4); border-radius: var(--r-lg); background: var(--surface); }
+  .small-quotes blockquote { margin: 0; }
+  .small-quotes blockquote p { font-size: 1.125rem; line-height: 1.4; letter-spacing: -0.01em; }
+  .small-quotes figcaption { margin-top: var(--s-1); font-size: var(--fs-sm); color: var(--ink-2); }
+  @media (min-width: 75rem) {
+    .words { grid-template-columns: minmax(0, 1.7fr) minmax(16rem, 1fr); gap: var(--s-8); padding: var(--s-10); }
+  }
+  @media (max-width: 30rem) { .words { padding: var(--s-5); border-radius: var(--r-lg); } }
+</style>

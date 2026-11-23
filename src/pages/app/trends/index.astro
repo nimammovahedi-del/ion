@@ -1,0 +1,121 @@
+---
+import AppLayout from '@/layouts/AppLayout.astro';
+import Button from '@/components/ui/Button.astro';
+import Icon from '@/components/ui/Icon.astro';
+import Chip from '@/components/ui/Chip.astro';
+import WeekNote from '@/components/app/trends/WeekNote.astro';
+import MeasureSection from '@/components/app/trends/MeasureSection.astro';
+import { getHerWords, getMetrics, getParent, getWeekNotes } from '@/lib/loaders';
+
+const [parent, metrics, notes, words] = await Promise.all([getParent(), getMetrics(), getWeekNotes(), getHerWords()]);
+const RANGES = [14, 30, 90] as const;
+const ORDER = ['sleep', 'feeling', 'pain', 'meals', 'fluids', 'medicines', 'falls', 'out'];
+const measures = ORDER.map((id) => metrics.find((m) => m.id === id)).filter((m) => m !== undefined);
+const statusLabel = { changed: 'Changed', check: 'Check', usual: 'As usual' } as const;
+---
+<AppLayout
+  title="Trends"
+  active="trends"
+  eyebrow="Trends"
+  heading={`How ${parent.short} has been`}
+  tone2="over the last weeks and months"
+  lede="Every number here is her own answer on a daily call, not a measurement. A pattern is something to ask her about, not a diagnosis."
+>
+  <div class="trends" data-trends data-active="30">
+    <aside class="side" aria-label="Range and measures">
+      <fieldset class="range">
+        <legend>Show the last</legend>
+        <div class="range-opts">
+          {RANGES.map((n) => (
+            <label>
+              <input type="radio" name="range" value={String(n)} id={`range-${n}`} checked={n === 30} />
+              <span>{n} days</span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      <nav class="jump" aria-label="Jump to a measure">
+        <p class="jump-label">Jump to</p>
+        <ul role="list">
+          {measures.map((m) => (
+            <li><a href={`#${m.id}`}><Icon name={m.icon} size={16} /><span>{m.title}</span>{m.status !== 'usual' && <Chip tone={m.status}>{statusLabel[m.status]}</Chip>}</a></li>
+          ))}
+        </ul>
+      </nav>
+      <Button href="/app/trends/doctor-visit/" variant="dark" class="doc-btn"><Icon name="print" size={18} />For a doctor visit</Button>
+    </aside>
+
+    <div class="main">
+      <WeekNote notes={notes} />
+      {measures.map((m) => (
+        <MeasureSection m={m} words={words.filter((w) => w.metric === m.id)} ranges={RANGES} />
+      ))}
+      <p class="foot muted small">These are family notes from daily check-in calls, in her own words. They are not a medical record. If something worries you, call her, or call her doctor.</p>
+    </div>
+  </div>
+</AppLayout>
+
+<script>
+  // Remember the chosen range and mirror it on the wrapper (a fallback for browsers without :has()).
+  const root = document.querySelector<HTMLElement>('[data-trends]');
+  // On narrow screens the charts scroll inside their box: start at the newest days, on the right.
+  const toNewest = () => root?.querySelectorAll<HTMLElement>('.chart .scroll').forEach((el) => { el.scrollLeft = el.scrollWidth; });
+  if (root) {
+    const KEY = 'i-on.trends.range';
+    const set = (v: string) => {
+      root.dataset.active = v;
+      const input = root.querySelector<HTMLInputElement>(`input[name="range"][value="${v}"]`);
+      if (input) input.checked = true;
+    };
+    try { const saved = localStorage.getItem(KEY); if (saved && ['14', '30', '90'].includes(saved)) set(saved); } catch { /* storage may be off */ }
+    toNewest();
+    root.querySelectorAll<HTMLInputElement>('input[name="range"]').forEach((input) => {
+      input.addEventListener('change', () => {
+        set(input.value);
+        toNewest();
+        try { localStorage.setItem(KEY, input.value); } catch { /* storage may be off */ }
+      });
+    });
+  }
+</script>
+
+<style>
+  .trends { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-6); align-items: start; }
+  .main { display: flex; flex-direction: column; gap: var(--s-6); min-width: 0; }
+  .side { display: flex; flex-direction: column; gap: var(--s-4); padding: var(--s-4); border-radius: var(--r-xl); background: var(--surface); border: 1px solid var(--line); min-width: 0; }
+
+  /* range switch: native radios styled as a segmented control */
+  .range { border: 0; margin: 0; padding: 0; min-width: 0; }
+  .range legend { padding: 0; margin-bottom: var(--s-2); font-size: var(--fs-sm); font-weight: 600; }
+  .range-opts { display: flex; padding: 0.25rem; border-radius: var(--r-pill); background: var(--paper); border: 1px solid var(--line); }
+  .range label { flex: 1; position: relative; }
+  .range input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+  .range span { display: flex; align-items: center; justify-content: center; min-height: var(--tap); padding: 0 var(--s-2); border-radius: var(--r-pill); font-size: var(--fs-sm); font-weight: 500; white-space: nowrap; }
+  .range input:checked + span { background: var(--deep); color: var(--on-deep); }
+  .range input:focus-visible + span { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+  .jump-label { font-size: var(--fs-sm); font-weight: 600; margin-bottom: var(--s-1); }
+  .jump ul { display: flex; gap: var(--s-1); overflow-x: auto; }
+  .jump a { display: flex; align-items: center; gap: var(--s-2); min-height: var(--tap); padding: 0 var(--s-3); border-radius: var(--r-md); font-size: 0.9375rem; text-decoration: none; white-space: nowrap; }
+  .jump a:hover { background: var(--paper); }
+  .jump a :global(svg) { color: var(--acc-text); flex: none; }
+  .jump a :global(.chip) { margin-left: auto; min-height: 1.5rem; font-size: var(--fs-xs); }
+  .side :global(.doc-btn) { white-space: normal; text-align: center; }
+  .foot { max-width: 44rem; }
+
+  /* Show one range at a time. Default (and with no :has support): 30 days. */
+  .trends :global([data-range]:not([data-range='30'])) { display: none; }
+  .trends[data-active='14'] :global([data-range='30']), .trends:has(#range-14:checked) :global([data-range='30']) { display: none; }
+  .trends[data-active='90'] :global([data-range='30']), .trends:has(#range-90:checked) :global([data-range='30']) { display: none; }
+  .trends[data-active='14'] :global([data-range='14']), .trends:has(#range-14:checked) :global([data-range='14']) { display: flex; }
+  .trends[data-active='90'] :global([data-range='90']), .trends:has(#range-90:checked) :global([data-range='90']) { display: flex; }
+
+  @media (max-width: 74.99rem) {
+    .jump ul { padding-bottom: var(--s-1); }
+  }
+  @media (min-width: 75rem) {
+    .trends { grid-template-columns: minmax(0, 1fr) 17rem; }
+    .side { order: 2; position: sticky; top: var(--s-4); }
+    .jump ul { flex-direction: column; overflow: visible; }
+  }
+</style>

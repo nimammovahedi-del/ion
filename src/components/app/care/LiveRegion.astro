@@ -1,0 +1,8 @@
+---
+/** One polite live region per page. Scripts on the care pages announce their changes here. */
+---
+<p id="care-live" class="sr-only" aria-live="polite" aria-atomic="true"></p>
+<script>
+  import { syncWaitingBadge } from './store';
+  syncWaitingBadge();
+</script>

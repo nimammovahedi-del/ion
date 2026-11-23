@@ -1,0 +1,61 @@
+---
+/** How it works: the day in numbered rows, and the everyday topics Ion asks about. */
+import SectionHeading from '@/components/ui/SectionHeading.astro';
+import StepRow from '@/components/ui/StepRow.astro';
+import Icon from '@/components/ui/Icon.astro';
+import { DAY_STEPS, TOPICS } from '@/data/site';
+---
+<section id="how" class="how wrap" aria-labelledby="how-title">
+  <SectionHeading id="how-title" align="center" eyebrow="How it works" title="One call. One report. A few clear next steps." text="Every day follows the same simple shape. Your parent talks, Ion listens, and the family sees what matters." />
+
+  <div class="how-grid">
+    <ol role="list" class="steps" data-reveal aria-label="A day with I-on, in five steps">
+      {DAY_STEPS.map((s) => <StepRow step={s} total={DAY_STEPS.length} animate />)}
+    </ol>
+
+    <aside class="asks" aria-labelledby="asks-title">
+      <h3 id="asks-title" class="h3">What Ion asks about</h3>
+      <p class="muted small">Everyday questions, the way a friend would ask them. Never a test, and she can skip any of them.</p>
+      <ul role="list" class="topics">
+        {TOPICS.map((t) => (
+          <li>
+            <span class="topic-icon"><Icon name={t.icon} size={18} /></span>
+            <span><strong>{t.label}</strong><span class="topic-text">{t.text}</span></span>
+          </li>
+        ))}
+      </ul>
+      <p class="small asks-foot">You can also add a question of your own for tomorrow's call.</p>
+    </aside>
+  </div>
+</section>
+<style>
+  .how { display: flex; flex-direction: column; gap: var(--s-12); padding-top: var(--s-32); scroll-margin-top: var(--s-6); }
+  .how-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: var(--s-6); align-items: start; }
+  .steps { display: flex; flex-direction: column; gap: var(--s-3); }
+  .asks { display: flex; flex-direction: column; gap: var(--s-4); background: var(--paper); border-radius: var(--r-xl); padding: var(--s-8); position: sticky; top: var(--s-6); }
+  .topics { display: flex; flex-direction: column; gap: var(--s-3); }
+  .topics li { display: flex; gap: var(--s-3); align-items: flex-start; line-height: 1.4; }
+  .topics strong { display: block; font-weight: 500; }
+  .topic-text { display: block; font-size: var(--fs-sm); color: var(--ink-2); }
+  .topic-icon { flex: none; display: grid; place-items: center; width: 2.25rem; height: 2.25rem; border-radius: 50%; background: var(--surface); color: var(--acc-text); border: 1px solid var(--line); }
+  .asks-foot { border-top: 1px solid var(--line-strong); padding-top: var(--s-3); }
+
+  /* The rows arrive one after another when the list comes into view. Without JavaScript, or with reduced motion, they are simply there. */
+  @media (prefers-reduced-motion: no-preference) {
+    :global(.js) .steps[data-reveal] { opacity: 1; transform: none; }
+    :global(.js) .steps :global([data-step]) { opacity: 0; transform: translateX(-12px); transition: opacity 0.5s var(--ease), transform 0.5s var(--ease); }
+    :global(.js) .steps.is-in :global([data-step]) { opacity: 1; transform: none; }
+    :global(.js) .steps.is-in :global([data-step='2']) { transition-delay: 0.25s; }
+    :global(.js) .steps.is-in :global([data-step='3']) { transition-delay: 0.5s; }
+    :global(.js) .steps.is-in :global([data-step='4']) { transition-delay: 0.75s; }
+    :global(.js) .steps.is-in :global([data-step='5']) { transition-delay: 1s; }
+  }
+  @media (max-width: 60rem) {
+    .how-grid { grid-template-columns: minmax(0, 1fr); }
+    .asks { position: static; }
+  }
+  @media (max-width: 40rem) {
+    .how { padding-top: var(--s-24); gap: var(--s-10); }
+    .asks { padding: var(--s-6); border-radius: var(--r-lg); }
+  }
+</style>

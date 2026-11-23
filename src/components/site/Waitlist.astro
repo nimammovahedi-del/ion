@@ -1,0 +1,139 @@
+---
+/**
+ * The waitlist band. A plain form that posts to /api/waitlist and works without JavaScript
+ * (the function redirects to /thanks/ or back here with ?waitlist=<error>). With JavaScript the
+ * form sends JSON and shows the result in place.
+ */
+import Button from '@/components/ui/Button.astro';
+import { CARING_FOR, WAITLIST_MESSAGES } from '@/data/site';
+interface Props { source?: string }
+const { source = 'home' } = Astro.props;
+---
+<section id="waitlist" class="wl wrap" aria-labelledby="wl-title">
+  <div class="wl-band">
+    <div class="wl-copy">
+      <h2 id="wl-title" class="h1">Be the first to hear.</h2>
+      <p class="wl-lede">I-on is still being built. Leave your email and we will write once, when it is ready for families.</p>
+      <ul role="list" class="wl-promise">
+        <li>One email when I-on is ready. Nothing else, no newsletter.</li>
+        <li>We never sell or share the list.</li>
+        <li>To be removed, reply to that email and we will delete it.</li>
+      </ul>
+    </div>
+
+    <form class="wl-form" method="post" action="/api/waitlist" data-waitlist novalidate>
+      <div class="field">
+        <label for="wl-email">Your email</label>
+        <input id="wl-email" name="email" type="email" autocomplete="email" inputmode="email" required aria-describedby="wl-status" spellcheck="false" />
+      </div>
+      <div class="field">
+        <label for="wl-caring">Who are you looking out for? <span class="opt">Optional</span></label>
+        <select id="wl-caring" name="caring_for">
+          <option value="">Choose one, or leave this</option>
+          {CARING_FOR.map((o) => <option value={o.value}>{o.label}</option>)}
+        </select>
+      </div>
+      <div class="hp" aria-hidden="true">
+        <label for="wl-company">Leave this empty</label>
+        <input id="wl-company" name="company" type="text" tabindex="-1" autocomplete="off" />
+      </div>
+      <input type="hidden" name="source" value={source} />
+      <Button type="submit" variant="dark" size="lg" arrow class="wl-submit">Join the waitlist</Button>
+      <noscript><p class="wl-note">Sent back here after pressing Join? Your address was not saved. Please check it and try again.</p></noscript>
+      <p id="wl-status" class="wl-status" role="status" aria-live="polite" tabindex="-1"></p>
+      <p class="wl-small">We keep your email, the optional answer above, which page you joined from and the day. See <a href="/privacy/">privacy</a>.</p>
+    </form>
+  </div>
+</section>
+
+<script define:vars={{ MESSAGES: WAITLIST_MESSAGES }} is:inline>
+  (function () {
+    var form = document.querySelector('form[data-waitlist]');
+    if (!form) return;
+    var status = form.querySelector('#wl-status');
+    var email = form.querySelector('#wl-email');
+    var button = form.querySelector('button[type="submit"]');
+    function say(key, ok) {
+      status.textContent = MESSAGES[key] || MESSAGES.error;
+      status.dataset.state = ok ? 'ok' : 'error';
+    }
+    function invalid(on) {
+      if (on) email.setAttribute('aria-invalid', 'true'); else email.removeAttribute('aria-invalid');
+    }
+
+    // Coming back from a plain form post: /?waitlist=<error>#waitlist
+    var back = new URLSearchParams(location.search).get('waitlist');
+    if (back) {
+      say(back, false);
+      if (back === 'invalid-email') invalid(true);
+    }
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (!email.value.trim() || !email.checkValidity()) {
+        invalid(true);
+        say('invalid-email', false);
+        email.focus();
+        return;
+      }
+      invalid(false);
+      var data = new FormData(form);
+      var body = {};
+      data.forEach(function (v, k) { if (typeof v === 'string') body[k] = v; });
+      button.disabled = true;
+      status.dataset.state = '';
+      status.textContent = 'Sending...';
+      fetch('/api/waitlist', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+        .then(function (r) { return r.json().catch(function () { return { ok: false, error: 'error' }; }); })
+        .then(function (res) {
+          if (res && res.ok) {
+            form.reset();
+            say('ok', true);
+            form.classList.add('is-done');
+            status.focus();
+          } else {
+            var key = (res && res.error) || 'error';
+            say(key, false);
+            if (key === 'invalid-email') { invalid(true); email.focus(); }
+          }
+        })
+        .catch(function () { say('error', false); })
+        .finally(function () { button.disabled = false; });
+    });
+  })();
+</script>
+
+<style>
+  .wl { padding-top: var(--s-32); scroll-margin-top: var(--s-6); }
+  .wl-band { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: var(--s-12); align-items: start; background: var(--acc); color: var(--on-acc); border-radius: var(--r-xl); padding: var(--s-12); }
+  .wl-copy { display: flex; flex-direction: column; gap: var(--s-5); }
+  .wl-lede { font-size: var(--fs-lg); line-height: 1.6; max-width: 32rem; }
+  .wl-promise { display: flex; flex-direction: column; gap: var(--s-2); }
+  .wl-promise li { display: flex; gap: var(--s-3); line-height: 1.5; }
+  .wl-promise li::before { content: ''; flex: none; width: 0.5rem; height: 0.5rem; margin-top: 0.5rem; border-radius: 50%; background: var(--deep); }
+  .wl-form { display: flex; flex-direction: column; gap: var(--s-4); background: var(--surface); color: var(--ink); border-radius: var(--r-lg); padding: var(--s-6); box-shadow: var(--shadow-2); min-width: 0; }
+  .field { display: flex; flex-direction: column; gap: var(--s-2); }
+  label { font-weight: 500; font-size: 0.9375rem; }
+  .opt { font-weight: 400; color: var(--ink-2); font-size: var(--fs-sm); }
+  input, select { width: 100%; min-height: 3rem; padding: 0 var(--s-4); border: 1px solid var(--line-strong); border-radius: var(--r-md); background: var(--surface); font-size: 1rem; }
+  input:focus-visible, select:focus-visible { border-color: var(--focus); }
+  input[aria-invalid='true'] { border-color: var(--acc-text); border-width: 2px; }
+  .hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+  .wl-form :global(.wl-submit) { width: 100%; }
+  .wl-form :global(.wl-submit[disabled]) { opacity: 0.7; cursor: progress; }
+  .wl-status:empty { display: none; }
+  .wl-status { font-size: 0.9375rem; line-height: 1.5; padding: var(--s-3) var(--s-4); border-radius: var(--r-md); background: var(--paper); }
+  .wl-status[data-state='ok'] { background: var(--acc-soft); font-weight: 500; }
+  .wl-status[data-state='error'] { border: 2px solid var(--acc-text); background: var(--surface); }
+  .wl-note { font-size: var(--fs-sm); color: var(--ink-2); }
+  .wl-small { font-size: var(--fs-sm); color: var(--ink-2); line-height: 1.5; }
+  .wl-small a { color: var(--acc-text); }
+  @media (max-width: 56rem) {
+    .wl-band { grid-template-columns: minmax(0, 1fr); padding: var(--s-8); gap: var(--s-8); }
+  }
+  @media (max-width: 40rem) {
+    .wl { padding-top: var(--s-24); }
+    .wl-band { padding: var(--s-6) var(--s-4); border-radius: var(--r-lg); }
+    .wl-form { padding: var(--s-5); }
+  }
+</style>

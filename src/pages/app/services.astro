@@ -1,0 +1,99 @@
+---
+import AppLayout from '@/layouts/AppLayout.astro';
+import Icon from '@/components/ui/Icon.astro';
+import Chip from '@/components/ui/Chip.astro';
+import Button from '@/components/ui/Button.astro';
+import BlockHead from '@/components/app/care/BlockHead.astro';
+import LiveRegion from '@/components/app/care/LiveRegion.astro';
+import { getPlannedServices, getPreparedRequest } from '@/lib/loaders-care';
+
+const [services, request] = await Promise.all([getPlannedServices(), getPreparedRequest()]);
+---
+<AppLayout title="Services" active="services" eyebrow="Services · coming later"
+  heading="Help that I-on could arrange." tone2="Not yet. Here is what is planned."
+  lede="Rides, groceries, refills and small jobs around the house. None of this is ready yet, and we would rather say so plainly.">
+  <LiveRegion />
+
+  <section class="promise" aria-labelledby="promise-title">
+    <span class="promise-icon"><Icon name="shield" size={26} /></span>
+    <div>
+      <h2 id="promise-title">Nothing is ever booked or bought without a yes from the family.</h2>
+      <p>That stays true when services arrive. Today, I-on prepares the request from what she said on the call, and someone in the family carries it out.</p>
+    </div>
+  </section>
+
+  <section class="planned" aria-labelledby="planned-title">
+    <BlockHead id="planned-title" title="What is planned" sub="Each one would start from something she says on the call, and wait for your yes." />
+    <ul role="list" class="cards">
+      {services.map((s) => (
+        <li class="svc">
+          <div class="svc-top">
+            <span class="svc-icon"><Icon name={s.icon} size={24} /></span>
+            <Chip tone="info">Coming later</Chip>
+          </div>
+          <h3>{s.title}</h3>
+          <p class="svc-plan">{s.plan}</p>
+          <div class="svc-today">
+            <p class="svc-label">Today</p>
+            <p>{s.today}</p>
+          </div>
+        </li>
+      ))}
+    </ul>
+  </section>
+
+  <section class="now" aria-labelledby="now-title">
+    <div class="now-text">
+      <BlockHead id="now-title" title="What I-on prepares today" sub="From today's call, written up so whoever drives or books has everything in one place." />
+      <ol role="list" class="steps">
+        <li><b class="num">1</b>She asked for a ride on today's call.</li>
+        <li><b class="num">2</b>I-on wrote down the day, the time and where.</li>
+        <li><b class="num">3</b>It waits on the Tasks page for someone to say yes.</li>
+      </ol>
+      <Button href="/app/tasks/" variant="dark" size="sm">See it in Tasks</Button>
+    </div>
+    <figure class="ticket">
+      <figcaption>{request.title}</figcaption>
+      <dl>
+        {request.lines.map(([k, v]) => <div><dt>{k}</dt><dd>{v}</dd></div>)}
+      </dl>
+      <p class="ticket-foot"><Chip tone="waiting" dot>Waiting for a yes</Chip></p>
+    </figure>
+  </section>
+</AppLayout>
+
+<style>
+  .promise { display: flex; gap: var(--s-5); align-items: flex-start; padding: var(--s-8); border-radius: var(--r-xl); background: var(--deep); color: var(--on-deep); }
+  .promise-icon { display: grid; place-items: center; flex: none; width: 3.5rem; height: 3.5rem; border-radius: 50%; background: var(--acc); color: var(--on-acc); }
+  .promise h2 { font-size: var(--fs-h3); font-weight: 400; line-height: 1.25; letter-spacing: -0.02em; max-width: 38rem; }
+  .promise p { margin-top: var(--s-2); max-width: 44rem; line-height: 1.6; }
+
+  .planned { display: flex; flex-direction: column; gap: var(--s-5); }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: var(--s-4); }
+  .svc { display: flex; flex-direction: column; gap: var(--s-3); padding: var(--s-5); border-radius: var(--r-lg); background: var(--surface); border: 1px dashed var(--line-strong); }
+  .svc-top { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); }
+  .svc-icon { display: grid; place-items: center; width: 3rem; height: 3rem; border-radius: var(--r-md); background: var(--paper); }
+  .svc h3 { font-size: 1.25rem; font-weight: 500; letter-spacing: -0.01em; }
+  .svc-plan { font-size: 0.9375rem; line-height: 1.55; }
+  .svc-today { margin-top: auto; padding-top: var(--s-3); border-top: 1px solid var(--line); font-size: var(--fs-sm); color: var(--ink-2); line-height: 1.5; }
+  .svc-label { font-family: var(--mono); font-size: 0.6875rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink); margin-bottom: var(--s-1); }
+
+  .now { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--s-8); align-items: center; padding: var(--s-8); border-radius: var(--r-xl); background: var(--surface); border: 1px solid var(--line); }
+  .now-text { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s-5); }
+  .steps { display: flex; flex-direction: column; gap: var(--s-3); }
+  .steps li { display: flex; align-items: center; gap: var(--s-3); line-height: 1.45; }
+  .steps b { display: grid; place-items: center; flex: none; width: 2rem; height: 2rem; border-radius: 50%; background: var(--acc-soft); font-size: var(--fs-sm); font-weight: 600; }
+  .ticket { display: flex; flex-direction: column; gap: var(--s-3); padding: var(--s-6); border-radius: var(--r-lg); background: var(--paper); border: 1px solid var(--line); }
+  .ticket figcaption { font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); }
+  .ticket dl { display: flex; flex-direction: column; margin: 0; }
+  .ticket dl div { display: grid; grid-template-columns: 6rem minmax(0, 1fr); gap: var(--s-3); padding: var(--s-2) 0; border-bottom: 1px dashed var(--line-strong); }
+  .ticket dt { font-size: var(--fs-sm); color: var(--ink-2); }
+  .ticket dd { margin: 0; font-size: 0.9375rem; }
+  @media (max-width: 62rem) { .now { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 40rem) {
+    .promise, .now { padding: var(--s-5); }
+    .promise { flex-direction: column; }
+    .ticket { padding: var(--s-4); }
+    .ticket dl div { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  }
+</style>

@@ -1,0 +1,29 @@
+---
+/** Gentle suggestions from today's report. Never medical advice: "you might ask" is as strong as it gets. */
+import Icon from '@/components/ui/Icon.astro';
+interface Props { items: { text: string; why: string; href?: string; link?: string }[] }
+const { items } = Astro.props;
+---
+<section class="might" aria-labelledby="might-h">
+  <h2 id="might-h" class="h3">What you might do</h2>
+  <p class="muted small">Ideas, not instructions. You know her best.</p>
+  <ul role="list" class="list">
+    {items.map((s) => (
+      <li>
+        <p class="text">{s.text}</p>
+        <p class="why">{s.why}</p>
+        {s.href && <a href={s.href}>{s.link}<Icon name="arrow" size={14} /></a>}
+      </li>
+    ))}
+  </ul>
+</section>
+<style>
+  .might { display: flex; flex-direction: column; gap: var(--s-2); padding: var(--s-6); border-radius: var(--r-xl); background: var(--surface); border: 1px solid var(--line); min-width: 0; }
+  .list { display: flex; flex-direction: column; margin-top: var(--s-2); }
+  .list li { display: flex; flex-direction: column; gap: var(--s-1); padding: var(--s-4) 0; border-top: 1px solid var(--line); }
+  .list li:last-child { padding-bottom: 0; }
+  .text { font-size: 1.0625rem; font-weight: 500; line-height: 1.4; }
+  .why { font-size: var(--fs-sm); color: var(--ink-2); }
+  a { display: inline-flex; align-items: center; gap: var(--s-1); align-self: flex-start; min-height: var(--tap); font-size: var(--fs-sm); font-weight: 500; color: var(--acc-text); }
+  @media (max-width: 30rem) { .might { padding: var(--s-4); border-radius: var(--r-lg); } }
+</style>

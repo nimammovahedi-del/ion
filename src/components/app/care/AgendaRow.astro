@@ -1,0 +1,25 @@
+---
+/** One thing on a calendar day. Also used inside a <template> so items added in the browser look the same. */
+import ListRow from './ListRow.astro';
+import Chip from '@/components/ui/Chip.astro';
+import Icon from '@/components/ui/Icon.astro';
+import './care.css';
+interface Props { kind: 'appointment' | 'visit' | 'refill' | 'call'; title?: string; time?: string; note?: string; mention?: string; sort?: number; added?: boolean; id?: string }
+const { kind, title = '', time, note, mention, sort = -1, added = false, id } = Astro.props;
+const KIND = { appointment: { icon: 'clock', label: 'Appointment' }, visit: { icon: 'users', label: 'Visit' }, refill: { icon: 'pill', label: 'Refill' }, call: { icon: 'phone', label: 'Call' } } as const;
+const k = KIND[kind];
+---
+<ListRow icon={k.icon} data-sort={sort} data-item={id} class="ag">
+  <p class="lr-title" data-slot="title">{title}</p>
+  <p class="lr-meta"><span class="num" data-slot="time">{time ?? ''}</span><Chip tone="info">{k.label}</Chip>{added && <span>Added by you</span>}</p>
+  {(note || added) && <p class="lr-note" data-slot="note" hidden={!note}>{note}</p>}
+  <p class="ag-mention" data-slot-wrap="mention" hidden={!mention}><Icon name="chat" size={16} /><span data-slot="mention">{mention}</span></p>
+  {added && <button type="button" class="cf-link ag-remove" data-remove>Remove<span class="sr-only" data-slot="remove-label"> {title}</span></button>}
+</ListRow>
+<style>
+  .ag-mention { display: flex; align-items: flex-start; gap: var(--s-2); margin-top: var(--s-1); font-size: var(--fs-sm); line-height: 1.5; color: var(--acc-text); }
+  .ag-mention :global(svg) { flex: none; margin-top: 0.1875rem; }
+  .ag-mention[hidden], [data-slot='note'][hidden] { display: none; }
+  [data-slot='time']:empty { display: none; }
+  .ag-remove { align-self: flex-start; margin-left: calc(var(--s-3) * -1); }
+</style>

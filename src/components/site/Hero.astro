@@ -1,0 +1,72 @@
+---
+/** Home hero: two-tone headline, the two calls to action, and the sky-blue panel with Ion and today's example report. */
+import Button from '@/components/ui/Button.astro';
+import Capybara from '@/components/ui/Capybara.astro';
+import ReportPreview from './ReportPreview.astro';
+import { GETS } from '@/data/site';
+import { getCallSettings } from '@/lib/loaders';
+const settings = await getCallSettings();
+---
+<section id="top" class="hero wrap" aria-labelledby="hero-title">
+  <div class="hero-head">
+    <h1 id="hero-title" class="display">Know how Mom is<span class="tone-2">really doing, every day.</span></h1>
+    <div class="hero-side">
+      <p class="lede">A short, friendly phone call checks in with your parent each morning. You get a plain report in her own words, set beside her usual, and the few things she asked for.</p>
+      <div class="row">
+        <Button href="#waitlist" size="lg" arrow>Join the waitlist</Button>
+        <Button href="/app/" variant="secondary" size="lg">See the example app</Button>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <ol role="list" class="gets" aria-label="What the family gets each day">
+      {GETS.map((g) => (
+        <li class="get">
+          <span class="get-n num" aria-hidden="true">{g.n}</span>
+          <span class="get-text"><strong>{g.label}</strong><span>{g.text}</span></span>
+        </li>
+      ))}
+    </ol>
+    <div class="panel-body">
+      <div class="panel-copy">
+        <p class="panel-big">Ion calls at {settings.time.replace(' AM', '')}.</p>
+        <p>The same calm voice at the same time each day. Ion asks, listens and writes it down for the family.</p>
+      </div>
+      <div class="panel-capy">
+        <Capybara size={340} />
+      </div>
+      <div class="panel-card">
+        <ReportPreview />
+      </div>
+    </div>
+  </div>
+</section>
+<style>
+  .hero { display: flex; flex-direction: column; gap: var(--s-12); padding-top: var(--s-16); }
+  .hero-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--s-8); padding-inline: var(--s-2); }
+  .hero-head h1 { flex: 1 1 34rem; min-width: 0; }
+  .hero-side { flex: 0 1 26rem; min-width: 0; display: flex; flex-direction: column; gap: var(--s-6); }
+  .panel { display: flex; flex-direction: column; gap: var(--s-4); background: var(--acc); color: var(--on-acc); border-radius: var(--r-xl); padding: var(--s-4); }
+  .gets { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: var(--s-2); }
+  .get { display: flex; align-items: center; gap: var(--s-3); min-height: var(--tap); padding: var(--s-2) var(--s-4) var(--s-2) var(--s-2); border-radius: var(--r-pill); background: color-mix(in srgb, var(--surface) 55%, transparent); }
+  .get-n { flex: none; display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 50%; background: var(--surface); font-size: var(--fs-sm); font-weight: 600; }
+  .get-text { display: flex; flex-direction: column; line-height: 1.3; font-size: var(--fs-sm); }
+  .get-text strong { font-size: 0.9375rem; font-weight: 600; }
+  .panel-body { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 22rem); align-items: center; gap: var(--s-8); padding: var(--s-6) var(--s-6) var(--s-4); }
+  .panel-copy { display: flex; flex-direction: column; gap: var(--s-3); padding-bottom: var(--s-2); max-width: 22rem; }
+  .panel-big { font-weight: 300; font-size: 2.25rem; line-height: 1.1; letter-spacing: -0.03em; }
+  .panel-capy { display: flex; justify-content: center; }
+  .panel-card { display: flex; min-width: 0; }
+  @media (max-width: 64rem) {
+    .panel-body { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .panel-copy { grid-column: 1 / -1; max-width: 36rem; }
+  }
+  @media (max-width: 40rem) {
+    .hero { padding-top: var(--s-10); gap: var(--s-8); }
+    .panel { border-radius: var(--r-lg); padding: var(--s-3); }
+    .panel-body { grid-template-columns: minmax(0, 1fr); padding: var(--s-4) var(--s-2) var(--s-2); gap: var(--s-6); }
+    .panel-capy :global(svg) { width: 13rem; }
+    .panel-big { font-size: 1.875rem; }
+  }
+</style>

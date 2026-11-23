@@ -1,0 +1,33 @@
+/* Shared form styles for the care screens. Imported by FormCard and Field, so it loads once per page. */
+.cf { display: flex; flex-direction: column; gap: var(--s-4); }
+.cf-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); gap: var(--s-4); }
+.cf-field { display: flex; flex-direction: column; gap: var(--s-1); min-width: 0; }
+.cf-field > label, .cf-legend { font-weight: 500; font-size: 0.9375rem; line-height: 1.4; }
+.cf-hint { font-size: var(--fs-sm); color: var(--ink-2); line-height: 1.5; }
+.cf-input, .cf-select, .cf-textarea {
+  width: 100%; min-height: var(--tap); padding: 0.625rem var(--s-3);
+  border: 1px solid var(--line-strong); border-radius: var(--r-md); background: var(--surface); color: var(--ink);
+  font-size: 1rem; line-height: 1.4;
+}
+.cf-textarea { min-height: 5.5rem; resize: vertical; }
+.cf-select { appearance: none; padding-right: var(--s-8);
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 1.125rem) 50%, calc(100% - 0.8125rem) 50%; background-size: 0.3125rem 0.3125rem; background-repeat: no-repeat; }
+.cf-input:focus-visible, .cf-select:focus-visible, .cf-textarea:focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; border-color: var(--focus); }
+.cf-input::placeholder, .cf-textarea::placeholder { color: var(--ink-2); opacity: 1; }
+.cf-set { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; flex-direction: column; gap: var(--s-2); }
+.cf-set > legend { padding: 0; margin-bottom: var(--s-2); }
+.cf-choices { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.cf-choice { position: relative; display: inline-flex; align-items: center; gap: var(--s-2); min-height: var(--tap); padding: 0 var(--s-4) 0 var(--s-3); border: 1px solid var(--line-strong); border-radius: var(--r-pill); background: var(--surface); font-size: 0.9375rem; cursor: pointer; }
+.cf-choice input { width: 1.125rem; height: 1.125rem; margin: 0; accent-color: var(--acc-text); }
+.cf-choice:has(input:checked) { background: var(--acc-soft); border-color: var(--acc-text); font-weight: 500; }
+.cf-choice:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: 2px; }
+.cf-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); }
+.cf-done { display: flex; align-items: flex-start; gap: var(--s-2); padding: var(--s-3) var(--s-4); border-radius: var(--r-md); background: var(--acc-soft); font-size: 0.9375rem; line-height: 1.5; }
+.cf-done[hidden] { display: none; }
+.cf-done svg { flex: none; margin-top: 0.1875rem; }
+.cf-full { font-size: 0.9375rem; color: var(--ink); background: var(--paper); border-radius: var(--r-md); padding: var(--s-3) var(--s-4); }
+.cf-full[hidden] { display: none; }
+/* Small text button used for "Remove" and "Undo" */
+.cf-link { display: inline-flex; align-items: center; min-height: var(--tap); padding: 0 var(--s-3); border: 0; border-radius: var(--r-sm); background: transparent; color: var(--acc-text); font-size: var(--fs-sm); font-weight: 500; text-decoration: underline; text-underline-offset: 0.2em; }
+.cf-link:hover { background: var(--acc-soft); }

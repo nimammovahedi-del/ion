@@ -1,0 +1,24 @@
+---
+/** Heading for a block inside a page: h2 (or h3) with an optional count and a short line under it. */
+interface Props { title: string; level?: 'h2' | 'h3'; count?: string | number; countLabel?: string; sub?: string; id?: string; countId?: string }
+const { title, level = 'h2', count, countLabel, sub, id, countId } = Astro.props;
+const H = level;
+---
+<div class:list={['bh', `bh-${level}`]}>
+  <div class="bh-row">
+    <H id={id}>{title}</H>
+    {count !== undefined && <span class="bh-count num" id={countId}>{count}{countLabel && <span class="sr-only"> {countLabel}</span>}</span>}
+    {Astro.slots.has('end') && <div class="bh-end"><slot name="end" /></div>}
+  </div>
+  {sub && <p class="bh-sub">{sub}</p>}
+  <slot />
+</div>
+<style>
+  .bh { display: flex; flex-direction: column; gap: var(--s-1); min-width: 0; }
+  .bh-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3); }
+  .bh h2 { font-size: var(--fs-h3); font-weight: 400; line-height: 1.25; letter-spacing: -0.02em; }
+  .bh h3 { font-size: var(--fs-lg); font-weight: 500; line-height: 1.35; }
+  .bh-count { display: grid; place-items: center; min-width: 1.75rem; height: 1.75rem; padding: 0 var(--s-2); border-radius: var(--r-pill); background: var(--grey-1); font-size: var(--fs-sm); font-weight: 500; }
+  .bh-end { margin-left: auto; }
+  .bh-sub { color: var(--ink-2); font-size: 0.9375rem; line-height: 1.55; max-width: 42rem; }
+</style>

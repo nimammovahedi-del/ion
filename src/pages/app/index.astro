@@ -2,16 +2,103 @@
 import AppLayout from '@/layouts/AppLayout.astro';
 import HealthCard from '@/components/ui/HealthCard.astro';
 import StepRow from '@/components/ui/StepRow.astro';
-import StatTile from '@/components/ui/StatTile.astro';
-import LineChart from '@/components/ui/LineChart.astro';
-import { getHealthCards, getSteps, getMetric, lastDays } from '@/lib/loaders';
-const cards = await getHealthCards();
-const steps = await getSteps();
-const sleep = await getMetric('sleep');
+import Chip from '@/components/ui/Chip.astro';
+import NeedsYou from '@/components/app/today/NeedsYou.astro';
+import Headline from '@/components/app/today/Headline.astro';
+import HerWords from '@/components/app/today/HerWords.astro';
+import WeekGlance from '@/components/app/today/WeekGlance.astro';
+import MightDo from '@/components/app/today/MightDo.astro';
+import { getHealthCards, getMetrics, getParent, getReport, getSteps, getTasks, getToday, getViewer } from '@/lib/loaders';
+
+const [today, parent, viewer, report, cards, tasks, steps, metrics] = await Promise.all([
+  getToday(), getParent(), getViewer(), getReport(), getHealthCards(), getTasks(), getSteps(), getMetrics(),
+]);
+const needsYou = tasks.filter((t) => t.status === 'needs-you');
+// Things that changed or need a check come first and larger; the steady ones follow, smaller.
+const flagged = cards.filter((c) => c.status !== 'usual');
+const steady = cards.filter((c) => c.status === 'usual');
+const waitingStep = steps.find((s) => s.status === 'needs-you');
+const doneSteps = steps.filter((s) => s.status === 'done').length;
 ---
-<AppLayout title="Today" active="today" eyebrow="Today" heading="Placeholder" tone2="to check the frame">
-  <div class="grid-auto"><StatTile label="Sleep" value="5.5" unit="h" caption="usual 7.5" flag /><StatTile label="Feeling" value="6 / 10" caption="usual 7" tone="soft" /></div>
-  <div class="grid-auto" style="--min: 20rem">{cards.map((c) => <HealthCard card={c} href="/app/trends/" />)}</div>
-  <ol role="list" class="stack">{steps.map((s) => <StepRow step={s} total={steps.length} />)}</ol>
-  <LineChart points={lastDays(sleep, 30)} min={sleep.min} max={sleep.max} usual={sleep.usual} usualLabel={sleep.usualLabel} unit="Hours of sleep" summary="Sleep over 30 days" />
+<AppLayout
+  title="Today"
+  active="today"
+  eyebrow={`${today.long}`}
+  heading={`Good morning, ${viewer.short}.`}
+  tone2={`Here is how your mom is today.`}
+>
+  <div class="today">
+    <div class="top">
+      <NeedsYou tasks={needsYou} viewer={viewer.short} />
+      <Headline
+        dateLong={today.long}
+        callTime={today.callTime}
+        callMinutes={today.callMinutes}
+        name={parent.short}
+        headline={report.headline}
+        overall={report.overall}
+        overallTone={report.overallTone}
+        changed={report.changed}
+        stayedSame={report.stayedSame}
+      />
+    </div>
+
+    <HerWords name={parent.short} quotes={report.quotes} said={report.said} />
+
+    <WeekGlance metrics={metrics} />
+
+    <section class="health" aria-labelledby="health-h">
+      <div class="sec-head">
+        <div>
+          <h2 id="health-h" class="h3">From today's call</h2>
+          <p class="muted small">Each card says where it came from. Open one to see the trend.</p>
+        </div>
+        <p class="counts">
+          {flagged.length > 0 && <Chip tone="changed">{flagged.length} to look at</Chip>}
+          <Chip tone="usual">{steady.length} as usual</Chip>
+        </p>
+      </div>
+      {flagged.length > 0 && (
+        <div class="cards-flagged">{flagged.map((c) => <HealthCard card={c} href={`/app/trends/#${c.id}`} />)}</div>
+      )}
+      <div class="cards-steady" tabindex="0" role="group" aria-label="Measures that are as usual">{steady.map((c) => <HealthCard card={c} href={`/app/trends/#${c.id}`} compact />)}</div>
+    </section>
+
+    <div class="bottom">
+      <section class="ion" aria-labelledby="ion-h">
+        <div class="sec-head">
+          <div>
+            <h2 id="ion-h" class="h3">What Ion did today</h2>
+            <p class="muted small">{doneSteps} of {steps.length} steps done{waitingStep ? `. Step ${waitingStep.n} is waiting for you.` : '.'}</p>
+          </div>
+        </div>
+        <ol role="list" class="steps">{steps.map((s) => <StepRow step={s} total={steps.length} />)}</ol>
+      </section>
+      <MightDo items={report.suggestions} />
+    </div>
+  </div>
 </AppLayout>
+
+<style>
+  .today { container-type: inline-size; display: flex; flex-direction: column; gap: var(--s-6); min-width: 0; }
+  .top, .bottom { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-6); align-items: start; }
+  .sec-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: var(--s-3) var(--s-6); }
+  .counts { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+  .health { display: flex; flex-direction: column; gap: var(--s-4); }
+  .cards-flagged { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-4); }
+  .cards-steady { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: var(--s-4); }
+  .ion { display: flex; flex-direction: column; gap: var(--s-4); min-width: 0; }
+  .steps { display: flex; flex-direction: column; gap: var(--s-3); }
+  /* phones: the steady cards slide sideways so the page stays short */
+  @container (max-width: 43.99rem) {
+    .cards-steady { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: var(--s-2); }
+    .cards-steady > :global(*) { flex: 0 0 78%; scroll-snap-align: start; }
+  }
+  @container (min-width: 44rem) {
+    .cards-flagged { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @container (min-width: 60rem) {
+    .top { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .bottom { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); }
+  }
+</style>

@@ -1,0 +1,148 @@
+---
+/**
+ * "What needs you": the tasks waiting for the main caregiver.
+ * r1: the buttons work in this browser only. A small script marks a card done, updates the counts and keeps the change
+ * in the same local store the Tasks page uses, so the two pages agree. Nothing is sent.
+ */
+import type { Task } from '@/data/types';
+import Button from '@/components/ui/Button.astro';
+import Icon from '@/components/ui/Icon.astro';
+import Chip from '@/components/ui/Chip.astro';
+interface Props { tasks: Task[]; viewer?: string }
+const { tasks, viewer = '' } = Astro.props;
+const NUM = ['Nothing', 'One thing', 'Two things', 'Three things', 'Four things', 'Five things'];
+const countText = (n: number) => `${NUM[n] ?? `${n} things`} ${n === 1 ? 'needs' : 'need'} you`;
+const fromText = (t: Task) => {
+  if (t.from === 'Tue call') return "She asked on today's call";
+  if (t.from === 'Medicine list') return 'From her medicine list';
+  if (t.from === 'Family note') return 'From a family note';
+  return `From the ${t.from}`;
+};
+---
+<section class="needs" aria-labelledby="needs-h" data-needs data-viewer={viewer}>
+  <div class="needs-head">
+    <h2 id="needs-h" class="h3"><span data-needs-count>{countText(tasks.length)}</span></h2>
+    <a class="all" href="/app/tasks/">All tasks</a>
+  </div>
+  {tasks.length === 0 ? (
+    <p class="calm">Nothing is waiting for you today. If something comes up on a call, it will be here.</p>
+  ) : (
+    <>
+      <ol role="list" class="list">
+        {tasks.map((t) => (
+          <li class="task" data-task={t.id}>
+            <div class="task-main">
+              <span class="task-icon" aria-hidden="true"><Icon name={t.icon} size={20} /></span>
+              <div class="task-text">
+                <h3 class="task-title">{t.title}</h3>
+                <p class="task-detail">{t.detail}</p>
+                <p class="task-meta"><span>{fromText(t)}</span>{t.due && <span>Due {t.due}</span>}</p>
+              </div>
+            </div>
+            <div class="task-actions" data-actions>
+              {t.actions.map((a) => (
+                <Button size="sm" variant={a.kind === 'primary' ? 'primary' : 'secondary'} data-act={a.label}>{a.label}</Button>
+              ))}
+            </div>
+            <div class="task-done" data-done hidden>
+              <Chip tone="done">Done</Chip>
+              <p><span data-done-text></span> Example only, nothing was sent.</p>
+              <button type="button" class="undo" data-undo>Undo<span class="sr-only"> for {t.title}</span></button>
+            </div>
+          </li>
+        ))}
+      </ol>
+      <p class="calm" data-all-done hidden>That is everything for today. Thank you. Ion will add anything new after tomorrow's call.</p>
+      <p class="note"><Icon name="lock" size={14} />Example data. Nothing is sent. Changes are kept in this browser only.</p>
+    </>
+  )}
+  <p class="sr-only" aria-live="polite" data-live></p>
+</section>
+
+<script>
+  import { load, save, syncWaitingBadge } from '@/components/app/care/store';
+
+  type State = Record<string, { status: 'needs-you' | 'in-progress' | 'done'; who?: string }>;
+  const NUM = ['Nothing', 'One thing', 'Two things', 'Three things', 'Four things', 'Five things'];
+  const countText = (n: number) => `${NUM[n] ?? `${n} things`} ${n === 1 ? 'needs' : 'need'} you`;
+  document.querySelectorAll<HTMLElement>('[data-needs]').forEach((root) => {
+    const live = root.querySelector<HTMLElement>('[data-live]');
+    const viewer = root.dataset.viewer || undefined;
+    const state = load<State>('tasks', {});
+    const update = (store: boolean) => {
+      const left = root.querySelectorAll('[data-task]:not(.is-done)').length;
+      const count = root.querySelector('[data-needs-count]');
+      if (count) count.textContent = countText(left);
+      const all = root.querySelector<HTMLElement>('[data-all-done]');
+      if (all) all.hidden = left > 0;
+      if (store) { save('tasks', state); save('waiting', left); }
+      syncWaitingBadge(left);
+      return left;
+    };
+    const show = (card: HTMLElement, done: boolean, words = '') => {
+      const actions = card.querySelector<HTMLElement>('[data-actions]');
+      const box = card.querySelector<HTMLElement>('[data-done]');
+      const text = card.querySelector<HTMLElement>('[data-done-text]');
+      if (!actions || !box || !text) return;
+      card.classList.toggle('is-done', done);
+      actions.hidden = done;
+      box.hidden = !done;
+      if (done) text.textContent = words;
+    };
+    root.querySelectorAll<HTMLElement>('[data-task]').forEach((card) => {
+      const id = card.dataset.task as string;
+      const title = card.querySelector('.task-title')?.textContent ?? '';
+      // Bring back what was chosen earlier in this browser, here or on the Tasks page.
+      const before = state[id];
+      if (before && before.status !== 'needs-you') show(card, true, before.status === 'done' ? 'Marked done.' : 'You said yes to this.');
+      card.querySelectorAll<HTMLButtonElement>('[data-act]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          show(card, true, `You chose "${btn.dataset.act}".`);
+          state[id] = { status: 'in-progress', who: viewer };
+          const left = update(true);
+          if (live) live.textContent = `${title}: done from your side. ${countText(left)}.`;
+          card.querySelector<HTMLButtonElement>('[data-undo]')?.focus();
+        });
+      });
+      card.querySelector<HTMLButtonElement>('[data-undo]')?.addEventListener('click', () => {
+        show(card, false);
+        delete state[id];
+        const left = update(true);
+        if (live) live.textContent = `${title} is waiting again. ${countText(left)}.`;
+        card.querySelector<HTMLButtonElement>('[data-actions] button')?.focus();
+      });
+    });
+    if (Object.keys(state).length) update(false);
+  });
+</script>
+
+<style>
+  .needs { display: flex; flex-direction: column; gap: var(--s-4); padding: var(--s-6); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-xl); min-width: 0; }
+  .needs-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--s-2) var(--s-4); }
+  .all { display: inline-flex; align-items: center; min-height: var(--tap); font-size: var(--fs-sm); font-weight: 500; color: var(--acc-text); }
+  .list { display: flex; flex-direction: column; gap: var(--s-3); }
+  .task { display: flex; flex-direction: column; gap: var(--s-3); padding: var(--s-4); border-radius: var(--r-lg); background: var(--paper); border: 1px solid transparent; transition: background 0.2s var(--ease); }
+  .task.is-done { background: var(--surface); border-color: var(--line); }
+  .task.is-done .task-title { color: var(--ink-2); }
+  .task-main { display: flex; gap: var(--s-3); align-items: flex-start; }
+  .task-icon { flex: none; display: grid; place-items: center; width: 2.5rem; height: 2.5rem; border-radius: 50%; background: var(--acc-soft); color: var(--acc-text); }
+  .task-text { display: flex; flex-direction: column; gap: var(--s-1); min-width: 0; }
+  .task-title { font-size: var(--fs-lg); font-weight: 500; line-height: 1.35; }
+  .task-detail { font-size: 0.9375rem; line-height: 1.5; color: var(--ink-2); }
+  .task-meta { display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-3); font-size: var(--fs-sm); color: var(--ink-2); }
+  .task-meta span:first-child { color: var(--acc-text); font-weight: 500; }
+  .task-actions { display: flex; flex-wrap: wrap; gap: var(--s-2); padding-left: 3.25rem; }
+  .task-actions[hidden], .task-done[hidden] { display: none; }
+  .task-done { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3); padding-left: 3.25rem; font-size: var(--fs-sm); color: var(--ink-2); }
+  .task-done p { flex: 1 1 12rem; }
+  .undo { min-height: var(--tap); padding: 0 var(--s-3); border: 0; border-radius: var(--r-pill); background: transparent; color: var(--acc-text); font-size: var(--fs-sm); font-weight: 500; text-decoration: underline; text-underline-offset: 0.2em; }
+  .undo:hover { background: var(--acc-soft); }
+  .calm { font-size: var(--fs-lg); line-height: 1.5; padding: var(--s-4); border-radius: var(--r-lg); background: var(--acc-soft); }
+  .calm[hidden] { display: none; }
+  .note { display: flex; align-items: center; gap: var(--s-2); font-size: var(--fs-xs); color: var(--ink-2); }
+  @media (max-width: 30rem) {
+    .needs { padding: var(--s-4); border-radius: var(--r-lg); }
+    .task-actions, .task-done { padding-left: 0; }
+    .task-actions :global(.btn) { flex: 1 1 auto; }
+  }
+</style>

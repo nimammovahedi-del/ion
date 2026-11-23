@@ -1,10 +1,23 @@
 ---
 import SiteLayout from '@/layouts/SiteLayout.astro';
-import Capybara from '@/components/ui/Capybara.astro';
+import Hero from '@/components/site/Hero.astro';
+import Why from '@/components/site/Why.astro';
+import How from '@/components/site/How.astro';
+import See from '@/components/site/See.astro';
+import ForParent from '@/components/site/ForParent.astro';
+import Care from '@/components/site/Care.astro';
+import Questions from '@/components/site/Questions.astro';
+import Waitlist from '@/components/site/Waitlist.astro';
+import Dock from '@/components/site/Dock.astro';
 ---
-<SiteLayout title="I-on · Know how Mom is really doing, every day">
-  <div class="wrap" style="padding-block: var(--s-16)">
-    <h1 class="display">Know how Mom is<span class="tone-2">really doing, every day.</span></h1>
-    <Capybara size={280} />
-  </div>
+<SiteLayout title="I-on · Know how Mom is really doing, every day" description="A short, friendly phone call checks in with your parent each morning. The family gets a plain report and a few clear next steps. In development: join the waitlist.">
+  <Hero />
+  <Why />
+  <How />
+  <See />
+  <ForParent />
+  <Care />
+  <Questions />
+  <Waitlist source="home" />
+  <Dock />
 </SiteLayout>

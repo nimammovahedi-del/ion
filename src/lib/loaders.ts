@@ -40,3 +40,23 @@ export function average(points: { value: number | null }[]): number | null {
 }
 
 export const needsYouCount = async () => ex.tasks.filter((t) => t.status === 'needs-you').length;
+
+// ---- Added for Today and Trends ----
+export const getHerWords = async () => ex.herWords;
+export const getDoctorQuestions = async () => ex.doctorQuestions;
+
+/**
+ * How often she said she took each pill time over the last n days, from the medicines series.
+ * r1 rule: on a day with one of two pill times, it was the evening pills (true for the example family).
+ * r2 will read the two pill times separately from the call answers.
+ */
+export async function getPillTimesTaken(n: number) {
+  const m = await getMetric('medicines');
+  const pts = lastDays(m, n);
+  const answered = pts.filter((p) => p.value !== null);
+  return {
+    answered: answered.length,
+    morning: answered.filter((p) => (p.value as number) >= 1).length,
+    evening: answered.filter((p) => (p.value as number) >= 2).length,
+  };
+}

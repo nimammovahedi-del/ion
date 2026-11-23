@@ -25,7 +25,7 @@ I-on is a daily phone check-in for an older parent. A friendly voice (the charac
 - Never name a medicine, a drug or a diagnosis. Medicines appear under the family's own labels ("Morning pills").
 - I-on describes and suggests. It never diagnoses, never advises on doses and never tells anyone to start or stop a medicine. "You might ask her doctor about" is the strongest it gets.
 - I-on is not an emergency service and says so. `STANDING_LINE` from `src/data/nav.ts` appears on every page.
-- No invented statistics. Figures about ageing and caregiving come only from `src/data/site.ts`, each with its source and year.
+- No invented statistics. Figures about ageing and caregiving come only from `src/data/site.ts`, each with its source, a link, and the year where the source gives one.
 - No em-dashes and no arrow characters in copy. No prices. No promises about what a call will catch.
 - The example family is invented and labelled as example data.
 - The older adult is spoken about with respect: "your mom", "she said", never "the patient" or "the senior".

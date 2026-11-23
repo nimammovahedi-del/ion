@@ -1,0 +1,33 @@
+---
+/**
+ * One row in a list: an icon, the words, and an optional end part (a switch, a chip, a button).
+ * Put .lr-title, .lr-meta and .lr-note on the page's own elements for the shared type styles.
+ */
+import Icon from '@/components/ui/Icon.astro';
+interface Props { icon?: string; as?: 'li' | 'div' | 'article'; tone?: 'plain' | 'soft' | 'quiet'; class?: string; [key: string]: unknown }
+const { icon, as: Tag = 'li', tone = 'plain', class: cls = '', ...rest } = Astro.props;
+---
+<Tag class:list={['lr', `lr-${tone}`, cls]} {...rest}>
+  {icon && <span class="lr-icon"><Icon name={icon} size={20} /></span>}
+  <div class="lr-body"><slot /></div>
+  {Astro.slots.has('end') && <div class="lr-end"><slot name="end" /></div>}
+</Tag>
+<style>
+  .lr { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: var(--s-3) var(--s-4); padding: var(--s-4) var(--s-5); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); min-width: 0; }
+  .lr:not(:has(.lr-icon)) { grid-template-columns: minmax(0, 1fr) auto; }
+  .lr-soft { background: var(--acc-soft); border-color: transparent; }
+  .lr-quiet { background: transparent; border-style: dashed; }
+  .lr[hidden] { display: none; }
+  .lr-icon { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; border-radius: 50%; background: var(--paper); color: var(--ink); }
+  .lr-soft .lr-icon { background: var(--surface); }
+  .lr-body { display: flex; flex-direction: column; gap: var(--s-1); min-width: 0; padding-top: 0.125rem; }
+  .lr-end { display: flex; align-items: center; gap: var(--s-2); justify-self: end; }
+  .lr-body :global(.lr-title) { font-size: 1.0625rem; font-weight: 500; line-height: 1.4; overflow-wrap: anywhere; }
+  .lr-body :global(.lr-meta) { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1) var(--s-3); font-size: var(--fs-sm); color: var(--ink-2); line-height: 1.5; }
+  .lr-body :global(.lr-note) { font-size: 0.9375rem; line-height: 1.55; }
+  @media (max-width: 34rem) {
+    .lr { grid-template-columns: auto minmax(0, 1fr); padding: var(--s-4); }
+    .lr:not(:has(.lr-icon)) { grid-template-columns: minmax(0, 1fr); }
+    .lr-end { grid-column: 1 / -1; justify-self: stretch; justify-content: space-between; border-top: 1px solid var(--line); padding-top: var(--s-2); }
+  }
+</style>

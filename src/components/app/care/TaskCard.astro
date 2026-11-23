@@ -1,0 +1,95 @@
+---
+/**
+ * One task from the calls. The card holds the controls for every state and shows the ones that fit its data-status,
+ * so a script only has to change data-status and move the card. Without JavaScript the starting state reads correctly.
+ */
+import type { CareTask } from '@/data/types-care';
+import type { Person } from '@/data/types';
+import Icon from '@/components/ui/Icon.astro';
+import Chip from '@/components/ui/Chip.astro';
+import Button from '@/components/ui/Button.astro';
+import './care.css';
+interface Props { task: CareTask; people: Person[]; viewerId: string }
+const { task, people, viewerId } = Astro.props;
+const viewer = people.find((p) => p.id === viewerId);
+const nameFor = (who?: string) => (who && viewer && who === viewer.short ? 'You' : who);
+const doingLine = task.status === 'needs-you' ? '' : task.status === 'done'
+  ? (task.doneNote ?? `Done by ${task.assignee ?? 'the family'}.`)
+  : task.assignee === 'Ion' ? `Ion will ${task.doing}.` : `${nameFor(task.assignee)} will ${task.doing}.`;
+const sel = `who-${task.id}`;
+---
+<article class="task" data-task={task.id} data-status={task.status} data-doing={task.doing} data-title={task.title} aria-labelledby={`t-${task.id}`}>
+  <div class="task-head">
+    <span class="task-icon"><Icon name={task.icon} size={20} /></span>
+    <div class="task-titles">
+      <h3 id={`t-${task.id}`}>{task.title}</h3>
+      <p class="task-detail">{task.detail}</p>
+    </div>
+    <span class="task-chips">
+      <span class="when-needs-you"><Chip tone="waiting" dot>Waiting for you</Chip></span>
+      <span class="when-in-progress"><Chip tone="working">In progress</Chip></span>
+      <span class="when-done"><Chip tone="done">Done</Chip></span>
+    </span>
+  </div>
+
+  <dl class="task-facts">
+    <div><dt>From</dt><dd>{task.origin}</dd></div>
+    <div><dt>Due</dt><dd>{task.due ?? 'No set day'}</dd></div>
+    <div><dt>Who</dt><dd data-slot="who">{task.status === 'needs-you' ? 'Nobody yet' : nameFor(task.assignee) ?? 'Nobody yet'}</dd></div>
+  </dl>
+
+  <p class="task-doing" data-slot="doing" hidden={!doingLine}>{doingLine}</p>
+
+  <div class="task-act when-needs-you">
+    {task.ionAfter && <p class="task-after"><Icon name="chat" size={16} />{task.ionAfter}</p>}
+    <form class="task-form" data-approve>
+      <div class="cf-field task-who">
+        <label for={sel}>Who will do it</label>
+        <select class="cf-select" id={sel} name="who">
+          {people.map((p) => <option value={p.short} selected={p.id === viewerId}>{p.id === viewerId ? `${p.short} (you)` : p.short}</option>)}
+        </select>
+      </div>
+      <div class="task-buttons">
+        <Button type="submit" variant="dark" size="sm">{task.approveLabel}</Button>
+        <button type="button" class="cf-link" data-done>Already done</button>
+      </div>
+    </form>
+  </div>
+  <div class="task-act when-in-progress">
+    <Button variant="secondary" size="sm" data-done>Mark as done</Button>
+  </div>
+</article>
+<style>
+  .task { display: flex; flex-direction: column; gap: var(--s-4); padding: var(--s-5); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); min-width: 0; }
+  .task[data-status='needs-you'] { border-color: var(--acc); box-shadow: var(--shadow-1); }
+  .task[data-status='done'] { background: transparent; }
+  .task-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--s-3) var(--s-4); align-items: start; }
+  .task-icon { display: grid; place-items: center; width: 2.75rem; height: 2.75rem; border-radius: 50%; background: var(--acc-soft); }
+  .task[data-status='done'] .task-icon { background: var(--grey-1); }
+  .task-titles { display: flex; flex-direction: column; gap: var(--s-1); min-width: 0; }
+  h3 { font-size: 1.1875rem; font-weight: 500; line-height: 1.35; letter-spacing: -0.01em; }
+  .task-detail { color: var(--ink-2); font-size: 0.9375rem; line-height: 1.55; }
+  .task-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr)); gap: var(--s-2) var(--s-4); margin: 0; padding: var(--s-3) var(--s-4); border-radius: var(--r-md); background: var(--paper); }
+  .task-facts div { min-width: 0; }
+  dt { font-family: var(--mono); font-size: 0.6875rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2); }
+  dd { margin: 0; font-size: 0.9375rem; line-height: 1.45; }
+  .task-doing { font-weight: 500; }
+  .task-doing[hidden] { display: none; }
+  .task-after { display: flex; gap: var(--s-2); align-items: flex-start; font-size: var(--fs-sm); color: var(--ink-2); line-height: 1.5; }
+  .task-after :global(svg) { flex: none; margin-top: 0.1875rem; }
+  .task-act { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s-3); }
+  .task-form { align-self: stretch; }
+  .task-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--s-3) var(--s-4); }
+  .task-who { flex: 1 1 11rem; max-width: 16rem; }
+  .task-buttons { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); }
+  /* show only what fits the state */
+  .task:not([data-status='needs-you']) .when-needs-you,
+  .task:not([data-status='in-progress']) .when-in-progress,
+  .task:not([data-status='done']) .when-done { display: none; }
+  @media (max-width: 34rem) {
+    .task { padding: var(--s-4); }
+    .task-head { grid-template-columns: auto minmax(0, 1fr); }
+    .task-chips { grid-column: 2; }
+    .task-who { max-width: none; }
+  }
+</style>

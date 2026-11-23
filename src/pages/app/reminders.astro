@@ -1,0 +1,220 @@
+---
+import AppLayout from '@/layouts/AppLayout.astro';
+import Icon from '@/components/ui/Icon.astro';
+import Card from '@/components/ui/Card.astro';
+import Button from '@/components/ui/Button.astro';
+import Capybara from '@/components/ui/Capybara.astro';
+import ReminderRow from '@/components/app/care/ReminderRow.astro';
+import BlockHead from '@/components/app/care/BlockHead.astro';
+import FormCard from '@/components/app/care/FormCard.astro';
+import Field from '@/components/app/care/Field.astro';
+import ExampleNote from '@/components/app/care/ExampleNote.astro';
+import LiveRegion from '@/components/app/care/LiveRegion.astro';
+import { ionLead } from '@/components/app/care/words';
+import { getCallSettings, getParent, getReminders, getViewer } from '@/lib/loaders';
+
+const [reminders, parent, settings, viewer] = await Promise.all([getReminders(), getParent(), getCallSettings(), getViewer()]);
+const on = reminders.filter((r) => r.active).length;
+const blocks = [
+  { id: 'call', title: `On the morning call, ${settings.time}`, open: `Good morning, ${parent.short}. It's Ion.`, close: 'Shall we start with how you slept?' },
+  { id: 'evening-reminder', title: 'Evening reminder, 6:00 PM', open: `Hello ${parent.short}, it's Ion, with your evening reminder.`, close: 'That\'s all from me. Have a lovely evening.' },
+] as const;
+const kinds = ['medicine', 'appointment', 'other'] as const;
+const kindLabel = { medicine: 'Pills', appointment: 'An appointment', other: 'Something else' };
+---
+<AppLayout title="Reminders" active="reminders" eyebrow="Reminders"
+  heading={`What Ion says to ${parent.short}.`} tone2={`${on} reminders are on.`}
+  lede="The things your family has asked Ion to remind her about: pills, appointments and everyday things. Switch one off and Ion stops saying it, straight away.">
+  <LiveRegion />
+  <div class="layout">
+    <div class="main">
+      <section class="list" aria-labelledby="list-title">
+        <BlockHead id="list-title" title="Reminders" sub="Ion says each one in the morning call or as a short evening reminder, on the days set." />
+        <ul role="list" class="rows" data-rows>
+          {reminders.map((r) => <ReminderRow id={r.id} kind={r.kind} text={r.text} when={r.when} spokenBy={r.spokenBy} setBy={r.setBy} active={r.active} />)}
+        </ul>
+      </section>
+
+      <FormCard id="add" title="Add a reminder" sub="Write it as you would say it to her: short, warm and about one thing.">
+        <form class="cf" data-add novalidate>
+          <Field label="What Ion should say" for="rem-text" hint="For example: Put the bins out tonight.">
+            <textarea class="cf-textarea" id="rem-text" name="text" required maxlength="140" rows="2" aria-describedby="rem-text-hint rem-error"></textarea>
+          </Field>
+          <Field label="When" for="rem-when" hint="Which days, and a time for evening reminders.">
+            <input class="cf-input" id="rem-when" name="when" type="text" maxlength="60" autocomplete="off" placeholder="Every Wednesday" aria-describedby="rem-when-hint" />
+          </Field>
+          <fieldset class="cf-set">
+            <legend class="cf-legend">How Ion says it</legend>
+            <div class="cf-choices">
+              <label class="cf-choice"><input type="radio" name="spokenBy" value="call" checked />On the morning call</label>
+              <label class="cf-choice"><input type="radio" name="spokenBy" value="evening-reminder" />As an evening reminder</label>
+            </div>
+          </fieldset>
+          <fieldset class="cf-set">
+            <legend class="cf-legend">What it is about</legend>
+            <div class="cf-choices">
+              {kinds.map((k, i) => <label class="cf-choice"><input type="radio" name="kind" value={k} checked={i === 2} />{kindLabel[k]}</label>)}
+            </div>
+          </fieldset>
+          <p class="cf-hint err" id="rem-error" hidden>Please write what Ion should say.</p>
+          <div class="cf-actions"><Button type="submit" variant="dark"><Icon name="plus" size={16} />Add reminder</Button></div>
+          <p class="cf-done" data-done hidden><Icon name="check" size={16} /><span data-msg></span></p>
+        </form>
+      </FormCard>
+      <ExampleNote />
+    </div>
+
+    <aside class="hear" aria-labelledby="hear-title">
+      <Card tone="surface" pad="lg" class="hear-card">
+        <div class="hear-head">
+          <Capybara size={72} waves={false} ground="var(--acc-soft)" label="Ion the capybara" />
+          <div>
+            <h2 id="hear-title">What {parent.short} will hear</h2>
+            <p class="muted small">Ion's own words. Each line is said only on its days.</p>
+          </div>
+        </div>
+        {blocks.map((b) => (
+          <section class="say" aria-labelledby={`say-${b.id}`}>
+            <h3 id={`say-${b.id}`}><Icon name={b.id === 'call' ? 'phone' : 'bell'} size={16} />{b.title}</h3>
+            <div class="bubble">
+              <p>{b.open}</p>
+              <ul role="list" data-say={b.id}>
+                {reminders.filter((r) => r.spokenBy === b.id).map((r) => <li data-for={r.id} hidden={!r.active}>{ionLead(r.setBy)} {r.text}</li>)}
+              </ul>
+              <p class="say-none" data-none={b.id} hidden={reminders.some((r) => r.spokenBy === b.id && r.active)}>No reminders are on for this.</p>
+              <p>{b.close}</p>
+            </div>
+          </section>
+        ))}
+        <p class="later"><Icon name="heart" size={16} /><span>This page is the start of {parent.short}'s own side of I-on. A simple view for her, with just her reminders, is coming later.</span></p>
+      </Card>
+    </aside>
+  </div>
+
+  {kinds.map((k) => (
+    <>
+      <template id={`tpl-${k}-call`}><ReminderRow kind={k} spokenBy="call" added /></template>
+      <template id={`tpl-${k}-evening-reminder`}><ReminderRow kind={k} spokenBy="evening-reminder" added /></template>
+    </>
+  ))}
+  <div hidden data-viewer={viewer.short}></div>
+</AppLayout>
+
+<script>
+  import { announce, fromTemplate, load, save, uid } from '@/components/app/care/store';
+  import { ionLead } from '@/components/app/care/words';
+
+  interface Added { id: string; text: string; when: string; kind: 'medicine' | 'appointment' | 'other'; spokenBy: 'call' | 'evening-reminder'; setBy: string }
+  const toggles = load<Record<string, boolean>>('reminders-on', {});
+  let added = load<Added[]>('reminders', []);
+  const viewer = document.querySelector<HTMLElement>('[data-viewer]')?.dataset.viewer ?? 'You';
+
+  function refreshNone() {
+    document.querySelectorAll<HTMLElement>('[data-say]').forEach((ul) => {
+      const any = Array.from(ul.children).some((li) => !(li as HTMLElement).hidden);
+      const none = document.querySelector<HTMLElement>(`[data-none="${ul.dataset.say}"]`);
+      if (none) none.hidden = any;
+    });
+  }
+
+  function setOn(row: HTMLElement, on: boolean) {
+    row.classList.toggle('off', !on);
+    const line = document.querySelector<HTMLElement>(`[data-for="${row.dataset.reminder}"]`);
+    if (line) line.hidden = !on;
+  }
+
+  function wire(row: HTMLElement) {
+    const id = row.dataset.reminder as string;
+    const input = row.querySelector<HTMLInputElement>('[data-toggle]');
+    const words = row.querySelector('[data-slot="text"]')?.textContent ?? '';
+    if (!input) return;
+    if (id in toggles) { input.checked = toggles[id]; setOn(row, toggles[id]); }
+    input.addEventListener('change', () => {
+      toggles[id] = input.checked;
+      save('reminders-on', toggles);
+      setOn(row, input.checked);
+      refreshNone();
+      announce(input.checked ? `On. Ion will say: ${words}` : `Off. Ion will stop saying: ${words}`);
+    });
+  }
+
+  function render(a: Added) {
+    const row = fromTemplate(`tpl-${a.kind}-${a.spokenBy}`, { text: a.text, when: a.when || 'Every day', setBy: a.setBy });
+    row.dataset.reminder = a.id;
+    const label = row.querySelector('.sw-label');
+    if (label) label.textContent = `Ion says: ${a.text}`;
+    document.querySelector('[data-rows]')?.append(row);
+    const li = document.createElement('li');
+    li.dataset.for = a.id;
+    li.textContent = `${ionLead(a.setBy)} ${a.text}`;
+    document.querySelector(`[data-say="${a.spokenBy}"]`)?.append(li);
+    row.querySelector('[data-remove]')?.addEventListener('click', () => {
+      added = added.filter((x) => x.id !== a.id);
+      save('reminders', added);
+      row.remove(); li.remove();
+      refreshNone();
+      announce(`Reminder removed: ${a.text}`);
+      document.getElementById('rem-text')?.focus();
+    });
+    wire(row);
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-rows] > [data-reminder]').forEach(wire);
+  added.forEach(render);
+  refreshNone();
+
+  const form = document.querySelector<HTMLFormElement>('[data-add]');
+  form?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const fd = new FormData(form);
+    const area = document.getElementById('rem-text') as HTMLTextAreaElement;
+    const err = document.getElementById('rem-error');
+    const text = String(fd.get('text') ?? '').trim();
+    if (!text) { if (err) err.hidden = false; area.setAttribute('aria-invalid', 'true'); area.focus(); return; }
+    if (err) err.hidden = true;
+    area.removeAttribute('aria-invalid');
+    const a: Added = { id: uid(), text, when: String(fd.get('when') ?? '').trim(), kind: (fd.get('kind') as Added['kind']) ?? 'other', spokenBy: fd.get('spokenBy') === 'evening-reminder' ? 'evening-reminder' : 'call', setBy: viewer };
+    added.push(a);
+    save('reminders', added);
+    render(a);
+    refreshNone();
+    const msg = `Reminder added. Ion will say it ${a.spokenBy === 'call' ? 'on the morning call' : 'as an evening reminder'}.`;
+    const m = form.querySelector('[data-msg]');
+    if (m) m.textContent = msg;
+    const done = form.querySelector<HTMLElement>('[data-done]');
+    if (done) done.hidden = false;
+    announce(msg);
+    area.value = '';
+    (document.getElementById('rem-when') as HTMLInputElement).value = '';
+  });
+</script>
+
+<style>
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 26rem; gap: var(--s-8); align-items: start; }
+  .main { display: flex; flex-direction: column; gap: var(--s-8); min-width: 0; }
+  .list { display: flex; flex-direction: column; gap: var(--s-4); }
+  .rows { display: flex; flex-direction: column; gap: var(--s-2); }
+  .hear { position: sticky; top: var(--s-6); }
+  :global(.hear-card) { display: flex; flex-direction: column; gap: var(--s-6); }
+  .hear-head { display: flex; align-items: center; gap: var(--s-4); }
+  .hear-head :global(svg) { flex: none; }
+  .hear-head h2 { font-size: var(--fs-h3); font-weight: 400; line-height: 1.2; letter-spacing: -0.02em; }
+  .say { display: flex; flex-direction: column; gap: var(--s-2); }
+  .say h3 { display: flex; align-items: center; gap: var(--s-2); font-family: var(--mono); font-size: var(--fs-xs); font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); }
+  .bubble { display: flex; flex-direction: column; gap: var(--s-2); padding: var(--s-4) var(--s-5); border-radius: var(--r-lg); border-top-left-radius: var(--r-sm); background: var(--acc-soft); font-size: 1.0625rem; line-height: 1.55; }
+  .bubble ul { display: flex; flex-direction: column; gap: var(--s-2); }
+  .bubble li { padding-left: var(--s-3); border-left: 3px solid var(--acc); }
+  .bubble li[hidden], .say-none[hidden] { display: none; }
+  .say-none { color: var(--ink-2); font-style: italic; font-size: 0.9375rem; }
+  .later { display: flex; gap: var(--s-2); align-items: flex-start; padding-top: var(--s-4); border-top: 1px solid var(--line); font-size: var(--fs-sm); color: var(--ink-2); line-height: 1.5; }
+  .later :global(svg) { flex: none; margin-top: 0.1875rem; color: var(--acc-text); }
+  .err { color: var(--ink); font-weight: 500; }
+  .err[hidden] { display: none; }
+  @media (max-width: 75rem) {
+    .layout { grid-template-columns: minmax(0, 1fr); }
+    .hear { position: static; grid-row: 1; }
+    .main { display: contents; }
+    .list { grid-row: 1; }
+    .hear { grid-row: 2; }
+  }
+</style>

@@ -1,0 +1,61 @@
+---
+import SiteLayout from '@/layouts/SiteLayout.astro';
+import SectionHeading from '@/components/ui/SectionHeading.astro';
+import Button from '@/components/ui/Button.astro';
+---
+<SiteLayout title="Privacy · I-on" description="What the I-on website collects today, in plain words." active="">
+  <article class="priv wrap" aria-labelledby="priv-title">
+    <SectionHeading level="h1" id="priv-title" eyebrow="Privacy" title="What this site collects," tone2="in plain words." text="I-on is in development and is not calling anyone yet. This short page covers the website as it is today. A full privacy notice will come before any family starts." />
+
+    <div class="priv-body">
+      <section aria-labelledby="p1">
+        <h2 id="p1" class="h3">What we keep</h2>
+        <p>Only what you give us on the waitlist form:</p>
+        <ul>
+          <li>your email address,</li>
+          <li>your answer to "Who are you looking out for?", if you choose one,</li>
+          <li>which page you joined from, and the day you joined.</li>
+        </ul>
+        <p>We use your address for one thing: to write once, when I-on is ready for families.</p>
+      </section>
+
+      <section aria-labelledby="p2">
+        <h2 id="p2" class="h3">What we do not do</h2>
+        <ul>
+          <li>No cookies.</li>
+          <li>No trackers, no analytics scripts and no advertising.</li>
+          <li>We do not store your IP address or details about your device with your email.</li>
+          <li>We do not sell or share the list.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="p3">
+        <h2 id="p3" class="h3">The example pages</h2>
+        <p>The family app on this site shows Maggie Ellis and her family. They are invented. Every name, answer, chart and task in those pages is example data.</p>
+      </section>
+
+      <section aria-labelledby="p4">
+        <h2 id="p4" class="h3">Before any family starts</h2>
+        <p>Real calls will hold personal information about your parent. Before the first family starts, we will publish a full privacy notice that explains what is kept from each call, where, for how long, who can see it, and how to have it deleted.</p>
+      </section>
+
+      <section aria-labelledby="p5">
+        <h2 id="p5" class="h3">Being removed from the list</h2>
+        <p>Reply to the email you receive from us and ask to be removed. We will delete your address. There is no other contact address yet; when there is one, it will be listed here.</p>
+      </section>
+
+      <div class="row">
+        <Button href="/#waitlist" arrow>Join the waitlist</Button>
+        <Button href="/" variant="secondary">Back to the home page</Button>
+      </div>
+    </div>
+  </article>
+</SiteLayout>
+<style>
+  .priv { display: flex; flex-direction: column; gap: var(--s-12); padding-top: var(--s-16); max-width: 52rem; }
+  .priv-body { display: flex; flex-direction: column; gap: var(--s-10); }
+  .priv-body section { display: flex; flex-direction: column; gap: var(--s-3); padding-top: var(--s-6); border-top: 1px solid var(--line); }
+  .priv-body p, .priv-body li { line-height: 1.65; color: var(--ink-2); max-width: 40rem; }
+  .priv-body ul { display: flex; flex-direction: column; gap: var(--s-1); padding-left: var(--s-5); margin: 0; }
+  @media (max-width: 40rem) { .priv { padding-top: var(--s-10); gap: var(--s-8); } }
+</style>

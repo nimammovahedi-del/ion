@@ -1,0 +1,28 @@
+---
+/** One reminder: her words, when, how it is said, who set it, and an on/off switch. Also used inside a <template>. */
+import ListRow from './ListRow.astro';
+import Chip from '@/components/ui/Chip.astro';
+import Switch from './Switch.astro';
+import './care.css';
+interface Props { id?: string; kind: 'medicine' | 'appointment' | 'other'; text?: string; when?: string; spokenBy: 'call' | 'evening-reminder'; setBy?: string; active?: boolean; added?: boolean }
+const { id = '', kind, text = '', when = '', spokenBy, setBy = '', active = true, added = false } = Astro.props;
+const ICON = { medicine: 'pill', appointment: 'calendar', other: 'bell' } as const;
+---
+<ListRow icon={ICON[kind]} data-reminder={id} class:list={['rem', { off: !active }]}>
+  <p class="lr-title rem-words">“<span data-slot="text">{text}</span>”</p>
+  <p class="lr-meta">
+    <span data-slot="when">{when}</span>
+    <Chip tone={spokenBy === 'call' ? 'waiting' : 'working'}>{spokenBy === 'call' ? 'On the morning call' : 'Evening reminder'}</Chip>
+    <span>Set by <span data-slot="setBy">{setBy}</span></span>
+  </p>
+  {added && <button type="button" class="cf-link rem-remove" data-remove>Remove this reminder</button>}
+  <Fragment slot="end">
+    <Switch label={`Ion says: ${text}`} hideLabel checked={active} data-toggle />
+  </Fragment>
+</ListRow>
+<style>
+  .rem-words { font-size: 1.125rem !important; }
+  :global(.rem.off) { background: transparent; }
+  :global(.rem.off) .rem-words { color: var(--ink-2); }
+  .rem-remove { align-self: flex-start; margin-left: calc(var(--s-3) * -1); }
+</style>

@@ -1,6 +1,6 @@
 // The invented example family. Every screen in r1 reads from here through src/lib/loaders.ts.
 // Margaret "Maggie" Ellis is not a real person.
-import type { AgentStep, AskTomorrow, CalendarItem, CallSettings, DayPoint, HealthCardData, Medicine, MetricSeries, Person, Reminder, Story, Task, WeekNote } from './types';
+import type { AgentStep, AskTomorrow, HerWords, CalendarItem, CallSettings, DayPoint, HealthCardData, Medicine, MetricSeries, Person, Reminder, Story, Task, WeekNote } from './types';
 
 export const TODAY = { iso: '2026-11-24', long: 'Tuesday, November 24', short: 'Tue Nov 24', callTime: '9:04 AM', callMinutes: 6 };
 
@@ -19,7 +19,47 @@ export const report = {
   mightDo: 'You might ask what is waking her at night. If it continues this week, it is worth mentioning to her doctor.',
   quote: 'I was up three times again.',
   feeling: 6, feelingUsual: 7,
+  // Added for the Today page.
+  overall: 'One thing to watch: her sleep',
+  overallTone: 'changed' as 'changed' | 'check' | 'usual',
+  stayedSame: 'Her meals, drinks, knee and mood are close to her usual. No falls.',
+  quotes: [
+    { text: 'A bit tired, but I\'m all right.', about: 'When Ion asked how she was feeling' },
+    { text: 'I was up three times again.', about: 'About last night' },
+    { text: 'I could ice forty buns before the kettle boiled.', about: 'Today\'s story question, about her first job' },
+  ],
+  suggestions: [
+    { text: 'You might ask her what is waking her at night.', why: 'Four short nights in a row.', href: '/app/ask/', link: 'Add it to tomorrow\'s call' },
+    { text: 'If the short nights go on this week, you might mention them to her doctor.', why: 'The doctor-visit page puts the last 30 days on one sheet.', href: '/app/trends/doctor-visit/', link: 'Open the doctor-visit page' },
+    { text: 'You might gently ask about Monday evening\'s pills.', why: 'She gave two different answers. Both are kept.', href: '/app/medicines/', link: 'See her medicines' },
+    { text: 'You might ask her about the bakery next time you talk.', why: 'She told Ion about her first job, in 1962.', href: '/app/stories/', link: 'Read the story' },
+  ],
 };
+
+/** Her own words from recent calls, per measure. Used on Trends and the doctor-visit page. */
+export const herWords: HerWords[] = [
+  { metric: 'sleep', date: '2026-11-24', day: 'Tue Nov 24', text: 'I was up three times again.' },
+  { metric: 'sleep', date: '2026-11-23', day: 'Mon Nov 23', text: 'I keep waking up, and then I just lie there.' },
+  { metric: 'sleep', date: '2026-11-21', day: 'Sat Nov 21', text: 'Not a great night. I was awake before five.' },
+  { metric: 'feeling', date: '2026-11-24', day: 'Tue Nov 24', text: 'A bit tired, but I\'m all right.' },
+  { metric: 'pain', date: '2026-11-24', day: 'Tue Nov 24', text: 'The knee is the same, nothing new.' },
+  { metric: 'pain', date: '2026-11-07', day: 'Sat Nov 7', text: 'My knee is grumbling after that long walk.' },
+  { metric: 'meals', date: '2026-11-24', day: 'Tue Nov 24', text: 'Soup and toast for dinner. I\'m low on milk, eggs and bread.' },
+  { metric: 'fluids', date: '2026-11-24', day: 'Tue Nov 24', text: 'Plenty of tea, as always, and a glass of water with lunch.' },
+  { metric: 'medicines', date: '2026-11-24', day: 'Tue Nov 24', text: 'Yes, I took the evening ones.' },
+  { metric: 'medicines', date: '2026-11-23', day: 'Mon Nov 23', text: 'I don\'t think I took the evening ones. I was tired.' },
+  { metric: 'falls', date: '2026-11-24', day: 'Tue Nov 24', text: 'No falls. I hold the rail on the stairs.' },
+  { metric: 'falls', date: '2026-10-03', day: 'Sat Oct 3', text: 'I caught my foot on the back step, but I\'m fine. Nothing hurt.' },
+  { metric: 'out', date: '2026-11-21', day: 'Sat Nov 21', text: 'Daniel took me for a drive along the river.' },
+  { metric: 'out', date: '2026-11-22', day: 'Sun Nov 22', text: 'Too cold to go out today.' },
+];
+
+/** Starting questions for the doctor-visit page. The family adds their own on the printed sheet. */
+export const doctorQuestions: string[] = [
+  'She has slept about two hours less than usual for four nights, and says she wakes up often. What should we keep an eye on?',
+  'She sometimes is not sure whether she took her evening pills. Is there a simple way to help her keep track?',
+  'Her right knee has been at about 4 out of 10 for months. Is there anything that might make walking easier?',
+];
 
 export const healthCards: HealthCardData[] = [
   { id: 'sleep', title: 'Sleep', icon: 'moon', value: '5.5', unit: 'hours', caption: 'Last night · her usual is 7.5', status: 'changed', statusLabel: 'Changed',
@@ -48,7 +88,7 @@ export const tasks: Task[] = [
     actions: [{ label: 'Approve ride', kind: 'primary' }, { label: 'I\'ll drive', kind: 'secondary' }] },
   { id: 'groceries', title: 'Groceries: milk, eggs, bread', detail: 'She is running low. Added from today\'s food question.', icon: 'cart', from: 'Tue call', status: 'needs-you',
     actions: [{ label: 'Open shopping list', kind: 'primary' }, { label: 'Daniel will shop', kind: 'secondary' }] },
-  { id: 'refill', title: 'Call the pharmacy about a refill', detail: 'Her blood pressure pills. About 6 days left, refill due Monday.', icon: 'pill', from: 'Medicine list', due: 'Mon Nov 30', status: 'needs-you',
+  { id: 'refill', title: 'Call the pharmacy about a refill', detail: 'Her small white morning pills. About 6 days left, refill due Monday.', icon: 'pill', from: 'Medicine list', due: 'Mon Nov 30', status: 'needs-you',
     actions: [{ label: 'Open refill', kind: 'primary' }, { label: 'Done already', kind: 'secondary' }] },
   { id: 'heating', title: 'Check the heating before the cold week', detail: 'Daniel offered on Sunday. He will look on Saturday.', icon: 'home', from: 'Family note', due: 'Sat Nov 28', status: 'in-progress', assignee: 'Daniel', actions: [] },
   { id: 'glasses', title: 'Pick up her new reading glasses', detail: 'Collected by Sara on Friday.', icon: 'check', from: 'Call, Nov 18', status: 'done', assignee: 'Sara', actions: [] },
@@ -73,16 +113,16 @@ export const calendar: CalendarItem[] = [
   { id: 'c3', date: '2026-11-26', day: 'Thu Nov 26', time: '2:00 PM', title: 'Eye doctor', kind: 'appointment', note: 'Ride not yet set' },
   { id: 'c4', date: '2026-11-28', day: 'Sat Nov 28', title: 'Priya visits', kind: 'visit', note: 'All day' },
   { id: 'c5', date: '2026-11-28', day: 'Sat Nov 28', time: '10:00 AM', title: 'Daniel checks the heating', kind: 'visit' },
-  { id: 'c6', date: '2026-11-30', day: 'Mon Nov 30', title: 'Refill due', kind: 'refill', note: 'Blood pressure pills' },
+  { id: 'c6', date: '2026-11-30', day: 'Mon Nov 30', title: 'Refill due', kind: 'refill', note: 'Small white morning pills' },
   { id: 'c7', date: '2026-12-03', day: 'Thu Dec 3', time: '11:30 AM', title: 'Hair appointment', kind: 'appointment' },
 ];
 
 // Labels are the family's own words. I-on never names or suggests a medicine.
 export const medicines: Medicine[] = [
-  { id: 'm1', label: 'Blood pressure pill', when: 'morning', count: 1, takenToday: true, refillDaysLeft: 6 },
-  { id: 'm2', label: 'Water pill', when: 'morning', count: 1, takenToday: true },
+  { id: 'm1', label: 'Small white pill', when: 'morning', count: 1, takenToday: true, refillDaysLeft: 6 },
+  { id: 'm2', label: 'Yellow pill', when: 'morning', count: 1, takenToday: true },
   { id: 'm3', label: 'Vitamin', when: 'morning', count: 1, takenToday: true },
-  { id: 'm4', label: 'Cholesterol pill', when: 'evening', count: 1, takenToday: null, note: 'Yesterday: two different answers' },
+  { id: 'm4', label: 'Pink evening pill', when: 'evening', count: 1, takenToday: null, note: 'Yesterday: two different answers' },
   { id: 'm5', label: 'Calcium tablet', when: 'evening', count: 1, takenToday: null, note: 'Yesterday: two different answers' },
 ];
 
@@ -96,8 +136,8 @@ export const reminders: Reminder[] = [
 
 export const stories: Story[] = [
   { id: 's1', date: 'Tue Nov 24', title: 'Her first job, at a bakery in 1962', text: 'She started at Hartley\'s bakery at sixteen, on the early shift. Her job was to ice the buns before the shop opened at seven.', quote: 'I could ice forty buns before the kettle boiled.' },
-  { id: 's2', date: 'Mon Nov 23', title: 'The garden on Marsh Lane', text: 'She grew runner beans along the back fence and gave most of them away to the neighbours.', quote: 'You never had to buy a bean on that street.' },
-  { id: 's3', date: 'Sun Nov 22', title: 'How she met Arthur', text: 'They met at a dance in the church hall. He stepped on her foot twice and apologised three times.' },
+  { id: 's2', date: 'Mon Nov 23', title: 'The garden on Marsh Lane', text: 'She grew runner beans along the back fence and gave most of them away to the neighbors.', quote: 'You never had to buy a bean on that street.' },
+  { id: 's3', date: 'Sun Nov 22', title: 'How she met Arthur', text: 'They met at a dance in the church hall. He stepped on her foot twice and apologized three times.' },
   { id: 's4', date: 'Sat Nov 21', title: 'Sara\'s first day of school', text: 'Sara refused to let go of the gate. Maggie stood across the road for an hour in case she ran out.' },
 ];
 
@@ -167,8 +207,8 @@ export const metrics: MetricSeries[] = [
     note: 'About six cups a day, mostly tea and water.' },
   { id: 'medicines', title: 'Medicines', unit: 'pill times taken, of 2', icon: 'pill', usual: 2, usualLabel: 'both pill times', higherIsBetter: true, min: 0, max: 2, points: series(67, 2, 0.2, 1, 1, 2, [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1], { 30: 1, 52: 1 }), status: 'check',
     note: 'Both pill times taken on most days. Monday evening has two different answers.' },
-  { id: 'falls', title: 'Falls', unit: 'falls', icon: 'walk', usual: 0, usualLabel: 'none', higherIsBetter: false, min: 0, max: 2, points: series(71, 0, 0, 1, 0, 1, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], { 38: 1 }), status: 'usual',
+  { id: 'falls', title: 'Falls', unit: 'falls', icon: 'walk', usual: 0, usualLabel: 'none', higherIsBetter: false, min: 0, max: 2, points: series(71, 0, 0, 1, 0, 1, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], { 37: 1 }), status: 'usual',
     note: 'No falls in the last seven weeks. One stumble on the back step in October, no injury.' },
-  { id: 'out', title: 'Getting out', unit: 'times out of the house', icon: 'home', usual: 1, usualLabel: 'out on most days', higherIsBetter: true, min: 0, max: 2, points: series(83, 1, 0.9, 1, 0, 2, [1, 1, 0, 1, 2, 1, 0, 1, 1, 0, 1, 0, 0, 1]), status: 'usual',
+  { id: 'out', title: 'Getting out', unit: 'times out of the house', icon: 'home', usual: 1, usualLabel: 'out on most days', higherIsBetter: true, min: 0, max: 2, points: series(83, 1, 0.9, 1, 0, 2, [1, 0, 0, 1, 2, 1, 0, 0, 1, 0, 1, 0, 0, 1]), status: 'usual',
     note: 'Out on three days this week, a little less than usual.' },
 ];

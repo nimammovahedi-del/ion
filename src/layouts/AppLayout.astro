@@ -57,6 +57,11 @@ const groups = [
     </main>
   </div>
 </BaseLayout>
+<script>
+  // Keep the "Waiting for you" count in step with what was approved in this browser (example data only).
+  import { syncWaitingBadge } from '@/components/app/care/store';
+  syncWaitingBadge();
+</script>
 <style>
   :global(body.app) { background: var(--paper); }
   .shell { display: grid; grid-template-columns: 15rem minmax(0, 1fr); grid-template-areas: 'top top' 'menu content'; gap: var(--s-6); max-width: 90rem; margin-inline: auto; padding: var(--s-5) var(--s-6) var(--s-12); }

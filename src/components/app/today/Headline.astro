@@ -1,0 +1,41 @@
+---
+/** How she is today in one or two sentences, with the call time, the overall status in words, and what changed against what stayed the same. */
+import Chip from '@/components/ui/Chip.astro';
+import Icon from '@/components/ui/Icon.astro';
+interface Props {
+  dateLong?: string; callTime: string; callMinutes: number; name: string;
+  headline: string; overall: string; overallTone: 'changed' | 'check' | 'usual';
+  changed: string; stayedSame: string;
+}
+const { callTime, callMinutes, name, headline, overall, overallTone, changed, stayedSame } = Astro.props;
+---
+<section class="head" aria-labelledby="head-h">
+  <p class="when"><Icon name="phone" size={16} />Ion called {name} at {callTime} and talked for {callMinutes} minutes</p>
+  <h2 id="head-h" class="headline"><span class="sr-only">How she is today: </span>{headline}</h2>
+  <p class="overall"><span class="muted">Overall:</span> <Chip tone={overallTone} dot>{overall}</Chip></p>
+  <dl class="diff">
+    <div class="diff-item diff-changed">
+      <dt><span class="mark" aria-hidden="true"></span>What changed</dt>
+      <dd>{changed}</dd>
+    </div>
+    <div class="diff-item">
+      <dt><span class="mark mark-same" aria-hidden="true"></span>What stayed the same</dt>
+      <dd>{stayedSame}</dd>
+    </div>
+  </dl>
+</section>
+<style>
+  .head { display: flex; flex-direction: column; gap: var(--s-4); padding: var(--s-6); border-radius: var(--r-xl); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-1); min-width: 0; }
+  .when { display: flex; align-items: flex-start; gap: var(--s-2); font-size: var(--fs-sm); color: var(--ink-2); }
+  .when :global(svg) { flex: none; margin-top: 0.2rem; color: var(--acc-text); }
+  .headline { font-size: clamp(1.625rem, 2.6vw, 2.125rem); font-weight: 300; line-height: 1.2; letter-spacing: -0.025em; }
+  .overall { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); font-size: var(--fs-sm); }
+  .diff { display: grid; gap: var(--s-3); padding-top: var(--s-1); }
+  .diff-item { padding: var(--s-4); border-radius: var(--r-lg); background: var(--paper); }
+  .diff-changed { background: var(--acc-soft); }
+  dt { display: flex; align-items: center; gap: var(--s-2); font-size: var(--fs-sm); font-weight: 600; }
+  dd { margin-top: var(--s-1); line-height: 1.5; }
+  .mark { width: 0.75rem; height: 0.75rem; border-radius: 0.2rem; background: var(--acc-text); transform: rotate(45deg); }
+  .mark-same { border-radius: 50%; background: var(--ink-2); transform: none; width: 0.5rem; height: 0.5rem; }
+  @media (max-width: 30rem) { .head { padding: var(--s-4); border-radius: var(--r-lg); } }
+</style>

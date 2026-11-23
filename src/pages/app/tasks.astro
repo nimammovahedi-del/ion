@@ -1,0 +1,150 @@
+---
+import AppLayout from '@/layouts/AppLayout.astro';
+import Icon from '@/components/ui/Icon.astro';
+import Card from '@/components/ui/Card.astro';
+import TaskCard from '@/components/app/care/TaskCard.astro';
+import BlockHead from '@/components/app/care/BlockHead.astro';
+import EmptyState from '@/components/app/care/EmptyState.astro';
+import ExampleNote from '@/components/app/care/ExampleNote.astro';
+import LiveRegion from '@/components/app/care/LiveRegion.astro';
+import { getFamily, getViewer } from '@/lib/loaders';
+import { getCareTasks } from '@/lib/loaders-care';
+
+const [tasks, family, viewer] = await Promise.all([getCareTasks(), getFamily(), getViewer()]);
+const groups = [
+  { id: 'needs-you', title: 'Waiting for you', sub: 'Say yes, and choose who will do it.', empty: 'Nothing is waiting for you. Well done.', icon: 'bell' },
+  { id: 'in-progress', title: 'In progress', sub: 'Someone has said they will do these.', empty: 'Nothing in progress right now.', icon: 'clock' },
+  { id: 'done', title: 'Done', sub: 'Finished this week.', empty: 'Nothing finished yet this week.', icon: 'check' },
+] as const;
+const waiting = tasks.filter((t) => t.status === 'needs-you').length;
+---
+<AppLayout title="Tasks" active="tasks" eyebrow="Tasks"
+  heading="What came out of the calls." tone2={`${waiting} things are waiting for you.`}
+  lede="Each task says where it came from, when it is due and who has it. Nothing happens until someone in the family says yes.">
+  <LiveRegion />
+  <div class="layout" data-viewer={viewer.short}>
+    <div class="groups">
+      {groups.map((g) => {
+        const list = tasks.filter((t) => t.status === g.id);
+        return (
+          <section class="group" aria-labelledby={`g-${g.id}`}>
+            <BlockHead id={`g-${g.id}`} title={g.title} count={list.length} countLabel={list.length === 1 ? 'task' : 'tasks'} countId={`count-${g.id}`} sub={g.sub} />
+            <ul role="list" class="cards" data-list={g.id}>
+              {list.map((t) => <li><TaskCard task={t} people={family} viewerId={viewer.id} /></li>)}
+            </ul>
+            <EmptyState icon={g.icon} text={g.empty} hidden={list.length > 0} data-empty={g.id} />
+          </section>
+        );
+      })}
+    </div>
+
+    <aside class="side" aria-label="How tasks work">
+      <Card tone="surface" pad="lg" class="how">
+        <span class="how-icon"><Icon name="shield" size={22} /></span>
+        <h2 class="how-title">I-on only acts after someone in the family says yes.</h2>
+        <ol role="list" class="how-steps">
+          <li><b class="num">1</b><span>She mentions something on the call, or you add it.</span></li>
+          <li><b class="num">2</b><span>I-on writes it up here as a task, with where it came from.</span></li>
+          <li><b class="num">3</b><span>You approve it and choose who will do it. Ion lets her know on the next call.</span></li>
+        </ol>
+        <p class="how-foot">Nothing is booked, bought or sent by I-on in this version. The family does the doing.</p>
+      </Card>
+      <ExampleNote />
+    </aside>
+  </div>
+</AppLayout>
+
+<script>
+  import { announce, load, save, syncWaitingBadge } from '@/components/app/care/store';
+
+  type State = Record<string, { status: 'needs-you' | 'in-progress' | 'done'; who?: string }>;
+  const root = document.querySelector<HTMLElement>('[data-viewer]');
+  const viewer = root?.dataset.viewer ?? '';
+  const state = load<State>('tasks', {});
+  const you = (who?: string) => (who && who === viewer ? 'You' : who ?? '');
+
+  function refreshCounts() {
+    let waiting = 0;
+    document.querySelectorAll<HTMLElement>('[data-list]').forEach((list) => {
+      const id = list.dataset.list as string;
+      const n = list.children.length;
+      if (id === 'needs-you') waiting = n;
+      const c = document.getElementById(`count-${id}`);
+      if (c) c.firstChild!.textContent = String(n);
+      const empty = document.querySelector<HTMLElement>(`[data-empty="${id}"]`);
+      if (empty) empty.hidden = n > 0;
+    });
+    save('waiting', waiting);
+    syncWaitingBadge(waiting);
+  }
+
+  function apply(card: HTMLElement, status: State[string]['status'], who?: string) {
+    card.dataset.status = status;
+    const whoEl = card.querySelector<HTMLElement>('[data-slot="who"]');
+    const doingEl = card.querySelector<HTMLElement>('[data-slot="doing"]');
+    if (whoEl) whoEl.textContent = who ? you(who) : 'Nobody yet';
+    if (doingEl) {
+      doingEl.hidden = status === 'needs-you';
+      doingEl.textContent = status === 'done'
+        ? (who ? `Marked done by ${who === viewer ? 'you' : who}.` : 'Done.')
+        : `${you(who)} will ${card.dataset.doing}.`;
+    }
+    const li = card.closest('li');
+    const list = document.querySelector(`[data-list="${status}"]`);
+    if (li && list && li.parentElement !== list) list.prepend(li);
+  }
+
+  // Bring back changes made earlier in this browser.
+  for (const [id, s] of Object.entries(state)) {
+    const card = document.querySelector<HTMLElement>(`[data-task="${id}"]`);
+    if (card) apply(card, s.status, s.who);
+  }
+  if (Object.keys(state).length) refreshCounts();
+
+  document.querySelectorAll<HTMLElement>('[data-task]').forEach((card) => {
+    const id = card.dataset.task as string;
+    const title = card.dataset.title ?? 'Task';
+    card.querySelector<HTMLFormElement>('[data-approve]')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const who = (new FormData(e.currentTarget as HTMLFormElement).get('who') as string) || viewer;
+      state[id] = { status: 'in-progress', who };
+      apply(card, 'in-progress', who);
+      save('tasks', state);
+      refreshCounts();
+      announce(`${title}: approved. ${you(who)} will ${card.dataset.doing}. Moved to In progress.`);
+      card.querySelector<HTMLButtonElement>('.when-in-progress [data-done]')?.focus();
+    });
+    card.querySelectorAll<HTMLButtonElement>('[data-done]').forEach((b) => b.addEventListener('click', () => {
+      const who = viewer;
+      state[id] = { status: 'done', who };
+      apply(card, 'done', who);
+      save('tasks', state);
+      refreshCounts();
+      announce(`${title}: marked done. Moved to Done.`);
+      card.setAttribute('tabindex', '-1');
+      card.focus();
+    }));
+  });
+</script>
+
+<style>
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 20rem; gap: var(--s-8); align-items: start; }
+  .groups { display: flex; flex-direction: column; gap: var(--s-10); min-width: 0; }
+  .group { display: flex; flex-direction: column; gap: var(--s-4); }
+  .cards { display: flex; flex-direction: column; gap: var(--s-3); }
+  .side { position: sticky; top: var(--s-6); display: flex; flex-direction: column; gap: var(--s-4); }
+  :global(.how) { display: flex; flex-direction: column; gap: var(--s-4); }
+  .how-icon { display: grid; place-items: center; flex: none; width: 2.75rem; height: 2.75rem; border-radius: 50%; background: var(--acc-soft); color: var(--acc-text); }
+  .how-title { font-size: 1.25rem; font-weight: 500; line-height: 1.35; letter-spacing: -0.01em; }
+  .how-steps { display: flex; flex-direction: column; gap: var(--s-3); }
+  .how-steps li { display: flex; gap: var(--s-3); font-size: 0.9375rem; line-height: 1.5; }
+  .how-steps b { display: grid; place-items: center; flex: none; width: 1.75rem; height: 1.75rem; border-radius: 50%; background: var(--paper); border: 1px solid var(--line-strong); font-size: var(--fs-sm); font-weight: 500; }
+  .how-foot { font-size: var(--fs-sm); color: var(--ink-2); border-top: 1px solid var(--line); padding-top: var(--s-3); }
+  @media (max-width: 75rem) {
+    .layout { grid-template-columns: minmax(0, 1fr); }
+    .side { display: contents; }
+    :global(.how) { order: -1; padding: var(--s-5) !important; flex-direction: row !important; align-items: center; }
+    .how-steps { display: none; }
+    .how-foot { display: none; }
+  }
+</style>

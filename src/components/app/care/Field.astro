@@ -1,0 +1,11 @@
+---
+/** A label, an optional hint, and the control the page puts in the slot (give it the matching id). */
+import './care.css';
+interface Props { label: string; for: string; hint?: string; class?: string }
+const { label, for: forId, hint, class: cls = '' } = Astro.props;
+---
+<div class:list={['cf-field', cls]}>
+  <label for={forId}>{label}</label>
+  {hint && <p class="cf-hint" id={`${forId}-hint`}>{hint}</p>}
+  <slot />
+</div>

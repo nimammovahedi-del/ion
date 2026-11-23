@@ -36,7 +36,7 @@ export interface AgentStep {
 export interface CalendarItem { id: string; date: string; day: string; time?: string; title: string; kind: 'appointment' | 'visit' | 'refill' | 'call'; note?: string; }
 
 export interface Medicine {
-  id: string; label: string;        // family's own label, e.g. "Blood pressure pill". Never a drug name from I-on.
+  id: string; label: string;        // family's own label, e.g. "Small white pill". Never a drug name from I-on.
   when: 'morning' | 'evening'; count: number; takenToday: boolean | null; note?: string; refillDaysLeft?: number;
 }
 
@@ -57,3 +57,6 @@ export interface WeekNote { week: string; changed: string[]; steady: string[]; }
 export interface AskTomorrow { id: string; text: string; by: string; status: 'queued' | 'asked'; answer?: string; }
 
 export interface CallSettings { time: string; days: string[]; voice: string; topics: { id: string; label: string; on: boolean; fixed?: boolean }[]; retry: string; }
+
+/** Her own words on one measure, from one call. */
+export interface HerWords { metric: MetricId; date: string; day: string; text: string; }

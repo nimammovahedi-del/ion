@@ -1,0 +1,80 @@
+---
+/**
+ * A small floating pill near the bottom of wide screens. It names the section you are reading and
+ * offers the waitlist. It needs JavaScript (without it, it never shows), hides on screens narrower
+ * than 56rem, and steps aside when the waitlist or the footer is in view.
+ */
+import Button from '@/components/ui/Button.astro';
+import { DOCK_SECTIONS } from '@/data/site';
+---
+<aside class="dock" aria-label="Where you are on this page" data-dock data-hidden="true">
+  <a class="dock-where" href="#top" data-dock-link>
+    <span class="dock-dots" aria-hidden="true">
+      {DOCK_SECTIONS.map((s, i) => <span class:list={['dd', { on: i === 0 }]} data-dock-dot={s.id}></span>)}
+    </span>
+    <span class="sr-only">Now reading: </span><span data-dock-label>{DOCK_SECTIONS[0].label}</span>
+  </a>
+  <Button href="#waitlist" size="sm" arrow>Join the waitlist</Button>
+</aside>
+
+<script define:vars={{ SECTIONS: DOCK_SECTIONS }} is:inline>
+  (function () {
+    var dock = document.querySelector('[data-dock]');
+    if (!dock || !('IntersectionObserver' in window)) return;
+    var label = dock.querySelector('[data-dock-label]');
+    var link = dock.querySelector('[data-dock-link]');
+    var dots = dock.querySelectorAll('[data-dock-dot]');
+    var els = SECTIONS.map(function (s) { return document.getElementById(s.id); });
+    var blockers = new Set();
+    var started = false;
+
+    function setCurrent(id) {
+      var s = SECTIONS.find(function (x) { return x.id === id; });
+      if (!s) return;
+      label.textContent = s.label;
+      link.setAttribute('href', '#' + id);
+      dots.forEach(function (d) { d.classList.toggle('on', d.getAttribute('data-dock-dot') === id); });
+    }
+    function update() {
+      // The current section is the last one whose top has passed the middle of the screen.
+      var mid = window.innerHeight * 0.5, current = SECTIONS[0].id;
+      els.forEach(function (el, i) { if (el && el.getBoundingClientRect().top < mid) current = SECTIONS[i].id; });
+      setCurrent(current);
+      var hide = !started || blockers.size > 0;
+      dock.setAttribute('data-hidden', hide ? 'true' : 'false');
+      // A hidden dock is taken out of the tab order and the accessibility tree.
+      dock.inert = hide;
+    }
+    // Show the dock once the hero has scrolled away.
+    var hero = document.getElementById('top');
+    if (hero) new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { started = !e.isIntersecting; });
+      update();
+    }, { rootMargin: '-40% 0px 0px 0px' }).observe(hero);
+    // Follow the sections.
+    var io = new IntersectionObserver(function () {
+      update();
+    }, { rootMargin: '-45% 0px -45% 0px' });
+    els.forEach(function (el) { if (el) io.observe(el); });
+    // Step aside for the waitlist and the footer.
+    var block = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { if (e.isIntersecting) blockers.add(e.target); else blockers.delete(e.target); });
+      update();
+    }, { rootMargin: '0px 0px -25% 0px' });
+    ['#waitlist', 'footer'].forEach(function (sel) { var el = document.querySelector(sel); if (el) block.observe(el); });
+    dock.inert = true;
+  })();
+</script>
+
+<style>
+  .dock { display: none; }
+  @media (min-width: 56rem) {
+    :global(.js) .dock { position: fixed; left: 50%; bottom: var(--s-6); z-index: 20; display: flex; align-items: center; gap: var(--s-2); padding: var(--s-1) var(--s-1) var(--s-1) var(--s-2); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-pill); box-shadow: var(--shadow-3); transform: translateX(-50%); transition: transform 0.35s var(--ease), opacity 0.35s var(--ease), visibility 0s linear 0s; }
+    :global(.js) .dock[data-hidden='true'] { opacity: 0; visibility: hidden; transform: translate(-50%, 150%); transition: transform 0.35s var(--ease), opacity 0.35s var(--ease), visibility 0s linear 0.35s; }
+  }
+  .dock-where { display: inline-flex; align-items: center; gap: var(--s-3); min-height: var(--tap); min-width: 13rem; padding: 0 var(--s-4); border-radius: var(--r-pill); font-size: 0.9375rem; font-weight: 500; color: var(--ink); text-decoration: none; }
+  .dock-where:hover { background: var(--grey-1); color: var(--ink); }
+  .dock-dots { display: inline-flex; gap: 0.25rem; }
+  .dd { width: 0.375rem; height: 0.375rem; border-radius: 50%; background: var(--grey-2); transition: background 0.2s var(--ease), width 0.2s var(--ease); }
+  .dd.on { width: 1rem; border-radius: var(--r-pill); background: var(--acc-text); }
+</style>
