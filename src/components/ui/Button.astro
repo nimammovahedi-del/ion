@@ -25,14 +25,14 @@ const attrs = href ? { href } : { type };
   .btn:active { transform: none; }
   .btn-sm { min-height: var(--tap); padding: 0 1rem; font-size: var(--fs-sm); }
   .btn-lg { min-height: 3.25rem; padding: 0 1.625rem; font-size: 1rem; }
-  .btn-primary { background: var(--acc); color: var(--on-acc); box-shadow: 0 6px 16px rgba(141, 187, 242, 0.45); }
-  .btn-primary:hover { color: var(--on-acc); background: #7fb1ee; }
-  .btn-secondary { background: var(--surface); color: var(--ink); border-color: var(--grey-2); }
+  .btn-primary { background: var(--acc); color: var(--on-acc); box-shadow: 0 6px 16px var(--acc-glow); }
+  .btn-primary:hover { color: var(--on-acc); background: var(--acc-hover); }
+  .btn-secondary { background: var(--surface); color: var(--ink); border-color: var(--line-strong); }
   .btn-secondary:hover { color: var(--ink); border-color: var(--line-strong); box-shadow: var(--shadow-1); }
   .btn-dark { background: var(--deep); color: var(--on-deep); }
   .btn:disabled, .btn[aria-disabled='true'] { opacity: 0.45; cursor: not-allowed; box-shadow: none; transform: none; }
   .btn-dark:hover { color: var(--on-deep); background: var(--deep-hover); }
-  .btn-light { background: var(--surface); color: var(--ink); box-shadow: 0 8px 24px rgba(17, 17, 17, 0.16); }
+  .btn-light { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-2); }
   .btn-light:hover { color: var(--ink); }
   .btn-ghost { background: transparent; color: var(--acc-text); padding-inline: var(--s-3); }
   .btn-ghost:hover { background: var(--acc-soft); color: var(--acc-text); transform: none; }

@@ -61,4 +61,6 @@ export function syncWaitingBadge(count?: number) {
   if (n === null) return;
   const b = document.querySelector('.approvals b');
   if (b) b.textContent = String(n);
+  const m = document.querySelector<HTMLElement>('[data-waiting-count]');
+  if (m) { m.textContent = String(n); if (m.parentElement) m.parentElement.hidden = n === 0; }
 }

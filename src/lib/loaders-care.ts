@@ -1,8 +1,8 @@
 // Loaders for the care screens. Like src/lib/loaders.ts, pages call these and never import example data directly.
 // In r2 these read the signed-in family's data.
 import * as care from '@/data/example-care';
-import type { AgendaDay, AgendaItem, CareTask, CircleMember, DoseDay, MedicineGroup, StoryEntry } from '@/data/types-care';
-import { getAskTomorrow, getCalendar, getCallSettings, getFamily, getHerWords, getMedicines, getMetric, getStories, getTasks, getToday, lastDays } from './loaders';
+import type { AgendaDay, AgendaItem, CareTask, CircleMember, DoseDay, MedicineGroup } from '@/data/types-care';
+import { getAskTomorrow, getCalendar, getCallSettings, getFamily, getHerWords, getMedicines, getMetric, getTasks, getToday, lastDays } from './loaders';
 
 /** "9:00 AM" or "14:00" to minutes after midnight. Items with no time sort first. */
 export function minutesOf(time?: string): number {
@@ -87,18 +87,12 @@ export async function getAskQueue() {
   return { queued: all.filter((a) => a.status === 'queued'), asked: care.askedQuestions, limit: 3 };
 }
 
-export async function getStoryEntries(): Promise<StoryEntry[]> {
-  const s = await getStories();
-  return s.map((x) => ({ ...x, question: care.storyQuestions[x.id] ?? 'Tell me a story.' }));
-}
-export const getNextStoryQuestion = async () => care.nextStoryQuestion;
-
 export const getPlannedServices = async () => care.plannedServices;
 export const getPreparedRequest = async () => care.preparedRequest;
 
 const SEES: Record<string, string[]> = {
-  'main-caregiver': ['The daily report and trends', 'Medicines, reminders and stories', 'Call settings and the family circle'],
-  family: ['The daily report and trends', 'Medicines, reminders and stories'],
+  'main-caregiver': ['The daily report and trends', 'Medicines and reminders', 'Call settings and the family circle'],
+  family: ['The daily report and trends', 'Medicines and reminders'],
 };
 const DOES: Record<string, string[]> = {
   'main-caregiver': ['Approves tasks before I-on acts', 'Takes tasks', 'Changes call settings', 'Invites people'],

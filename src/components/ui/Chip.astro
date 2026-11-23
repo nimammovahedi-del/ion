@@ -19,11 +19,11 @@ const { tone = 'info', dot = false, class: cls = '' } = Astro.props;
   .chip-dot { width: 0.375rem; height: 0.375rem; border-radius: 50%; background: currentColor; }
   .chip-changed { background: var(--acc); color: var(--on-acc); }
   .chip-check { background: var(--deep); color: var(--on-deep); }
-  .chip-usual { background: var(--grey-2); color: var(--ink); }
+  .chip-usual { background: var(--leaf-soft); color: var(--ink); }
   .chip-done { background: var(--grey-1); color: var(--ink); }
-  .chip-waiting { background: var(--acc-soft); color: var(--ink); }
+  .chip-waiting { background: var(--butter); color: var(--ink); }
   .chip-waiting .chip-dot { background: var(--acc-text); }
   .chip-working { background: var(--surface); color: var(--ink); border: 1px solid var(--line-strong); }
   .chip-info { background: var(--grey-1); color: var(--ink-2); }
-  .chip-source { min-height: 1.375rem; padding: 0 0.375rem; border-radius: 0.375rem; border: 1px solid var(--line-strong); background: transparent; color: var(--ink-2); font-family: var(--mono); font-size: 0.6875rem; font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase; }
+  .chip-source { min-height: 1.5rem; padding: 0 0.625rem; background: var(--grey-1); color: var(--ink-2); font-size: var(--fs-xs); font-weight: 500; }
 </style>

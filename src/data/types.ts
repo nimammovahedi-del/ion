@@ -42,8 +42,6 @@ export interface Medicine {
 
 export interface Reminder { id: string; kind: 'medicine' | 'appointment' | 'other'; text: string; when: string; spokenBy: 'call' | 'evening-reminder'; setBy: string; active: boolean; }
 
-export interface Story { id: string; date: string; title: string; text: string; quote?: string; }
-
 export interface DayPoint { date: string; label: string; value: number | null; }
 export interface MetricSeries {
   id: MetricId; title: string; unit: string; icon: string; usual: number; usualLabel: string;

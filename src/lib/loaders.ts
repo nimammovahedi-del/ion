@@ -15,7 +15,6 @@ export const getSteps = async () => ex.steps;
 export const getCalendar = async () => ex.calendar;
 export const getMedicines = async () => ex.medicines;
 export const getReminders = async () => ex.reminders;
-export const getStories = async () => ex.stories;
 export const getAskTomorrow = async () => ex.askTomorrow;
 export const getCallSettings = async () => ex.callSettings;
 export const getWeekNotes = async () => ex.weekNotes;

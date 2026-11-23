@@ -1,6 +1,6 @@
 // The invented example family. Every screen in r1 reads from here through src/lib/loaders.ts.
 // Margaret "Maggie" Ellis is not a real person.
-import type { AgentStep, AskTomorrow, HerWords, CalendarItem, CallSettings, DayPoint, HealthCardData, Medicine, MetricSeries, Person, Reminder, Story, Task, WeekNote } from './types';
+import type { AgentStep, AskTomorrow, HerWords, CalendarItem, CallSettings, DayPoint, HealthCardData, Medicine, MetricSeries, Person, Reminder, Task, WeekNote } from './types';
 
 export const TODAY = { iso: '2026-11-24', long: 'Tuesday, November 24', short: 'Tue Nov 24', callTime: '9:04 AM', callMinutes: 6 };
 
@@ -32,7 +32,6 @@ export const report = {
     { text: 'You might ask her what is waking her at night.', why: 'Four short nights in a row.', href: '/app/ask/', link: 'Add it to tomorrow\'s call' },
     { text: 'If the short nights go on this week, you might mention them to her doctor.', why: 'The doctor-visit page puts the last 30 days on one sheet.', href: '/app/trends/doctor-visit/', link: 'Open the doctor-visit page' },
     { text: 'You might gently ask about Monday evening\'s pills.', why: 'She gave two different answers. Both are kept.', href: '/app/medicines/', link: 'See her medicines' },
-    { text: 'You might ask her about the bakery next time you talk.', why: 'She told Ion about her first job, in 1962.', href: '/app/stories/', link: 'Read the story' },
   ],
 };
 
@@ -132,13 +131,6 @@ export const reminders: Reminder[] = [
   { id: 'r3', kind: 'appointment', text: 'You have the eye doctor on Thursday at 2:00 PM.', when: 'Wed and Thu, on the call', spokenBy: 'call', setBy: 'I-on, from the calendar', active: true },
   { id: 'r4', kind: 'other', text: 'Priya is visiting on Saturday.', when: 'Fri, on the call', spokenBy: 'call', setBy: 'Priya', active: true },
   { id: 'r5', kind: 'other', text: 'Put the bins out tonight.', when: 'Every Wednesday, 6:00 PM', spokenBy: 'evening-reminder', setBy: 'Daniel', active: false },
-];
-
-export const stories: Story[] = [
-  { id: 's1', date: 'Tue Nov 24', title: 'Her first job, at a bakery in 1962', text: 'She started at Hartley\'s bakery at sixteen, on the early shift. Her job was to ice the buns before the shop opened at seven.', quote: 'I could ice forty buns before the kettle boiled.' },
-  { id: 's2', date: 'Mon Nov 23', title: 'The garden on Marsh Lane', text: 'She grew runner beans along the back fence and gave most of them away to the neighbors.', quote: 'You never had to buy a bean on that street.' },
-  { id: 's3', date: 'Sun Nov 22', title: 'How she met Arthur', text: 'They met at a dance in the church hall. He stepped on her foot twice and apologized three times.' },
-  { id: 's4', date: 'Sat Nov 21', title: 'Sara\'s first day of school', text: 'Sara refused to let go of the gate. Maggie stood across the road for an hour in case she ran out.' },
 ];
 
 export const askTomorrow: AskTomorrow[] = [

@@ -52,15 +52,6 @@ export const askedQuestions: AskedQuestion[] = [
     summary: 'She said she would rather not talk about it today. Ion thanked her and moved on.', quote: 'Not today, love. Ask me another time.', declined: true },
 ];
 
-/** The question Ion asked to start each story, keyed by story id. */
-export const storyQuestions: Record<string, string> = {
-  s1: 'What was your very first job?',
-  s2: 'Tell me about a garden you loved.',
-  s3: 'How did you meet Arthur?',
-  s4: 'What do you remember about Sara\'s first day of school?',
-};
-export const nextStoryQuestion = 'What music did you love to dance to?';
-
 export const hearing: Record<string, Hearing> = { sara: 'daily', daniel: 'changes', priya: 'daily' };
 export const joined: Record<string, string> = { sara: 'Set up I-on in October', daniel: 'Joined in October', priya: 'Joined in November' };
 

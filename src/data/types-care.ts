@@ -1,5 +1,5 @@
-// Extra shapes for the care screens (Tasks, Calendar, Medicines, Reminders, Ask tomorrow, Stories, Services, Family circle, Call settings).
-import type { CalendarItem, Medicine, Person, Story, Task } from './types';
+// Extra shapes for the care screens (Tasks, Calendar, Medicines, Reminders, Ask tomorrow, Services, Family circle, Call settings).
+import type { CalendarItem, Medicine, Person, Task } from './types';
 
 /** A task with the words the Tasks page needs: where it came from in a sentence, and what "doing it" means. */
 export interface CareTask extends Task {
@@ -28,7 +28,6 @@ export interface MedicineGroup {
 
 export interface AskedQuestion { id: string; text: string; by: string; date: string; summary: string; quote?: string; declined?: boolean; }
 
-export interface StoryEntry extends Story { question: string; sharedWith?: string[]; }
 
 export interface PlannedService { id: string; title: string; icon: string; plan: string; today: string; }
 

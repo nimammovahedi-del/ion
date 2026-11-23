@@ -1,8 +1,8 @@
 ---
-/** White rounded surface. tone="paper" for a soft grey-blue panel, "deep" for navy, "acc" for sky blue. */
+/** Warm white rounded surface. Tones: "paper" beige, "cream", "soft" peach, "leaf" sage, "butter", "sky", "acc" apricot, "deep" espresso. */
 interface Props {
   as?: 'div' | 'article' | 'section' | 'li';
-  tone?: 'surface' | 'paper' | 'deep' | 'acc' | 'soft';
+  tone?: 'surface' | 'paper' | 'cream' | 'deep' | 'acc' | 'soft' | 'leaf' | 'butter' | 'sky';
   pad?: 'none' | 'sm' | 'md' | 'lg';
   class?: string;
   [key: string]: unknown;
@@ -12,9 +12,13 @@ const { as: Tag = 'div', tone = 'surface', pad = 'md', class: cls = '', ...rest 
 <Tag class:list={['card', `card-${tone}`, `pad-${pad}`, cls]} {...rest}><slot /></Tag>
 <style>
   .card { border-radius: var(--r-lg); min-width: 0; }
-  .card-surface { background: var(--surface); border: 1px solid var(--line); }
+  .card-surface { background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-1); }
   .card-paper { background: var(--paper); }
   .card-soft { background: var(--acc-soft); }
+  .card-cream { background: var(--cream); }
+  .card-leaf { background: var(--leaf-soft); }
+  .card-butter { background: var(--butter-soft); }
+  .card-sky { background: var(--sky-soft); }
   .card-deep { background: var(--deep); color: var(--on-deep); }
   .card-acc { background: var(--acc); color: var(--on-acc); }
   .pad-none { padding: 0; overflow: hidden; }

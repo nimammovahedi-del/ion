@@ -1,0 +1,23 @@
+---
+/** An icon on a soft tinted tile. The friendly way to label a card, a menu row or a step. Decorative: the words beside it carry the meaning. */
+import Icon from './Icon.astro';
+interface Props { name: string; tone?: 'acc' | 'leaf' | 'butter' | 'sky' | 'paper' | 'deep' | 'surface'; size?: 'sm' | 'md' | 'lg' | 'xl'; round?: boolean; class?: string }
+const { name, tone = 'acc', size = 'md', round = false, class: cls = '' } = Astro.props;
+const px = { sm: 16, md: 20, lg: 26, xl: 34 }[size];
+---
+<span class:list={['ib', `ib-${tone}`, `ib-${size}`, { round }, cls]} aria-hidden="true"><Icon name={name} size={px} /></span>
+<style>
+  .ib { flex: none; display: inline-grid; place-items: center; border-radius: 32%; color: var(--ink); }
+  .ib.round { border-radius: 50%; }
+  .ib-sm { width: 2rem; height: 2rem; }
+  .ib-md { width: 2.75rem; height: 2.75rem; }
+  .ib-lg { width: 3.5rem; height: 3.5rem; }
+  .ib-xl { width: 4.5rem; height: 4.5rem; }
+  .ib-acc { background: var(--acc-soft); color: var(--acc-text); }
+  .ib-leaf { background: var(--leaf-soft); color: var(--leaf-text); }
+  .ib-butter { background: var(--butter-soft); }
+  .ib-sky { background: var(--sky-soft); }
+  .ib-paper { background: var(--paper); }
+  .ib-surface { background: var(--surface); }
+  .ib-deep { background: var(--deep); color: var(--on-deep); }
+</style>

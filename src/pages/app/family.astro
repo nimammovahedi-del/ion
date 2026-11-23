@@ -18,7 +18,7 @@ const [circle, parent, viewer] = await Promise.all([getCircle(), getParent(), ge
 const ROLE = { 'main-caregiver': 'Main caregiver', family: 'Family', parent: 'Mom' } as const;
 const rights = [
   ['Read the daily report and trends', true, true],
-  ['See medicines, reminders and stories', true, true],
+  ['See medicines and reminders', true, true],
   ['Take a task and say they will do it', true, true],
   ['Add reminders and questions for Ion', true, true],
   ['Approve tasks before I-on acts', true, false],
