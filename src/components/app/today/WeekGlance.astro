@@ -1,12 +1,14 @@
 ---
 /**
- * The week at a glance: seven days across, one row per measure.
- * Each cell is a shape and a word for screen readers: a small dot for "as usual", a filled diamond for "changed",
- * an empty dashed ring for "no answer". It is a real table, so screen readers can move by row and column.
+ * The week at a glance: seven days across, one row per measure, today highlighted.
+ * A day close to her usual is a slim sage capsule. A day that changed is a taller apricot pill with her answer written in it.
+ * A day with no answer is an empty dashed capsule. So the three differ by shape and words, not only colour.
+ * It is a real table: screen readers can move by row and column, and every cell says its state and her answer.
  */
 import type { MetricSeries } from '@/data/types';
+import IconBadge from '@/components/ui/IconBadge.astro';
 import { lastDays } from '@/lib/loaders';
-import { dayLabel, dayState, valueWords, type DayState } from '@/components/app/trends/measure';
+import { ICON, TONE, cellShort, dayLabel, dayState, listWords, valueWords, type DayState } from '@/components/app/trends/measure';
 interface Props { metrics: MetricSeries[] }
 const { metrics } = Astro.props;
 const ORDER = ['sleep', 'feeling', 'pain', 'meals', 'medicines', 'falls', 'out'] as const;
@@ -17,23 +19,21 @@ const rows = ORDER.map((id) => metrics.find((m) => m.id === id)).filter((m): m i
 const days = rows[0]?.cells.map((c) => c.p) ?? [];
 const WORD: Record<DayState, string> = { usual: 'As usual', changed: 'Changed', none: 'No answer' };
 
-// A plain summary a screen reader (and anyone) can use.
-const listDays = (ds: string[]) => (ds.length <= 2 ? ds.join(' and ') : `${ds.slice(0, -1).join(', ')} and ${ds[ds.length - 1]}`);
+// One plain line that says the same as the picture.
 const changedRows = rows.map((r) => ({ title: r.m.title, days: r.cells.filter((c) => c.state === 'changed').map((c) => dayLabel(c.p.date)) })).filter((r) => r.days.length);
 const noAnswer = rows.reduce((a, r) => a + r.cells.filter((c) => c.state === 'none').length, 0);
-const steady = rows.filter((r) => !r.cells.some((c) => c.state === 'changed')).map((r) => r.m.title.toLowerCase());
 const summary = [
-  changedRows.length ? `Different from her usual: ${changedRows.map((r) => `${r.title.toLowerCase()} on ${listDays(r.days)}`).join('; ')}.` : 'Everything was close to her usual all week.',
-  steady.length && changedRows.length ? `As usual all week: ${listDays(steady)}.` : '',
-  noAnswer ? `${noAnswer} answer${noAnswer > 1 ? 's' : ''} missing.` : 'She answered every question on every call.',
+  changedRows.length ? `Different from her usual: ${changedRows.map((r) => `${r.title.toLowerCase()} on ${listWords(r.days)}`).join(', and ')}. Everything else was as usual.` : 'Everything was close to her usual all week.',
+  noAnswer ? `${noAnswer} answer${noAnswer > 1 ? 's are' : ' is'} missing.` : '',
 ].filter(Boolean).join(' ');
 const first = days[0], last = days[days.length - 1];
+const span = { month: 'short', day: 'numeric' } as const;
 ---
-<section class="week" aria-labelledby="week-h">
+<section class="week" aria-labelledby="week-h" data-reveal>
   <div class="week-head">
     <div>
       <h2 id="week-h" class="h3">The week at a glance</h2>
-      <p class="muted small">{first && last ? `${dayLabel(first.date, { weekday: 'short', month: 'short', day: 'numeric' })} to ${dayLabel(last.date, { weekday: 'short', month: 'short', day: 'numeric' })}` : ''}, from her answers on each call</p>
+      <p class="summary">{summary}</p>
     </div>
     <ul role="list" class="legend" aria-label="Key">
       <li><span class="mk mk-usual" aria-hidden="true"></span>As usual</li>
@@ -41,28 +41,27 @@ const first = days[0], last = days[days.length - 1];
       <li><span class="mk mk-none" aria-hidden="true"></span>No answer</li>
     </ul>
   </div>
-  <p class="summary">{summary}</p>
   <div class="scroll" tabindex="0" role="group" aria-label="Week at a glance table. Scroll sideways if needed.">
     <table>
-      <caption class="sr-only">Each measure for the last seven days, as usual, changed or no answer</caption>
+      <caption class="sr-only">Each measure for the seven days from {first && dayLabel(first.date, span)} to {last && dayLabel(last.date, span)}: as usual, changed or no answer</caption>
       <thead>
         <tr>
           <th scope="col"><span class="sr-only">Measure</span></th>
           {days.map((d, i) => (
             <th scope="col" class:list={{ today: i === days.length - 1 }}>
               <span class="dw">{i === days.length - 1 ? 'Today' : dayLabel(d.date)}</span>
-              <span class="dn">{dayLabel(d.date, { day: 'numeric' })}</span>
+              <span class="dn num">{dayLabel(d.date, { day: 'numeric' })}</span>
             </th>
           ))}
         </tr>
       </thead>
       <tbody>
-        {rows.map((r) => (
+        {rows.map((r, k) => (
           <tr>
-            <th scope="row"><a href={`/app/trends/#${r.m.id}`}>{r.m.title}</a></th>
+            <th scope="row"><a href={`/app/trends/#${r.m.id}`}><IconBadge name={ICON[r.m.id]} tone={TONE[r.m.id]} size="sm" />{r.m.title}</a></th>
             {r.cells.map((c, i) => (
               <td class:list={{ today: i === r.cells.length - 1 }} title={`${dayLabel(c.p.date)}: ${valueWords(r.m.id, c.p.value)}`}>
-                <span class:list={['mk', `mk-${c.state}`]} aria-hidden="true"></span>
+                <span class:list={['mk', `mk-${c.state}`, 'draw-pop']} style={`--i:${k + i}`} aria-hidden="true">{c.state === 'changed' && c.p.value !== null ? cellShort(r.m.id, c.p.value) : ''}</span>
                 <span class="sr-only">{WORD[c.state]}: {valueWords(r.m.id, c.p.value)}</span>
               </td>
             ))}
@@ -73,32 +72,32 @@ const first = days[0], last = days[days.length - 1];
   </div>
 </section>
 <style>
-  .week { display: flex; flex-direction: column; gap: var(--s-4); padding: var(--s-6); border-radius: var(--r-xl); background: var(--surface); border: 1px solid var(--line); min-width: 0; }
+  .week { display: flex; flex-direction: column; gap: var(--s-4); padding: var(--s-8); border-radius: var(--r-xl); background: var(--surface); border: 1px solid var(--line); min-width: 0; }
   .week-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--s-3) var(--s-6); }
-  .legend { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-4); font-size: var(--fs-sm); color: var(--ink-2); }
+  .week-head > div { display: flex; flex-direction: column; gap: var(--s-1); min-width: 0; }
+  .summary { max-width: 40rem; line-height: 1.5; color: var(--ink-2); }
+  .legend { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-4); font-size: var(--fs-sm); color: var(--ink-2); }
   .legend li { display: inline-flex; align-items: center; gap: var(--s-2); }
-  .summary { max-width: 46rem; line-height: 1.55; }
-  .scroll { overflow-x: auto; }
-  table { width: 100%; min-width: 18.5rem; border-collapse: separate; border-spacing: 0; }
-  th, td { padding: var(--s-2) var(--s-1); text-align: center; }
-  thead th { font-weight: 400; font-size: var(--fs-xs); color: var(--ink-2); line-height: 1.2; }
+  .scroll { overflow-x: auto; border-radius: var(--r-md); }
+  table { width: 100%; min-width: 30rem; border-collapse: separate; border-spacing: 0; }
+  th, td { padding: 0.3125rem var(--s-1); text-align: center; }
+  thead th { padding-block: var(--s-3); font-weight: 400; font-size: var(--fs-sm); color: var(--ink-2); line-height: 1.25; }
   thead th span { display: block; }
-  .dn { font-size: var(--fs-sm); color: var(--ink); font-variant-numeric: tabular-nums; }
-  thead th.today { color: var(--ink); font-weight: 600; }
+  .dn { font-size: 1.0625rem; font-weight: 500; color: var(--ink); }
+  thead th.today .dw { display: inline-block; padding: 0.125rem 0.625rem; border-radius: var(--r-pill); background: var(--deep); color: var(--on-deep); font-weight: 500; }
   th.today, td.today { background: var(--paper); }
-  thead th.today { border-radius: var(--r-md) var(--r-md) 0 0; }
-  tbody tr:last-child td.today { border-radius: 0 0 var(--r-md) var(--r-md); }
-  tbody th { text-align: left; font-weight: 500; font-size: 0.9375rem; white-space: nowrap; padding-right: var(--s-3); }
-  tbody th a { display: inline-flex; align-items: center; min-height: var(--tap); text-decoration: none; }
-  tbody th a:hover { text-decoration: underline; }
-  tbody tr + tr > * { border-top: 1px solid var(--line); }
-  .mk { display: inline-block; vertical-align: middle; }
-  .mk-usual { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--ink-2); }
-  .mk-changed { width: 1rem; height: 1rem; border-radius: 0.2rem; background: var(--acc-text); transform: rotate(45deg); }
-  .mk-none { width: 0.875rem; height: 0.875rem; border-radius: 50%; border: 2px dashed var(--ink-2); }
+  thead th.today { border-radius: var(--r-lg) var(--r-lg) 0 0; }
+  tbody tr:last-child td.today { border-radius: 0 0 var(--r-lg) var(--r-lg); }
+  tbody th { text-align: left; font-weight: 500; font-size: 0.9375rem; white-space: nowrap; width: 1%; padding-right: var(--s-8); padding-left: 0; }
+  tbody th a { display: inline-flex; align-items: center; gap: var(--s-3); min-height: var(--tap); color: var(--ink); text-decoration: none; border-radius: var(--r-md); }
+  tbody th a:hover { color: var(--acc-text); text-decoration: underline; }
+  .mk { display: inline-grid; place-items: center; vertical-align: middle; box-sizing: border-box; }
+  .mk-usual { width: 2.5rem; height: 0.75rem; border-radius: var(--r-pill); background: var(--leaf); }
+  .mk-changed { min-width: 3rem; height: 2rem; padding: 0 var(--s-2); border-radius: var(--r-sm); background: var(--acc); color: var(--on-acc); font-size: var(--fs-sm); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .mk-none { width: 2.5rem; height: 0.75rem; border-radius: var(--r-pill); border: 1.5px dashed var(--ink-2); }
+  .legend .mk-usual, .legend .mk-none { width: 1.5rem; }
+  .legend .mk-changed { min-width: 1.5rem; height: 1.125rem; padding: 0; border-radius: 0.3125rem; }
   @media (max-width: 30rem) {
-    .week { padding: var(--s-4); border-radius: var(--r-lg); }
-    th, td { padding-inline: 0.125rem; }
-    tbody th { font-size: var(--fs-sm); padding-right: var(--s-2); }
+    .week { padding: var(--s-5); border-radius: var(--r-lg); }
   }
 </style>

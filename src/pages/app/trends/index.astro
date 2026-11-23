@@ -2,16 +2,17 @@
 import AppLayout from '@/layouts/AppLayout.astro';
 import Button from '@/components/ui/Button.astro';
 import Icon from '@/components/ui/Icon.astro';
-import Chip from '@/components/ui/Chip.astro';
-import WeekNote from '@/components/app/trends/WeekNote.astro';
+import Capybara from '@/components/ui/Capybara.astro';
+import ThisWeek from '@/components/app/trends/ThisWeek.astro';
+import Overview from '@/components/app/trends/Overview.astro';
 import MeasureSection from '@/components/app/trends/MeasureSection.astro';
+import { ICON } from '@/components/app/trends/measure';
 import { getHerWords, getMetrics, getParent, getWeekNotes } from '@/lib/loaders';
 
 const [parent, metrics, notes, words] = await Promise.all([getParent(), getMetrics(), getWeekNotes(), getHerWords()]);
 const RANGES = [14, 30, 90] as const;
 const ORDER = ['sleep', 'feeling', 'pain', 'meals', 'fluids', 'medicines', 'falls', 'out'];
 const measures = ORDER.map((id) => metrics.find((m) => m.id === id)).filter((m) => m !== undefined);
-const statusLabel = { changed: 'Changed', check: 'Check', usual: 'As usual' } as const;
 ---
 <AppLayout
   title="Trends"
@@ -19,10 +20,16 @@ const statusLabel = { changed: 'Changed', check: 'Check', usual: 'As usual' } as
   eyebrow="Trends"
   heading={`How ${parent.short} has been`}
   tone2="over the last weeks and months"
-  lede="Every number here is her own answer on a daily call, not a measurement. A pattern is something to ask her about, not a diagnosis."
+  lede="Every number is her own answer on a daily call, not a measurement. She is only ever compared with her own usual."
 >
+  <Button slot="head-actions" href="/app/trends/doctor-visit/" variant="dark"><Icon name="print" size={18} />For a doctor visit</Button>
+  <Capybara slot="head-art" size={148} ground="var(--acc-soft)" waves={false} label="" />
+
   <div class="trends" data-trends data-active="30">
-    <aside class="side" aria-label="Range and measures">
+    <ThisWeek measures={measures} notes={notes} />
+    <Overview measures={measures} />
+
+    <div class="bar">
       <fieldset class="range">
         <legend>Show the last</legend>
         <div class="range-opts">
@@ -35,22 +42,21 @@ const statusLabel = { changed: 'Changed', check: 'Check', usual: 'As usual' } as
         </div>
       </fieldset>
       <nav class="jump" aria-label="Jump to a measure">
-        <p class="jump-label">Jump to</p>
         <ul role="list">
           {measures.map((m) => (
-            <li><a href={`#${m.id}`}><Icon name={m.icon} size={16} /><span>{m.title}</span>{m.status !== 'usual' && <Chip tone={m.status}>{statusLabel[m.status]}</Chip>}</a></li>
+            <li><a href={`#${m.id}`}><Icon name={ICON[m.id]} size={16} /><span>{m.title}</span></a></li>
           ))}
         </ul>
       </nav>
-      <Button href="/app/trends/doctor-visit/" variant="dark" class="doc-btn"><Icon name="print" size={18} />For a doctor visit</Button>
-    </aside>
+    </div>
 
-    <div class="main">
-      <WeekNote notes={notes} />
-      {measures.map((m) => (
-        <MeasureSection m={m} words={words.filter((w) => w.metric === m.id)} ranges={RANGES} />
-      ))}
-      <p class="foot muted small">These are family notes from daily check-in calls, in her own words. They are not a medical record. If something worries you, call her, or call her doctor.</p>
+    {measures.map((m) => (
+      <MeasureSection m={m} words={words.filter((w) => w.metric === m.id)} ranges={RANGES} />
+    ))}
+
+    <div class="foot">
+      <p class="muted small">Family notes from daily check-in calls, in her own words. Not a medical record. A pattern is something to ask her about, not a diagnosis. If something worries you, call her, or call her doctor.</p>
+      <Button href="/app/trends/doctor-visit/" variant="dark"><Icon name="print" size={18} />For a doctor visit</Button>
     </div>
   </div>
 </AppLayout>
@@ -80,42 +86,47 @@ const statusLabel = { changed: 'Changed', check: 'Check', usual: 'As usual' } as
 </script>
 
 <style>
-  .trends { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-6); align-items: start; }
-  .main { display: flex; flex-direction: column; gap: var(--s-6); min-width: 0; }
-  .side { display: flex; flex-direction: column; gap: var(--s-4); padding: var(--s-4); border-radius: var(--r-xl); background: var(--surface); border: 1px solid var(--line); min-width: 0; }
+  .trends { display: flex; flex-direction: column; gap: var(--s-8); min-width: 0; }
+
+  /* the bar that stays in view: how many days to show, and a jump to each measure */
+  .bar { position: sticky; top: var(--s-3); z-index: 5; display: flex; align-items: center; gap: var(--s-2) var(--s-4); padding: var(--s-2); border-radius: var(--r-xl); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-2); min-width: 0; }
 
   /* range switch: native radios styled as a segmented control */
-  .range { border: 0; margin: 0; padding: 0; min-width: 0; }
-  .range legend { padding: 0; margin-bottom: var(--s-2); font-size: var(--fs-sm); font-weight: 600; }
-  .range-opts { display: flex; padding: 0.25rem; border-radius: var(--r-pill); background: var(--paper); border: 1px solid var(--line); }
+  .range { display: flex; align-items: center; gap: var(--s-3); border: 0; margin: 0; padding: 0 0 0 var(--s-3); min-width: 0; flex: none; }
+  .range legend { float: left; padding: 0; font-size: var(--fs-sm); font-weight: 500; white-space: nowrap; }
+  .range-opts { display: flex; padding: 0.1875rem; border-radius: var(--r-pill); background: var(--paper); }
   .range label { flex: 1; position: relative; }
   .range input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
-  .range span { display: flex; align-items: center; justify-content: center; min-height: var(--tap); padding: 0 var(--s-2); border-radius: var(--r-pill); font-size: var(--fs-sm); font-weight: 500; white-space: nowrap; }
+  .range span { display: flex; align-items: center; justify-content: center; min-height: var(--tap); padding: 0 var(--s-3); border-radius: var(--r-pill); font-size: var(--fs-sm); font-weight: 500; white-space: nowrap; }
   .range input:checked + span { background: var(--deep); color: var(--on-deep); }
   .range input:focus-visible + span { outline: 3px solid var(--focus); outline-offset: 2px; }
 
-  .jump-label { font-size: var(--fs-sm); font-weight: 600; margin-bottom: var(--s-1); }
-  .jump ul { display: flex; gap: var(--s-1); overflow-x: auto; }
-  .jump a { display: flex; align-items: center; gap: var(--s-2); min-height: var(--tap); padding: 0 var(--s-3); border-radius: var(--r-md); font-size: 0.9375rem; text-decoration: none; white-space: nowrap; }
-  .jump a:hover { background: var(--paper); }
+  .jump { min-width: 0; margin-left: auto; }
+  .jump ul { display: flex; gap: 0.125rem; overflow-x: auto; }
+  .jump a { display: flex; align-items: center; gap: var(--s-2); min-height: var(--tap); padding: 0 var(--s-3); border-radius: var(--r-pill); font-size: var(--fs-sm); font-weight: 500; text-decoration: none; white-space: nowrap; color: var(--ink); }
+  .jump a:hover { background: var(--acc-soft); color: var(--ink); }
   .jump a :global(svg) { color: var(--acc-text); flex: none; }
-  .jump a :global(.chip) { margin-left: auto; min-height: 1.5rem; font-size: var(--fs-xs); }
-  .side :global(.doc-btn) { white-space: normal; text-align: center; }
-  .foot { max-width: 44rem; }
+
+  .foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-4) var(--s-8); }
+  .foot p { flex: 1 1 24rem; max-width: 44rem; }
 
   /* Show one range at a time. Default (and with no :has support): 30 days. */
   .trends :global([data-range]:not([data-range='30'])) { display: none; }
   .trends[data-active='14'] :global([data-range='30']), .trends:has(#range-14:checked) :global([data-range='30']) { display: none; }
   .trends[data-active='90'] :global([data-range='30']), .trends:has(#range-90:checked) :global([data-range='30']) { display: none; }
-  .trends[data-active='14'] :global([data-range='14']), .trends:has(#range-14:checked) :global([data-range='14']) { display: flex; }
-  .trends[data-active='90'] :global([data-range='90']), .trends:has(#range-90:checked) :global([data-range='90']) { display: flex; }
+  .trends[data-active='14'] :global([data-range='14']), .trends:has(#range-14:checked) :global([data-range='14']) { display: grid; }
+  .trends[data-active='90'] :global([data-range='90']), .trends:has(#range-90:checked) :global([data-range='90']) { display: grid; }
 
-  @media (max-width: 74.99rem) {
-    .jump ul { padding-bottom: var(--s-1); }
+  @media (max-width: 85rem) {
+    .jump a :global(svg) { display: none; }
   }
-  @media (min-width: 75rem) {
-    .trends { grid-template-columns: minmax(0, 1fr) 17rem; }
-    .side { order: 2; position: sticky; top: var(--s-4); }
-    .jump ul { flex-direction: column; overflow: visible; }
+  @media (max-width: 60rem) {
+    .bar { flex-wrap: wrap; border-radius: var(--r-lg); }
+    .range { flex: 1 1 100%; padding-left: var(--s-2); }
+    .range-opts { flex: 1; }
+    .jump { margin-left: 0; flex: 1 1 100%; }
+  }
+  @media print {
+    .bar { display: none; }
   }
 </style>

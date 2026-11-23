@@ -1,17 +1,21 @@
 ---
-/** Home hero: two-tone headline, the two calls to action, and the sky-blue panel with Ion and today's example report. */
+/** Home hero: two-tone headline, the two calls to action, and the apricot panel that tells one day in three pictures. */
 import Button from '@/components/ui/Button.astro';
 import Capybara from '@/components/ui/Capybara.astro';
+import Icon from '@/components/ui/Icon.astro';
+import IconBadge from '@/components/ui/IconBadge.astro';
 import ReportPreview from './ReportPreview.astro';
 import { GETS } from '@/data/site';
-import { getCallSettings } from '@/lib/loaders';
-const settings = await getCallSettings();
+import { getCallSettings, getParent, getReport, getTasks } from '@/lib/loaders';
+const [settings, parent, report, tasks] = await Promise.all([getCallSettings(), getParent(), getReport(), getTasks()]);
+const waiting = tasks.filter((t) => t.status === 'needs-you');
+const get = (id: string) => GETS.find((g) => g.id === id)!;
 ---
 <section id="top" class="hero wrap" aria-labelledby="hero-title">
   <div class="hero-head">
     <h1 id="hero-title" class="display">Know how Mom is<span class="tone-2">really doing, every day.</span></h1>
     <div class="hero-side">
-      <p class="lede">A short, friendly phone call checks in with your parent each morning. You get a plain report in her own words, set beside her usual, and the few things she asked for.</p>
+      <p class="lede">A short, friendly phone call each morning. A plain report for the family, in her own words.</p>
       <div class="row">
         <Button href="#waitlist" size="lg" arrow>Join the waitlist</Button>
         <Button href="/app/" variant="secondary" size="lg">See the example app</Button>
@@ -19,54 +23,91 @@ const settings = await getCallSettings();
     </div>
   </div>
 
-  <div class="panel">
-    <ol role="list" class="gets" aria-label="What the family gets each day">
-      {GETS.map((g) => (
-        <li class="get">
-          <span class="get-n num" aria-hidden="true">{g.n}</span>
-          <span class="get-text"><strong>{g.label}</strong><span>{g.text}</span></span>
-        </li>
-      ))}
+  <div class="panel" data-draw>
+    <ol role="list" class="story" aria-label="What the family gets each day, shown with an invented example">
+      <li class="scene scene-call">
+        <p class="cap"><IconBadge name="phone" tone="surface" size="sm" round /><span><b>{get('call').label}</b> at {settings.time.replace(' AM', '')}</span></p>
+        <div class="call">
+          <div class="talk">
+            <p class="say say-ion draw-pop" style="--i:2"><span class="who">Ion</span>Good morning, {parent.short}. How did you sleep?</p>
+            <p class="say say-her draw-pop" style="--i:9"><span class="who">{parent.short}</span>"{report.quote}"</p>
+          </div>
+          <div class="ion">
+            <Capybara size={256} />
+            <span class="ringer" aria-hidden="true"><span class="ringer-in"><Icon name="phone" size={26} /></span></span>
+          </div>
+        </div>
+      </li>
+      <li class="scene scene-report">
+        <p class="cap"><IconBadge name="tasks" tone="surface" size="sm" round /><span><b>{get('report').label}</b>, minutes later</span></p>
+        <div class="draw-pop" style="--i:16"><ReportPreview /></div>
+      </li>
+      <li class="scene scene-steps">
+        <p class="cap"><IconBadge name="check" tone="surface" size="sm" round /><span><b>{get('steps').label}</b>, when you say yes</span></p>
+        <ul role="list" class="steps">
+          {waiting.map((t, i) => (
+            <li class="step draw-pop" style={`--i:${22 + i * 3}`}>
+              <IconBadge name={t.icon} tone={(['acc', 'leaf', 'butter'] as const)[i % 3]} />
+              <span>{t.title}</span>
+            </li>
+          ))}
+        </ul>
+      </li>
     </ol>
-    <div class="panel-body">
-      <div class="panel-copy">
-        <p class="panel-big">Ion calls at {settings.time.replace(' AM', '')}.</p>
-        <p>The same calm voice at the same time each day. Ion asks, listens and writes it down for the family.</p>
-      </div>
-      <div class="panel-capy">
-        <Capybara size={340} />
-      </div>
-      <div class="panel-card">
-        <ReportPreview />
-      </div>
-    </div>
   </div>
 </section>
 <style>
-  .hero { display: flex; flex-direction: column; gap: var(--s-12); padding-top: var(--s-16); }
+  .hero { display: flex; flex-direction: column; gap: var(--s-10); padding-top: var(--s-12); }
   .hero-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--s-8); padding-inline: var(--s-2); }
   .hero-head h1 { flex: 1 1 34rem; min-width: 0; }
-  .hero-side { flex: 0 1 26rem; min-width: 0; display: flex; flex-direction: column; gap: var(--s-6); }
-  .panel { display: flex; flex-direction: column; gap: var(--s-4); background: var(--acc); color: var(--on-acc); border-radius: var(--r-xl); padding: var(--s-4); }
-  .gets { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: var(--s-2); }
-  .get { display: flex; align-items: center; gap: var(--s-3); min-height: var(--tap); padding: var(--s-2) var(--s-4) var(--s-2) var(--s-2); border-radius: var(--r-pill); background: color-mix(in srgb, var(--surface) 55%, transparent); }
-  .get-n { flex: none; display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 50%; background: var(--surface); font-size: var(--fs-sm); font-weight: 600; }
-  .get-text { display: flex; flex-direction: column; line-height: 1.3; font-size: var(--fs-sm); }
-  .get-text strong { font-size: 0.9375rem; font-weight: 600; }
-  .panel-body { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 22rem); align-items: center; gap: var(--s-8); padding: var(--s-6) var(--s-6) var(--s-4); }
-  .panel-copy { display: flex; flex-direction: column; gap: var(--s-3); padding-bottom: var(--s-2); max-width: 22rem; }
-  .panel-big { font-weight: 300; font-size: 2.25rem; line-height: 1.1; letter-spacing: -0.03em; }
-  .panel-capy { display: flex; justify-content: center; }
-  .panel-card { display: flex; min-width: 0; }
-  @media (max-width: 64rem) {
-    .panel-body { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-    .panel-copy { grid-column: 1 / -1; max-width: 36rem; }
+  .hero-side { flex: 0 1 27rem; min-width: 0; display: flex; flex-direction: column; gap: var(--s-5); }
+
+  .panel { background: var(--acc); color: var(--on-acc); border-radius: var(--r-xl); padding: var(--s-6) var(--s-8) var(--s-8); }
+  .story { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 0.9fr); gap: var(--s-12); align-items: stretch; }
+  .scene { position: relative; display: flex; flex-direction: column; gap: var(--s-5); min-width: 0; }
+  .cap { display: inline-flex; align-self: flex-start; align-items: center; gap: var(--s-2); min-height: var(--tap); padding: var(--s-1) var(--s-4) var(--s-1) var(--s-1); border-radius: var(--r-pill); background: color-mix(in srgb, var(--surface) 45%, transparent); font-size: 0.9375rem; line-height: 1.3; }
+  .cap b { font-weight: 600; }
+  /* a dotted lead from one picture to the next */
+  .scene + .scene::before { content: ''; position: absolute; top: calc(var(--tap) / 2 + var(--s-1)); left: calc(var(--s-12) * -1 + var(--s-2)); width: calc(var(--s-12) - var(--s-4)); border-top: 3px dotted var(--on-acc); opacity: 0.45; }
+
+  .call { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: var(--s-2); }
+  .talk { position: relative; z-index: 1; display: flex; flex-direction: column; gap: var(--s-3); padding-bottom: var(--s-6); }
+  .say { display: flex; flex-direction: column; padding: var(--s-3) var(--s-4); font-size: 0.9375rem; line-height: 1.4; box-shadow: var(--shadow-1); }
+  .who { font-size: var(--fs-xs); font-weight: 600; color: var(--ink-2); }
+  .say-ion { align-self: flex-start; max-width: 13.5rem; background: var(--surface); border-radius: var(--r-lg) var(--r-lg) var(--r-sm) var(--r-lg); }
+  .say-her { align-self: flex-end; max-width: 13.5rem; background: var(--butter-soft); border-radius: var(--r-lg) var(--r-lg) var(--r-lg) var(--r-sm); }
+  .ion { position: relative; margin-bottom: calc(var(--s-2) * -1); }
+  .ion :global(.capy) { width: clamp(11rem, 18vw, 16rem); }
+  .ringer { position: absolute; right: -0.5rem; bottom: 0.75rem; display: grid; place-items: center; width: 4rem; height: 4rem; border-radius: 50%; background: var(--surface); color: var(--acc-text); box-shadow: var(--shadow-2); }
+  .ringer::before, .ringer::after { content: ''; position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--surface); opacity: 0; }
+  .ringer-in { display: grid; }
+
+  .steps { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: var(--s-3); }
+  .step { display: flex; align-items: center; gap: var(--s-3); padding: var(--s-3); background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--shadow-2); font-size: 0.9375rem; font-weight: 500; line-height: 1.3; }
+  .scene-report { justify-content: flex-start; }
+  .scene-report > div { margin-block: auto; }
+
+  /* The phone rings softly, twice, then rests. */
+  @media (prefers-reduced-motion: no-preference) {
+    .ringer-in { animation: hero-ring 4.5s ease-in-out infinite; transform-origin: 50% 60%; }
+    .ringer::before { animation: hero-wave 4.5s ease-out infinite; }
+    .ringer::after { animation: hero-wave 4.5s ease-out 0.35s infinite; }
   }
-  @media (max-width: 40rem) {
-    .hero { padding-top: var(--s-10); gap: var(--s-8); }
-    .panel { border-radius: var(--r-lg); padding: var(--s-3); }
-    .panel-body { grid-template-columns: minmax(0, 1fr); padding: var(--s-4) var(--s-2) var(--s-2); gap: var(--s-6); }
-    .panel-capy :global(svg) { width: 13rem; }
-    .panel-big { font-size: 1.875rem; }
+  @keyframes hero-ring { 0%, 22%, 100% { transform: rotate(0); } 3%, 9%, 15% { transform: rotate(-12deg); } 6%, 12%, 18% { transform: rotate(12deg); } }
+  @keyframes hero-wave { 0% { transform: scale(1); opacity: 0.9; } 30%, 100% { transform: scale(1.7); opacity: 0; } }
+
+  @media (max-width: 68rem) {
+    .story { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--s-8); }
+    .scene-call { grid-column: 1 / -1; }
+    .scene + .scene::before { display: none; }
+  }
+  @media (max-width: 44rem) {
+    .hero { padding-top: var(--s-8); gap: var(--s-8); }
+    .panel { border-radius: var(--r-lg); padding: var(--s-4); }
+    .story { grid-template-columns: minmax(0, 1fr); gap: var(--s-6); }
+    .call { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+    .talk { padding-bottom: 0; width: 100%; }
+    .say-her { margin-left: 0; align-self: flex-end; }
+    .say-ion, .say-her { max-width: 85%; }
   }
 </style>

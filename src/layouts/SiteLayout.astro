@@ -1,19 +1,27 @@
 ---
-/** Frame for the marketing pages: floating nav pill on top, footer and the standing line below. */
+/**
+ * Frame for the marketing pages: a floating pill menu that stays at the top of the window, the footer and the standing line.
+ * On the home page the menu marks the section you are reading (a small scroll listener; without JavaScript the links simply work).
+ */
 import BaseLayout from './BaseLayout.astro';
 import Button from '@/components/ui/Button.astro';
 import { siteNav, STANDING_LINE } from '@/data/nav';
+import { HOME_SECTIONS } from '@/data/site';
 interface Props { title: string; description?: string; active?: string }
 const { title, description, active = 'home' } = Astro.props;
-const links = siteNav.filter((n) => ['home', 'why', 'how', 'questions'].includes(n.id));
+// One link per section of the home page, in page order. The label comes from nav.ts where the section is listed there.
+const links = HOME_SECTIONS.map((s) => {
+  const n = siteNav.find((x) => x.id === s.id);
+  return { id: s.id, label: n?.label ?? s.label, href: n?.href ?? `/#${s.id}` };
+});
 ---
 <BaseLayout title={title} description={description} bodyClass="site">
   <header class="site-head wrap">
     <div class="navpill">
       <a class="brand" href="/" aria-label="I-on home">I-on<span class="brand-dot" aria-hidden="true"></span></a>
       <nav aria-label="Main">
-        <ul role="list" class="navtrack">
-          {links.map((n) => <li class={n.id === 'home' ? 'nav-home' : undefined}><a href={n.href} aria-current={n.id === active ? 'page' : undefined}>{n.label}</a></li>)}
+        <ul role="list" class="navtrack" data-spy={active === 'home' ? '' : undefined}>
+          {links.map((n) => <li><a href={n.href} data-spy-link={n.id}>{n.label}</a></li>)}
         </ul>
       </nav>
       <div class="navcta">
@@ -25,7 +33,7 @@ const links = siteNav.filter((n) => ['home', 'why', 'how', 'questions'].includes
   <main id="main"><slot /></main>
   <footer class="site-foot wrap">
     <div class="foot-top">
-      <div class="stack" style="--gap: var(--s-2)">
+      <div class="foot-brand">
         <a class="brand" href="/" aria-label="I-on home">I-on<span class="brand-dot" aria-hidden="true"></span></a>
         <p class="small muted">A daily call for your parent. A clear picture for you.</p>
       </div>
@@ -41,40 +49,67 @@ const links = siteNav.filter((n) => ['home', 'why', 'how', 'questions'].includes
     <p class="standing">{STANDING_LINE} In an emergency, call 911.</p>
     <p class="small muted">© 2026 I-on. In development. The family shown on this site is invented.</p>
   </footer>
+  <script is:inline>
+    // Mark the section being read in the menu. The current one is the last whose top has passed the upper third of the window.
+    (function () {
+      var track = document.querySelector('[data-spy]');
+      if (!track) return;
+      var links = [].slice.call(track.querySelectorAll('[data-spy-link]'));
+      var els = links.map(function (a) { return document.getElementById(a.getAttribute('data-spy-link')); });
+      var now = null, queued = false;
+      function update() {
+        queued = false;
+        var line = window.innerHeight * 0.35, current = null;
+        els.forEach(function (el, i) { if (el && el.getBoundingClientRect().top < line) current = links[i]; });
+        if (current === now) return;
+        if (now) now.removeAttribute('aria-current');
+        if (current) {
+          current.setAttribute('aria-current', 'location');
+          // On a narrow screen the menu scrolls sideways inside its own box: keep the current link in view.
+          if (track.scrollWidth > track.clientWidth) track.scrollLeft = current.offsetLeft - track.clientWidth / 2 + current.offsetWidth / 2;
+        }
+        now = current;
+      }
+      window.addEventListener('scroll', function () { if (!queued) { queued = true; requestAnimationFrame(update); } }, { passive: true });
+      update();
+    })();
+  </script>
 </BaseLayout>
 <style>
-  .site-head { padding-top: var(--s-6); position: relative; z-index: 10; }
-  .navpill { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-3) var(--s-4); max-width: 62rem; margin-inline: auto; padding: var(--s-2) var(--s-2) var(--s-2) var(--s-6); background: var(--surface); border: 1px solid var(--line); border-radius: 2rem; box-shadow: var(--shadow-2); }
-  .brand { display: inline-flex; align-items: center; gap: 0.25rem; min-height: var(--tap); font-size: 1.625rem; font-weight: 600; letter-spacing: -0.04em; color: var(--ink); text-decoration: none; }
+  /* The menu floats over the page and stays put. Clicks beside the pill go through to the page. */
+  .site-head { position: sticky; top: 0; z-index: 30; padding-top: var(--s-4); pointer-events: none; }
+  .navpill { pointer-events: auto; display: flex; align-items: center; justify-content: space-between; gap: var(--s-3) var(--s-4); max-width: 74rem; margin-inline: auto; padding: var(--s-2) var(--s-2) var(--s-2) var(--s-6); background: var(--surface); border: 1px solid var(--line); border-radius: 2rem; box-shadow: var(--shadow-2); }
+  .navpill nav { min-width: 0; }
+  .brand { flex: none; display: inline-flex; align-items: center; gap: 0.25rem; min-height: var(--tap); font-size: 1.625rem; font-weight: 600; letter-spacing: -0.04em; color: var(--ink); text-decoration: none; }
   .brand:hover { color: var(--ink); }
   .brand-dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--acc); }
-  .navtrack { display: flex; align-items: center; gap: 0.25rem; padding: 0.25rem; border-radius: var(--r-pill); background: var(--grey-1); overflow-x: auto; }
-  .navtrack a { display: flex; align-items: center; min-height: var(--tap); padding: 0 1rem; border-radius: var(--r-pill); font-size: 0.9375rem; color: var(--ink-2); text-decoration: none; white-space: nowrap; }
+  .navtrack { display: flex; align-items: center; gap: 0.125rem; padding: 0.25rem; border-radius: var(--r-pill); background: var(--grey-1); overflow-x: auto; scrollbar-width: none; }
+  .navtrack::-webkit-scrollbar { display: none; }
+  .navtrack a { display: flex; align-items: center; min-height: var(--tap); padding: 0 0.875rem; border-radius: var(--r-pill); font-size: var(--fs-sm); color: var(--ink-2); text-decoration: none; white-space: nowrap; transition: background 0.2s var(--ease), color 0.2s var(--ease); }
   .navtrack a:hover { color: var(--ink); }
-  .navtrack a[aria-current='page'] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-1); }
-  .navcta { display: flex; align-items: center; gap: var(--s-2); }
-  .applink { display: inline-flex; align-items: center; min-height: var(--tap); padding: 0 var(--s-3); font-size: 0.9375rem; color: var(--ink-2); text-decoration: none; }
+  .navtrack a:focus-visible { outline-offset: -3px; border-radius: var(--r-pill); }
+  .navtrack a[aria-current] { background: var(--surface); color: var(--ink); font-weight: 500; box-shadow: var(--shadow-1); }
+  .navcta { flex: none; display: flex; align-items: center; gap: var(--s-2); }
+  .applink { display: inline-flex; align-items: center; min-height: var(--tap); padding: 0 var(--s-3); font-size: 0.9375rem; font-weight: 500; color: var(--ink); text-decoration: none; white-space: nowrap; }
   .applink:hover { color: var(--acc-text); }
+  /* Section links land clear of the floating menu. */
+  :global(html) { scroll-padding-top: 6.5rem; }
   @media (max-width: 56rem) {
-    .navpill { padding: var(--s-3) var(--s-4); border-radius: 1.5rem; }
-    .navpill nav { order: 3; flex: 1 1 100%; min-width: 0; }
+    :global(html) { scroll-padding-top: var(--s-4); }
+    .site-head { position: relative; padding-top: var(--s-4); }
+    .navpill { flex-wrap: wrap; padding: var(--s-3) var(--s-4); border-radius: var(--r-lg); }
+    .navpill nav { order: 3; flex: 1 1 100%; }
     .applink { display: none; }
-    /* Three links fit a phone without cutting a word. The logo already leads home. */
-    .nav-home { display: none; }
-    .navtrack { justify-content: space-between; }
-    .navtrack a { padding: 0 0.75rem; font-size: 0.875rem; }
   }
   @media (max-width: 26rem) {
     .navpill { padding: var(--s-3); }
-    .navtrack { gap: 0; }
-    .navtrack a { padding: 0 0.5rem; font-size: 0.8125rem; }
+    .navtrack a { padding: 0 0.75rem; }
   }
-  /* Keep keyboard focus clear of the floating dock on wide screens. */
-  @media (min-width: 56rem) { :global(html) { scroll-padding-bottom: 7rem; } }
   .site-foot { display: flex; flex-direction: column; gap: var(--s-5); margin-top: var(--s-24); padding-block: var(--s-10) var(--s-12); border-top: 1px solid var(--line); }
-  .foot-top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--s-6); }
+  .foot-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-6); }
+  .foot-brand { display: flex; flex-direction: column; gap: var(--s-1); }
   .foot-links { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-6); }
   .foot-links a { display: inline-flex; align-items: center; min-height: var(--tap); color: var(--ink); text-decoration: none; }
   .foot-links a:hover { color: var(--acc-text); text-decoration: underline; }
-  .standing { max-width: 44rem; font-size: 0.9375rem; color: var(--ink); background: var(--paper); border-radius: var(--r-md); padding: var(--s-3) var(--s-4); }
+  .standing { align-self: flex-start; max-width: 100%; font-size: 0.9375rem; color: var(--ink); background: var(--paper); border-radius: var(--r-md); padding: var(--s-3) var(--s-4); }
 </style>

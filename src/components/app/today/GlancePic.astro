@@ -1,0 +1,108 @@
+---
+/**
+ * The tiny picture on a "Today at a glance" tile: today against her usual, or the last seven days.
+ * kind "bars": one bar per day with her usual as a dashed line (sleep).
+ * kind "line": a seven-day line against her usual (feeling, pain).
+ * kind "pips": rows of filled dots, one row per thing counted (meals, drinks).
+ * kind "times": one capsule per pill time, with its state in words.
+ * kind "days": one dot per day, filled on days it happened (getting out, falls).
+ * Every picture carries a sentence for screen readers, or is made of visible words.
+ */
+import Icon from '@/components/ui/Icon.astro';
+import Spark from '@/components/ui/Spark.astro';
+export type Pic =
+  | { kind: 'bars'; values: (number | null)[]; days: string[]; usual: number; max: number; low: boolean[]; label: string }
+  | { kind: 'line'; values: (number | null)[]; usual: number; min: number; max: number; label: string }
+  | { kind: 'pips'; rows: { icon: string; filled: number; of: number; tone: 'leaf' | 'sky' }[]; label: string }
+  | { kind: 'times'; times: { when: string; state: 'taken' | 'not' | 'two' | 'unsure'; words: string }[] }
+  | { kind: 'days'; days: { letter: string; state: 'on' | 'off' | 'none' | 'mark' }[]; label: string };
+interface Props { pic: Pic; big?: boolean }
+const { pic, big = false } = Astro.props;
+// bars geometry
+const BW = 18, BG = 9, BH = 64, BT = 6;
+const barsW = pic.kind === 'bars' ? pic.values.length * BW + (pic.values.length - 1) * BG : 0;
+const by = (v: number, max: number) => BT + BH - (v / max) * BH;
+---
+{pic.kind === 'bars' && (
+  <svg class:list={['gp', 'gp-bars', { big }]} viewBox={`0 0 ${barsW + 8} ${BT + BH + 20}`} role="img" aria-label={pic.label}>
+    {pic.values.map((v, i) => v === null
+      ? <rect class="bar-none" x={4 + i * (BW + BG) + 1} y={BT + BH - 10} width={BW - 2} height="9" rx="4" />
+      : <rect class:list={['bar', 'draw-grow', { low: pic.low[i] }]} style={`--i:${i}`} x={4 + i * (BW + BG)} y={by(v, pic.max)} width={BW} height={BT + BH - by(v, pic.max)} rx="6" />)}
+    <line class="usual" x1="0" x2={barsW + 8} y1={by(pic.usual, pic.max)} y2={by(pic.usual, pic.max)} />
+    {pic.days.map((d, i) => <text class:list={{ now: i === pic.days.length - 1 }} x={4 + i * (BW + BG) + BW / 2} y={BT + BH + 16} text-anchor="middle">{d}</text>)}
+  </svg>
+)}
+{pic.kind === 'line' && (
+  <Spark class="gp gp-line" values={pic.values} usual={pic.usual} min={pic.min} max={pic.max} summary={pic.label} width={168} height={52} />
+)}
+{pic.kind === 'pips' && (
+  <div class="gp gp-pips" role="img" aria-label={pic.label}>
+    {pic.rows.map((r, k) => (
+      <span class="pip-row">
+        <Icon name={r.icon} size={16} />
+        {Array.from({ length: r.of }, (_, i) => <span class:list={['pip', `pip-${r.tone}`, 'draw-pop', { on: i < r.filled }]} style={`--i:${k * 3 + i}`}></span>)}
+      </span>
+    ))}
+  </div>
+)}
+{pic.kind === 'times' && (
+  <ul role="list" class="gp gp-times">
+    {pic.times.map((t, i) => (
+      <li>
+        <span class:list={['cap', `cap-${t.state}`, 'draw-pop']} style={`--i:${i * 2}`} aria-hidden="true">
+          {t.state === 'taken' && <Icon name="check" size={16} />}
+          {(t.state === 'two' || t.state === 'unsure') && <b>?</b>}
+        </span>
+        <span class="cap-words"><b>{t.when}</b><span>{t.words}</span></span>
+      </li>
+    ))}
+  </ul>
+)}
+{pic.kind === 'days' && (
+  <div class="gp gp-days" role="img" aria-label={pic.label}>
+    {pic.days.map((d, i) => (
+      <span class="day"><span class:list={['dot', `dot-${d.state}`, 'draw-pop']} style={`--i:${i}`}></span><span class="dl">{d.letter}</span></span>
+    ))}
+  </div>
+)}
+<style>
+  .gp { flex: none; }
+  /* bars */
+  .gp-bars { width: 11.5rem; height: auto; overflow: visible; }
+  .gp-bars.big { width: 15rem; }
+  .bar { fill: var(--surface); }
+  .bar.low { fill: var(--acc); }
+  .bar-none { fill: none; stroke: var(--ink-2); stroke-width: 1.5; stroke-dasharray: 3 3; }
+  .usual { stroke: var(--ink); stroke-width: 1.5; stroke-dasharray: 3 4; }
+  .gp-bars text { font-size: 11px; fill: var(--ink-2); }
+  .gp-bars text.now { fill: var(--ink); font-weight: 600; }
+  /* line */
+  :global(svg.gp-line) { width: 100%; max-width: 10.5rem; }
+  /* pips */
+  .gp-pips { display: flex; flex-direction: column; gap: var(--s-2); }
+  .pip-row { display: flex; align-items: center; gap: 0.3125rem; color: var(--ink-2); }
+  .pip-row :global(svg) { margin-right: 0.125rem; }
+  .pip { width: 0.875rem; height: 0.875rem; border-radius: 50%; border: 1.5px solid var(--line-strong); }
+  .pip.on.pip-leaf { background: var(--leaf); border-color: var(--leaf); }
+  .pip.on.pip-sky { background: var(--sky); border-color: var(--sky); }
+  /* pill times */
+  .gp-times { display: flex; flex-direction: column; gap: var(--s-3); }
+  .gp-times li { display: flex; align-items: center; gap: var(--s-3); }
+  .cap { flex: none; display: grid; place-items: center; width: 3.25rem; height: 1.75rem; border-radius: var(--r-pill); border: 2px solid var(--ink); color: var(--ink); }
+  .cap-taken { background: var(--leaf); border-color: var(--leaf); }
+  .cap-two, .cap-unsure { background: var(--butter); border-style: dashed; }
+  .cap b { font-weight: 600; line-height: 1; }
+  .cap-words { display: flex; flex-direction: column; line-height: 1.3; }
+  .cap-words b { font-weight: 500; font-size: 0.9375rem; }
+  .cap-words span { font-size: var(--fs-sm); color: var(--ink-2); }
+  /* days */
+  .gp-days { display: flex; gap: 0.375rem; }
+  .day { display: flex; flex-direction: column; align-items: center; gap: 0.125rem; }
+  .dot { width: 1.125rem; height: 1.125rem; border-radius: 50%; }
+  .dot-on { background: var(--leaf); }
+  .dot-off { border: 1.5px solid var(--line-strong); }
+  .dot-none { border: 1.5px dashed var(--ink-2); }
+  .dot-mark { display: grid; place-items: center; }
+  .dot-mark::after { content: ''; width: 0.8125rem; height: 0.8125rem; border-radius: 0.2rem; background: var(--acc); transform: rotate(45deg); }
+  .dl { font-size: var(--fs-xs); color: var(--ink-2); line-height: 1.2; }
+</style>

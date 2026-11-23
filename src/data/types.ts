@@ -58,3 +58,10 @@ export interface CallSettings { time: string; days: string[]; voice: string; top
 
 /** Her own words on one measure, from one call. */
 export interface HerWords { metric: MetricId; date: string; day: string; text: string; source?: string; }   // source: where she said it when it was not the morning call
+
+/** One stop on the "What Ion did today" timeline. */
+export interface DayFlowStep {
+  id: string; icon: string; time: string; title: string; text: string;
+  status: 'done' | 'needs-you' | 'later';
+  doneText?: string;   // the line shown instead of `text` once the family has said yes
+}

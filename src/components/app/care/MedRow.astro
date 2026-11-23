@@ -1,0 +1,35 @@
+---
+/** One medicine, under the family's own label. Never a real medicine name. Also used inside a <template> for labels added in the browser. */
+import Chip from '@/components/ui/Chip.astro';
+import IconBadge from '@/components/ui/IconBadge.astro';
+import Icon from '@/components/ui/Icon.astro';
+import './care.css';
+interface Props { label?: string; count?: string; refill?: string; note?: string; today?: boolean | null; added?: boolean }
+const { label = '', count = '', refill, note, today, added = false } = Astro.props;
+---
+<li class="med">
+  <IconBadge name="pill" tone="paper" size="sm" round />
+  <div class="med-body">
+    <p class="med-label"><span data-slot="label">{label}</span><span class="med-count" data-slot="count">{count}</span></p>
+    {refill && <p class="med-meta"><Icon name="calendar" size={14} />{refill}</p>}
+    {note && <p class="med-meta">{note}</p>}
+    {added && <p class="med-meta">Added by you</p>}
+  </div>
+  <span class="med-end">
+    {added && <Chip tone="info">Ion asks from tomorrow</Chip>}
+    {!added && today === true && <Chip tone="done">She said yes</Chip>}
+    {!added && today === false && <Chip tone="check">She said no</Chip>}
+    {!added && today === null && <Chip tone="info">Not asked yet</Chip>}
+    {added && <button type="button" class="cf-link" data-remove>Remove<span class="sr-only" data-slot="remove-label"></span></button>}
+  </span>
+</li>
+<style>
+  .med { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3); padding: var(--s-3) 0; border-top: 1px solid var(--line); min-width: 0; }
+  .med:first-child { border-top: 0; }
+  .med-body { flex: 1 1 10rem; display: flex; flex-direction: column; min-width: 0; }
+  .med-label { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--s-2); font-size: 1.0625rem; font-weight: 500; line-height: 1.4; overflow-wrap: anywhere; }
+  .med-count { font-size: var(--fs-sm); font-weight: 400; color: var(--ink-2); }
+  .med-meta { display: flex; align-items: center; gap: 0.375rem; font-size: var(--fs-sm); color: var(--ink-2); line-height: 1.5; }
+  .med-meta :global(svg) { flex: none; }
+  .med-end { display: flex; align-items: center; gap: var(--s-1); margin-left: auto; }
+</style>

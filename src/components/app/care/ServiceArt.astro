@@ -1,0 +1,52 @@
+---
+/** Small flat pictures for the planned services. Decoration: each tile says what it is in words. */
+interface Props { name: string }
+const { name } = Astro.props;
+---
+<svg class="svc-art" viewBox="0 0 120 84" aria-hidden="true">
+  {name === 'rides' && (
+    <g>
+      <rect x="10" y="68" width="100" height="4" rx="2" fill="var(--line-strong)" />
+      <path d="M33 44l9-17q2-4 7-4h23q5 0 7 4l9 17z" fill="var(--acc)" />
+      <rect x="14" y="42" width="92" height="22" rx="10" fill="var(--acc)" />
+      <path d="M42 42l6-11q1-2 3-2h6v13z" fill="var(--surface)" />
+      <path d="M62 29h8q2 0 3 2l6 11H62z" fill="var(--surface)" />
+      <circle cx="102" cy="50" r="3" fill="var(--butter)" />
+      <circle cx="38" cy="64" r="9" fill="var(--deep)" /><circle cx="38" cy="64" r="3.500" fill="var(--paper)" />
+      <circle cx="84" cy="64" r="9" fill="var(--deep)" /><circle cx="84" cy="64" r="3.500" fill="var(--paper)" />
+    </g>
+  )}
+  {name === 'groceries' && (
+    <g>
+      <rect x="62" y="10" width="9" height="36" rx="4.500" fill="var(--fur)" transform="rotate(14 66 28)" />
+      <circle cx="46" cy="28" r="9" fill="var(--leaf)" /><circle cx="56" cy="22" r="8" fill="var(--leaf)" /><circle cx="52" cy="32" r="8" fill="var(--leaf)" />
+      <circle cx="78" cy="32" r="8" fill="var(--acc)" />
+      <path d="M32 34h56l-5 40H37z" fill="var(--butter)" />
+      <path d="M32 34h56l-1.500 10h-53z" fill="var(--sun)" opacity="0.5" />
+      <path d="M50 52q10 8 20 0" fill="none" stroke="var(--deep)" stroke-width="3" stroke-linecap="round" />
+    </g>
+  )}
+  {name === 'refills' && (
+    <g>
+      <path d="M22 30h44l-4 44H26z" fill="var(--sky)" />
+      <path d="M34 30q0-12 10-12t10 12" fill="none" stroke="var(--deep)" stroke-width="3" stroke-linecap="round" />
+      <rect x="32" y="44" width="24" height="5" rx="2.500" fill="var(--surface)" /><rect x="32" y="54" width="16" height="5" rx="2.500" fill="var(--surface)" />
+      <rect x="72" y="30" width="28" height="44" rx="8" fill="var(--surface)" stroke="var(--line-strong)" stroke-width="2" />
+      <rect x="69" y="20" width="34" height="13" rx="5" fill="var(--leaf)" />
+      <rect x="73" y="44" width="26" height="18" fill="var(--leaf-soft)" />
+      <rect x="78" y="49" width="16" height="3" rx="1.500" fill="var(--leaf)" /><rect x="78" y="55" width="10" height="3" rx="1.500" fill="var(--leaf)" />
+    </g>
+  )}
+  {name === 'handyman' && (
+    <g>
+      <path d="M46 34v-8q0-6 6-6h16q6 0 6 6v8" fill="none" stroke="var(--deep)" stroke-width="5" stroke-linecap="round" />
+      <rect x="20" y="32" width="80" height="42" rx="10" fill="var(--acc)" />
+      <rect x="20" y="44" width="80" height="6" fill="var(--acc-text)" opacity="0.35" />
+      <rect x="52" y="40" width="16" height="14" rx="4" fill="var(--butter)" />
+      <circle cx="60" cy="47" r="2.500" fill="var(--deep)" />
+    </g>
+  )}
+</svg>
+<style>
+  .svc-art { width: 7.5rem; height: auto; }
+</style>

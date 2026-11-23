@@ -1,79 +1,97 @@
 ---
 import AppLayout from '@/layouts/AppLayout.astro';
 import Icon from '@/components/ui/Icon.astro';
-import Chip from '@/components/ui/Chip.astro';
-import Card from '@/components/ui/Card.astro';
+import IconBadge from '@/components/ui/IconBadge.astro';
 import Button from '@/components/ui/Button.astro';
-import ListRow from '@/components/app/care/ListRow.astro';
 import DoseStrip from '@/components/app/care/DoseStrip.astro';
-import HerWords from '@/components/app/care/HerWords.astro';
+import MedRow from '@/components/app/care/MedRow.astro';
+import Avatar from '@/components/app/care/Avatar.astro';
+import Bubble from '@/components/app/care/Bubble.astro';
+import HeadArt from '@/components/app/care/HeadArt.astro';
 import FormCard from '@/components/app/care/FormCard.astro';
 import Field from '@/components/app/care/Field.astro';
 import ExampleNote from '@/components/app/care/ExampleNote.astro';
 import LiveRegion from '@/components/app/care/LiveRegion.astro';
+import { getParent } from '@/lib/loaders';
 import { getMedicineAnswers, getMedicineGroups } from '@/lib/loaders-care';
 
-const [groups, answers] = await Promise.all([getMedicineGroups(), getMedicineAnswers()]);
+const [groups, answers, parent] = await Promise.all([getMedicineGroups(), getMedicineAnswers(), getParent()]);
+const promises = [
+  { icon: 'note', text: 'It writes down what she says about taking her pills.' },
+  { icon: 'lock', text: 'It never names a medicine and never gives advice about doses.' },
+  { icon: 'question', text: 'It cannot confirm that a pill was really taken.' },
+];
 const total = groups.reduce((n, g) => n + g.items.length, 0);
 const pills = (n: number) => (n === 1 ? '1 pill' : `${n} pills`);
 const older = [...answers].sort((a, b) => a.date.localeCompare(b.date));
 ---
 <AppLayout title="Medicines" active="medicines" eyebrow="Medicines"
-  heading="Her pills, in your words." tone2="And what she said about taking them."
-  lede={`${total} things on her list, by the names your family uses. Ion asks about each pill time on the morning call and writes down her answer.`}>
+  heading="Her pills," tone2="in your family's words."
+  lede={`${total} on her list. Ion asks about them on the morning call and writes down what she says.`}>
+  <HeadArt slot="head-art" name="pills" />
+  <Button slot="head-actions" href="#add" variant="primary" size="sm"><Icon name="plus" size={16} />Add a label</Button>
   <LiveRegion />
 
-  <Card as="section" tone="surface" pad="lg" class="two" aria-labelledby="two-title">
-    <div class="two-head">
-      <Chip tone="check">Check</Chip>
-      <h2 id="two-title">Two different answers about Monday evening's pills.</h2>
-      <p class="muted">Both answers are kept here, as she gave them. Neither one is treated as the right one.</p>
+  <section class="two" aria-labelledby="two-title">
+    <div class="two-words">
+      <IconBadge name="question" tone="surface" size="md" round />
+      <h2 id="two-title">Two different answers about Monday evening's pills</h2>
+      <p>Both are kept, just as she said them. You might gently ask her about it next time you talk.</p>
     </div>
-    <div class="two-quotes">
-      {older.map((a) => <HerWords text={a.text} cite={`${a.day} ${a.source ?? 'call'}`} />)}
-    </div>
-    <p class="two-might"><Icon name="chat" size={18} /><span>You might gently ask her about Monday evening next time you talk. If she is often unsure, her pharmacist can suggest ways to keep track.</span></p>
-  </Card>
+    <ol role="list" class="two-quotes">
+      {older.map((a) => (
+        <li>
+          <Avatar initials={parent.initials} tone="acc" size="sm" />
+          <figure>
+            <Bubble as="blockquote" tone="surface"><p>“{a.text}”</p></Bubble>
+            <figcaption>{a.day}, {a.source ?? 'morning call'}</figcaption>
+          </figure>
+        </li>
+      ))}
+    </ol>
+    <p class="two-might"><Icon name="heart" size={16} /><span>If she is often unsure, her pharmacist can suggest ways to keep track.</span></p>
+  </section>
 
   <div class="groups">
     {groups.map((g) => (
-      <Card as="section" tone="surface" pad="none" class="group" aria-labelledby={`h-${g.when}`}>
-        <div class:list={['group-top', `top-${g.when}`]}>
-          <span class="group-icon"><Icon name={g.when === 'morning' ? 'spark' : 'moon'} size={20} /></span>
+      <section class:list={['group', `group-${g.when}`]} aria-labelledby={`h-${g.when}`}>
+        <div class="group-top">
+          {g.when === 'morning' ? (
+            <svg class="sky-art" viewBox="0 0 72 72" aria-hidden="true">
+              <g stroke="var(--sun)" stroke-width="5" stroke-linecap="round">
+                <path d="M36 6v8M36 58v8M6 36h8M58 36h8M14.800 14.800l5.600 5.600M51.600 51.600l5.600 5.600M14.800 57.200l5.600-5.600M51.600 20.400l5.600-5.600" />
+              </g>
+              <circle cx="36" cy="36" r="15" fill="var(--sun)" />
+            </svg>
+          ) : (
+            <svg class="sky-art" viewBox="0 0 72 72" aria-hidden="true">
+              <path d="M54 44A22 22 0 0 1 28 14a23 23 0 1 0 26 30z" fill="var(--deep)" />
+              <circle cx="52" cy="18" r="3" fill="var(--surface)" /><circle cx="60" cy="32" r="2" fill="var(--surface)" /><circle cx="42" cy="10" r="2" fill="var(--surface)" />
+            </svg>
+          )}
           <div>
             <h2 id={`h-${g.when}`}>{g.title}</h2>
             <p class="group-asked">{g.asked}</p>
           </div>
         </div>
         <div class="group-body">
-          <p class="group-today">{g.todayLine}</p>
+          <p class="group-today"><Icon name={g.when === 'morning' ? 'check' : 'clock'} size={18} /><span>{g.todayLine}</span></p>
           <ul role="list" class="meds" data-meds={g.when}>
             {g.items.map((m) => (
-              <ListRow icon="pill" tone="quiet">
-                <p class="lr-title">{m.label}</p>
-                <p class="lr-meta"><span>{pills(m.count)}</span>
-                  {m.refillDaysLeft !== undefined && <span>About {m.refillDaysLeft} days left{m.refillOn && `, refill due ${m.refillOn}`}</span>}
-                  {m.refillDaysLeft === undefined && <span>Supply not tracked</span>}
-                </p>
-                {m.note && <p class="lr-note">{m.note}</p>}
-                <Fragment slot="end">
-                  {m.takenToday === true && <Chip tone="done">Today: she said yes</Chip>}
-                  {m.takenToday === false && <Chip tone="check">Today: she said no</Chip>}
-                  {m.takenToday === null && <Chip tone="waiting">Today: not asked yet</Chip>}
-                </Fragment>
-              </ListRow>
+              <MedRow label={m.label} count={pills(m.count)} today={m.takenToday} note={m.note}
+                refill={m.refillDaysLeft !== undefined ? `About ${m.refillDaysLeft} days left${m.refillOn ? `, refill due ${m.refillOn}` : ''}` : undefined} />
             ))}
           </ul>
-          <DoseStrip days={g.days} id={`strip-${g.when}`} title={`${g.title}, the last 14 days`} />
+          <DoseStrip days={g.days} id={`strip-${g.when}`} title="The last 14 days" />
         </div>
-      </Card>
+      </section>
     ))}
   </div>
 
   <div class="bottom">
-    <FormCard id="add" title="Add a medicine label" sub="Use the name your family uses, so everyone knows which one is meant. Ion will start asking about it from tomorrow's call.">
+    <FormCard id="add" title="Add a label" accent="leaf" sub="Ion will ask about it from tomorrow's call.">
       <form class="cf" data-add novalidate>
-        <Field label="Label" for="med-label" hint="The words your family already uses for it. There is no need for its real name.">
+        <Field label="What your family calls it" for="med-label" hint="There is no need for its real name.">
           <input class="cf-input" id="med-label" name="label" type="text" required maxlength="60" autocomplete="off" placeholder="Small white pill" aria-describedby="med-label-hint med-error" />
         </Field>
         <div class="cf-grid">
@@ -94,29 +112,22 @@ const older = [...answers].sort((a, b) => a.date.localeCompare(b.date));
       </form>
     </FormCard>
 
-    <div class="side">
-      <Card tone="deep" pad="lg" class="firm">
-        <Icon name="shield" size={24} />
-        <h2 class="firm-title">What I-on does, and does not do, with medicines</h2>
-        <ul role="list">
-          <li>It writes down what she says about taking her pills.</li>
-          <li>It never names a medicine and never gives advice about doses.</li>
-          <li>It cannot confirm that a pill was really taken.</li>
-        </ul>
-        <p>For anything about her medicines, her doctor or pharmacist is the right person to ask.</p>
-      </Card>
-      <ExampleNote />
-    </div>
+    <section class="firm" aria-labelledby="firm-title">
+      <h2 id="firm-title">What I-on does and does not do with medicines</h2>
+      <ul role="list" class="firm-points">
+        {promises.map((p) => (
+          <li>
+            <IconBadge name={p.icon} tone="surface" size="md" round />
+            <span>{p.text}</span>
+          </li>
+        ))}
+      </ul>
+      <p class="firm-ask"><Icon name="heart" size={18} /><span>For anything about her medicines, her doctor or pharmacist is the right person to ask.</span></p>
+    </section>
   </div>
+  <ExampleNote />
 
-  <template id="tpl-med">
-    <ListRow icon="pill" tone="quiet">
-      <p class="lr-title" data-slot="label"></p>
-      <p class="lr-meta"><span data-slot="count"></span><span>Added by you</span></p>
-      <button type="button" class="cf-link remove" data-remove>Remove<span class="sr-only" data-slot="remove-label"></span></button>
-      <Fragment slot="end"><Chip tone="info">Ion asks from tomorrow</Chip></Fragment>
-    </ListRow>
-  </template>
+  <template id="tpl-med"><MedRow added /></template>
 </AppLayout>
 
 <script>
@@ -166,34 +177,39 @@ const older = [...answers].sort((a, b) => a.date.localeCompare(b.date));
 </script>
 
 <style>
-  :global(.two) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: var(--s-5) var(--s-8); border-color: var(--deep) !important; }
-  .two-head { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s-3); }
-  .two-head h2 { font-size: var(--fs-h3); font-weight: 400; line-height: 1.25; letter-spacing: -0.02em; }
-  .two-quotes { display: flex; flex-direction: column; gap: var(--s-5); justify-content: center; }
-  .two-might { grid-column: 1 / -1; display: flex; gap: var(--s-2); align-items: flex-start; padding-top: var(--s-4); border-top: 1px solid var(--line); font-size: 0.9375rem; line-height: 1.55; }
+  /* two answers, both kept: calm, side by side */
+  .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); align-items: center; gap: var(--s-4) var(--s-8); padding: var(--s-6) var(--s-8); border-radius: var(--r-xl); background: var(--butter-soft); }
+  .two-words { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s-3); }
+  .two-words h2 { font-size: 1.5rem; font-weight: 500; line-height: 1.2; letter-spacing: -0.025em; text-wrap: balance; }
+  .two-words p { line-height: 1.5; }
+  .two-quotes { display: flex; flex-direction: column; gap: var(--s-3); }
+  .two-quotes li { display: flex; align-items: flex-start; gap: var(--s-3); }
+  .two-quotes figure { display: flex; flex-direction: column; gap: var(--s-1); min-width: 0; }
+  .two-quotes :global(.bub) p { font-size: 1.0625rem; }
+  .two-quotes figcaption { font-size: var(--fs-sm); color: var(--ink-2); padding-left: var(--s-2); }
+  .two-might { grid-column: 1 / -1; display: flex; gap: var(--s-2); align-items: flex-start; padding-top: var(--s-4); border-top: 1px solid var(--hair); font-size: 0.9375rem; line-height: 1.5; color: var(--ink-2); }
   .two-might :global(svg) { flex: none; margin-top: 0.1875rem; color: var(--acc-text); }
 
+  /* morning and evening */
   .groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-5); align-items: start; }
-  :global(.group) { display: flex; flex-direction: column; }
-  .group-top { display: flex; align-items: center; gap: var(--s-3); padding: var(--s-5); background: var(--acc-soft); }
-  .top-evening { background: var(--deep); color: var(--on-deep); }
-  .top-evening .group-asked { color: var(--on-deep); }
-  .group-icon { display: grid; place-items: center; flex: none; width: 2.75rem; height: 2.75rem; border-radius: 50%; background: var(--surface); color: var(--ink); }
-  .group-top h2 { font-size: var(--fs-h3); font-weight: 400; line-height: 1.2; letter-spacing: -0.02em; }
-  .group-asked { font-size: var(--fs-sm); color: var(--ink-2); }
-  .group-body { display: flex; flex-direction: column; gap: var(--s-5); padding: var(--s-5); }
-  .group-today { font-weight: 500; }
-  .meds { display: flex; flex-direction: column; gap: var(--s-2); }
-  .remove { align-self: flex-start; margin-left: calc(var(--s-3) * -1); }
+  .group { display: flex; flex-direction: column; border-radius: var(--r-xl); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-1); overflow: hidden; min-width: 0; }
+  .group-top { display: flex; align-items: center; gap: var(--s-4); padding: var(--s-5) var(--s-6); background: var(--butter-soft); }
+  .group-evening .group-top { background: var(--sky-soft); }
+  .sky-art { flex: none; width: 3.5rem; height: 3.5rem; }
+  .group-top h2 { font-size: 1.5rem; font-weight: 500; line-height: 1.2; letter-spacing: -0.025em; }
+  .group-asked { font-size: var(--fs-sm); color: var(--ink-2); line-height: 1.45; }
+  .group-body { display: flex; flex-direction: column; gap: var(--s-4); padding: var(--s-5) var(--s-6) var(--s-6); }
+  .group-today { display: flex; align-items: flex-start; gap: var(--s-2); font-weight: 500; line-height: 1.45; }
+  .group-today :global(svg) { flex: none; margin-top: 0.1875rem; color: var(--leaf-text); }
+  .meds { display: flex; flex-direction: column; border-block: 1px solid var(--line); }
 
-  .bottom { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: var(--s-5); align-items: start; }
-  .side { display: flex; flex-direction: column; gap: var(--s-4); }
-  :global(.firm) { display: flex; flex-direction: column; gap: var(--s-4); }
-  .firm-title { font-size: 1.25rem; font-weight: 500; line-height: 1.35; }
-  .firm ul { display: flex; flex-direction: column; gap: var(--s-2); }
-  .firm li { position: relative; padding-left: var(--s-5); line-height: 1.5; }
-  .firm li::before { content: ''; position: absolute; left: 0; top: 0.6em; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--acc); }
-  .firm p { color: var(--on-deep); border-top: 1px solid color-mix(in srgb, var(--on-deep) 25%, transparent); padding-top: var(--s-3); font-size: 0.9375rem; }
+  .bottom { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: var(--s-5); align-items: stretch; }
+  .firm { display: flex; flex-direction: column; gap: var(--s-5); padding: var(--s-6); border-radius: var(--r-xl); background: var(--leaf-soft); min-width: 0; }
+  .firm h2 { font-size: 1.5rem; font-weight: 500; line-height: 1.2; letter-spacing: -0.025em; text-wrap: balance; }
+  .firm-points { display: flex; flex-direction: column; gap: var(--s-3); }
+  .firm-points li { display: flex; align-items: center; gap: var(--s-3); line-height: 1.45; }
+  .firm-ask { display: flex; align-items: flex-start; gap: var(--s-2); margin-top: auto; padding: var(--s-4); border-radius: var(--r-lg); background: var(--surface); font-weight: 500; line-height: 1.45; }
+  .firm-ask :global(svg) { flex: none; margin-top: 0.125rem; color: var(--leaf-text); }
   .err { color: var(--ink); font-weight: 500; }
   .err[hidden] { display: none; }
 
@@ -201,6 +217,7 @@ const older = [...answers].sort((a, b) => a.date.localeCompare(b.date));
     .groups, .bottom { grid-template-columns: minmax(0, 1fr); }
   }
   @media (max-width: 48rem) {
-    :global(.two) { grid-template-columns: minmax(0, 1fr); }
+    .two { grid-template-columns: minmax(0, 1fr); padding: var(--s-5); }
+    .group-top, .group-body { padding-inline: var(--s-4); }
   }
 </style>

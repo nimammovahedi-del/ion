@@ -1,70 +1,251 @@
 ---
-/** Why it matters: four sourced figures, what is happening, and an honest before and after. */
+/** Why it matters: four sourced figures drawn as small pictures, then the gap a daily call fills, as two calendar strips. */
 import SectionHeading from '@/components/ui/SectionHeading.astro';
-import { FIGURES, WHY_TEXT, COMPARE, sourceLine } from '@/data/site';
+import Icon from '@/components/ui/Icon.astro';
+import Chip from '@/components/ui/Chip.astro';
+import { WHY, GAP, sourceLine, type SiteSource } from '@/data/site';
+import { getMetric, lastDays, getParent, getReport } from '@/lib/loaders';
+const [sleep, parent, report] = await Promise.all([getMetric('sleep'), getParent(), getReport()]);
+const { older, alone, falls, carers } = WHY;
+
+const shareMax = Math.max(...older.share.map((s) => s.pct));
+const oldestMax = Math.max(...older.oldest.map((s) => s.millions));
+const houses = Array.from({ length: alone.of }, (_, i) => Math.floor(((i + 1) * alone.tinted) / alone.of) > Math.floor((i * alone.tinted) / alone.of));   // spread the tinted houses evenly through the grid
+const tintedHouses = houses.filter(Boolean).length;
+const people = (of: number, tinted: number) => Array.from({ length: of }, (_, i) => i < tinted);
+
+// The gap: the same 14 days of the example, with a call now and then and with a call each morning.
+const nights = lastDays(sleep, 14);
+const dayLetter = (iso: string) => 'SMTWTFS'[new Date(`${iso}T12:00:00Z`).getUTCDay()];
+const TOP = 9, FLOOR = 3;   // hours at the top and bottom of the little plot
+const up = (v: number) => ((v - FLOOR) / (TOP - FLOOR)) * 100;
+const days = nights.map((n, i) => ({ ...n, letter: dayLetter(n.date), up: n.value === null ? null : up(n.value), low: n.value !== null && n.value < sleep.usual - 1, called: GAP.some.days.includes(i) }));
+const lowCount = days.filter((d) => d.low).length;
+const src = (s: SiteSource) => sourceLine(s);
 ---
 <section id="why" class="why wrap" aria-labelledby="why-title">
-  <SectionHeading id="why-title" align="center" eyebrow="Why it matters" title="More parents are growing older at home. Fewer of us live close enough to notice the small changes." />
+  <SectionHeading id="why-title" align="center" eyebrow="Why it matters" title="More parents are growing older at home." tone2="Fewer of us live close enough to notice." />
 
   <ul role="list" class="figs">
-    {FIGURES.map((f) => (
-      <li class="fig" data-reveal>
-        <p class="fig-value num">{f.value}</p>
-        <p class="fig-label">{f.label}</p>
-        {f.detail && <p class="fig-detail">{f.detail}</p>}
-        <p class="fig-source">
-          <span class="sr-only">Source: </span>
-          <a href={f.source.href} rel="noopener" class="fig-link">{sourceLine(f.source)}</a>
-        </p>
-      </li>
-    ))}
+    <li class="fig fig-older" data-reveal>
+      <h3 class="fig-title">{older.title}</h3>
+      <div class="charts">
+        <div class="mini">
+          <ul role="list" class="bars">
+            {older.share.map((s, i) => (
+              <li class:list={{ expected: s.expected }}>
+                <span class="bar-v num">{s.pct}%</span>
+                <span class="bar draw-grow" style={`--h:${s.pct / shareMax};--i:${i * 3}`} aria-hidden="true"></span>
+                <span class="bar-y">{s.year}{s.expected && <span>expected</span>}</span>
+              </li>
+            ))}
+          </ul>
+          <p class="mini-cap"><b>{older.shareLine}</b><span>{older.share.map((s) => `${s.people} ${s.expected ? 'by' : 'in'} ${s.year}`).join(', ')}.</span></p>
+        </div>
+        <div class="mini">
+          <ul role="list" class="bars">
+            {older.oldest.map((s, i) => (
+              <li class:list={{ expected: s.expected }}>
+                <span class="bar-v num">{s.millions} million</span>
+                <span class="bar draw-grow" style={`--h:${s.millions / oldestMax};--i:${i * 3 + 2}`} aria-hidden="true"></span>
+                <span class="bar-y">{s.year}{s.expected && <span>expected</span>}</span>
+              </li>
+            ))}
+          </ul>
+          <p class="mini-cap"><b>{older.oldestTitle}</b><span>{older.oldestLine}</span></p>
+        </div>
+      </div>
+      <p class="fig-source"><a href={older.source.href} rel="noopener">Source: {src(older.source)}</a></p>
+    </li>
+
+    <li class="fig fig-alone" data-reveal>
+      <div class="fig-row">
+        <div class="fig-words">
+          <p class="fig-value num">{alone.value}</p>
+          <p class="fig-label">{alone.label}</p>
+          <p class="fig-detail">{alone.detail}</p>
+        </div>
+        <div class="houses" role="img" aria-label={`${alone.of} little houses. ${tintedHouses} of them, ${alone.pct}%, are coloured and have one person at the window.`}>
+          {houses.map((on, i) => (
+            <svg class:list={['house', 'draw-pop', { on }]} style={`--i:${i}`} viewBox="0 0 32 30" aria-hidden="true">
+              <path d="M3 14 16 3l13 11v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+              {on ? <circle class="win" cx="16" cy="19" r="3.5" /> : <rect class="win" x="13" y="17" width="6" height="6" rx="1.5" />}
+            </svg>
+          ))}
+        </div>
+      </div>
+      <p class="fig-source"><a href={alone.source.href} rel="noopener">Source: {src(alone.source)}</a></p>
+    </li>
+
+    <li class="fig fig-falls" data-reveal>
+      <div class="fig-row">
+        <div class="people" role="img" aria-label={`${falls.of} people. ${falls.tinted} of them is coloured and tipping over.`}>
+          {people(falls.of, falls.tinted).reverse().map((on, i) => (
+            <svg class:list={['person', 'draw-pop', { on }]} style={`--i:${i * 2}`} viewBox="0 0 24 46" aria-hidden="true">
+              <circle cx="12" cy="8" r="7" /><path d="M3 43V29a9 9 0 0 1 18 0v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+            </svg>
+          ))}
+        </div>
+        <div class="fig-words">
+          <p class="fig-value num">{falls.value}</p>
+          <p class="fig-label">{falls.label}</p>
+          <p class="fig-detail">{falls.detail}</p>
+        </div>
+      </div>
+      <p class="fig-source"><a href={falls.source.href} rel="noopener">Source: {src(falls.source)}</a></p>
+    </li>
+
+    <li class="fig fig-carers" data-reveal>
+      <div class="fig-row">
+        <div class="fig-words">
+          <p class="fig-value num">{carers.value}</p>
+          <p class="fig-label">{carers.label}</p>
+        </div>
+        <div class="work">
+          <div class="people people-ten" role="img" aria-label={`${carers.of} people. ${carers.tinted} of them are coloured and carry a work bag.`}>
+            {people(carers.of, carers.tinted).map((on, i) => (
+              <svg class:list={['person', 'draw-pop', { on }]} style={`--i:${i}`} viewBox="0 0 24 46" aria-hidden="true">
+                <circle cx="12" cy="8" r="7" /><path d="M3 43V29a9 9 0 0 1 18 0v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                {on && <path class="bag" d="M7 33h10v8H7zM10 33v-2.5h4V33" />}
+              </svg>
+            ))}
+          </div>
+          <p class="fig-detail">{carers.detail}</p>
+        </div>
+      </div>
+      <p class="fig-source"><a href={carers.source.href} rel="noopener">Source: {src(carers.source)}</a></p>
+    </li>
   </ul>
 
-  <div class="why-text">
-    {WHY_TEXT.map((p) => <p>{p}</p>)}
-  </div>
+  <div class="gap" data-reveal>
+    <div class="gap-head">
+      <h3 class="h3">{GAP.title}</h3>
+      <Chip tone="info">Example data</Chip>
+    </div>
 
-  <div class="compare">
-    <div class="cmp cmp-without" data-reveal>
-      <p class="mono">{COMPARE.without.label}</p>
-      <h3 class="h3">{COMPARE.without.title}</h3>
-      <ul role="list" class="cmp-list">
-        {COMPARE.without.points.map((p) => <li><span class="cmp-mark" aria-hidden="true"></span>{p}</li>)}
-      </ul>
+    <div class="strip">
+      <p class="strip-label"><span class="strip-icon"><Icon name="phone" size={20} /></span><span><b>{GAP.some.label}</b><span>{GAP.some.note}</span></span></p>
+      <div class="plot plot-some" role="img" aria-label={`Two weeks with ${GAP.some.days.length} calls. Each time she said: ${GAP.some.said}`}>
+        {days.map((d, i) => (
+          <span class:list={['col', { called: d.called }]}>
+            {d.called && <span class="fine draw-pop" style={`--i:${i + 2}`}>"{GAP.some.said}"</span>}
+            <span class:list={['dot', { 'draw-pop': d.called }]} style={`--i:${i}`}></span>
+            <span class="day">{d.letter}</span>
+          </span>
+        ))}
+      </div>
     </div>
-    <div class="cmp cmp-with" data-reveal>
-      <p class="mono">{COMPARE.with.label}</p>
-      <h3 class="h3">{COMPARE.with.title}</h3>
-      <ul role="list" class="cmp-list">
-        {COMPARE.with.points.map((p) => <li><span class="cmp-mark" aria-hidden="true"></span>{p}</li>)}
-      </ul>
+
+    <div class="strip">
+      <p class="strip-label"><span class="strip-icon on"><Icon name="phone" size={20} /></span><span><b>{GAP.daily.label}</b><span>{GAP.daily.note}</span></span></p>
+      <div class="plot plot-daily" role="img" style={`--usual:${up(sleep.usual)}`} aria-label={`The same two weeks with a call every morning: ${parent.short}'s hours of sleep, as she told Ion. Close to her usual of ${sleep.usualLabel} for ten nights, then ${lowCount} shorter nights in a row. On the last morning she said: ${report.quote}`}>
+        {days.map((d, i) => (
+          <span class:list={['col', { low: d.low }]}>
+            {d.up !== null && <span class="dot draw-pop" style={`--up:${d.up};--i:${i}`}></span>}
+            <span class="day">{d.letter}</span>
+          </span>
+        ))}
+        <span class="usual"><span>her usual night</span></span>
+        <span class="said draw-pop" style="--i:16">"{report.quote}"</span>
+      </div>
     </div>
+    <p class="gap-foot">{GAP.foot}</p>
   </div>
 </section>
 <style>
-  .why { display: flex; flex-direction: column; gap: var(--s-12); padding-top: var(--s-32); scroll-margin-top: var(--s-6); }
-  .figs { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: var(--s-8); padding-inline: var(--s-2); }
-  .fig { display: flex; flex-direction: column; gap: var(--s-2); border-top: 1px solid var(--ink); padding-top: var(--s-4); min-width: 0; }
-  .fig-value { font-weight: 300; font-size: 3.5rem; line-height: 1.05; letter-spacing: -0.04em; color: var(--acc-text); }
-  .fig-label { font-weight: 600; line-height: 1.45; }
-  .fig-detail { font-size: var(--fs-sm); line-height: 1.55; color: var(--ink-2); }
+  .why { display: flex; flex-direction: column; gap: var(--s-10); padding-top: var(--s-24); }
+
+  /* four pictures, laid out wide, narrow, narrow, wide */
+  .figs { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: var(--s-4); }
+  .fig { display: flex; flex-direction: column; gap: var(--s-4); border-radius: var(--r-xl); padding: var(--s-8) var(--s-8) var(--s-4); min-width: 0; }
+  .fig-older { grid-column: span 7; background: var(--sky-soft); }
+  .fig-alone { grid-column: span 5; background: var(--butter-soft); }
+  .fig-falls { grid-column: span 5; background: var(--acc-soft); }
+  .fig-carers { grid-column: span 7; background: var(--leaf-soft); }
+  .fig-title { font-size: var(--fs-h3); font-weight: 500; letter-spacing: -0.02em; line-height: 1.25; }
+  .fig-row { flex: 1; display: flex; align-items: center; gap: var(--s-8); }
+  .fig-words { flex: 1 1 12rem; display: flex; flex-direction: column; gap: var(--s-1); min-width: 0; }
+  .fig-value { font-weight: 400; font-size: 3.25rem; line-height: 1.05; letter-spacing: -0.04em; }
+  .fig-label { font-weight: 500; line-height: 1.4; }
+  .fig-detail { font-size: 0.9375rem; line-height: 1.5; color: var(--ink-2); }
   .fig-source { margin-top: auto; }
-  .fig-link { display: inline-flex; align-items: center; min-height: var(--tap); font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: 0.04em; line-height: 1.45; text-transform: uppercase; color: var(--ink-2); text-decoration: underline; text-decoration-color: var(--line-strong); }
-  .fig-link:hover { color: var(--acc-text); text-decoration-color: currentColor; }
-  .why-text { display: flex; flex-direction: column; gap: var(--s-4); max-width: 44rem; margin-inline: auto; font-size: var(--fs-lg); line-height: 1.65; color: var(--ink-2); text-align: center; text-wrap: pretty; }
-  .compare { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: var(--s-4); }
-  .cmp { display: flex; flex-direction: column; gap: var(--s-4); border-radius: var(--r-xl); padding: var(--s-8); min-width: 0; }
-  .cmp-without { background: var(--grey-1); }
-  .cmp-with { background: var(--deep); color: var(--on-deep); }
-  .cmp-with .mono { color: var(--on-deep); }
-  .cmp-list { display: flex; flex-direction: column; gap: var(--s-3); }
-  .cmp-list li { display: flex; gap: var(--s-3); line-height: 1.5; }
-  .cmp-without .cmp-list li { color: var(--ink-2); }
-  .cmp-mark { flex: none; width: 0.5rem; height: 0.5rem; margin-top: 0.5rem; border-radius: 50%; border: 1.5px solid currentColor; }
-  .cmp-with .cmp-mark { background: var(--acc); border-color: var(--acc); }
+  .fig-source a { display: inline-flex; align-items: center; min-height: var(--tap); font-size: var(--fs-sm); line-height: 1.4; color: var(--ink-2); text-decoration: underline; text-decoration-color: var(--hair); }
+  .fig-source a:hover { color: var(--ink); text-decoration-color: currentColor; }
+
+  /* bars */
+  .charts { flex: 1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-8); }
+  .mini { display: flex; align-items: flex-end; gap: var(--s-5); min-width: 0; }
+  .mini + .mini { border-left: 1px solid var(--hair); padding-left: var(--s-8); }
+  .bars { --bar-h: 8.5rem; flex: none; display: flex; align-items: flex-end; gap: var(--s-3); }
+  .bars li { width: 4.25rem; display: flex; flex-direction: column; align-items: center; gap: var(--s-1); min-width: 0; text-align: center; }
+  .bar { width: 100%; height: calc(var(--h) * var(--bar-h)); border-radius: var(--r-md) var(--r-md) var(--r-sm) var(--r-sm); background: var(--sky); }
+  .expected .bar { background: color-mix(in srgb, var(--acc) 60%, var(--surface)); border: 2px dashed var(--acc-text); border-bottom-style: solid; }
+  .bar-v { font-size: 1.125rem; font-weight: 500; letter-spacing: -0.02em; line-height: 1.2; white-space: nowrap; }
+  .bar-y { display: flex; flex-direction: column; height: 2.5rem; font-size: var(--fs-sm); font-weight: 500; line-height: 1.25rem; white-space: nowrap; }
+  .bar-y span { font-weight: 400; color: var(--ink-2); }
+  .mini-cap { display: flex; flex-direction: column; gap: var(--s-1); padding-bottom: 2.75rem; line-height: 1.4; }
+  .mini-cap b { font-weight: 500; }
+  .mini-cap span { font-size: 0.9375rem; color: var(--ink-2); }
+
+  /* houses */
+  .houses { flex: none; display: grid; grid-template-columns: repeat(5, 2rem); gap: var(--s-2); }
+  .house { width: 2rem; height: auto; }
+  .house path { fill: var(--surface); stroke: var(--line-strong); stroke-width: 1.5; stroke-linejoin: round; }
+  .house .win { fill: var(--grey-2); }
+  .house.on path { fill: var(--acc); stroke: var(--acc-text); }
+  .house.on .win { fill: var(--deep); }
+
+  /* people */
+  .people { flex: none; display: flex; align-items: flex-end; gap: var(--s-2); }
+  .person { width: 2.5rem; height: auto; overflow: visible; }
+  .person circle, .person path { fill: var(--surface); stroke: var(--line-strong); stroke-width: 1.5; }
+  .fig-falls .person.on { transform-origin: 15% 100%; rotate: 24deg; margin-left: var(--s-2); }
+  .fig-falls .person.on circle, .fig-falls .person.on path { fill: var(--acc); stroke: var(--acc-text); }
+  .work { flex: none; display: flex; flex-direction: column; gap: var(--s-3); }
+  .people-ten { gap: 0.375rem; }
+  .people-ten .person { width: 2rem; }
+  .fig-carers .person.on circle, .fig-carers .person.on path { fill: var(--leaf); stroke: var(--leaf-text); }
+  .fig-carers .person.on .bag { fill: var(--deep); stroke: var(--deep); stroke-linejoin: round; }
+
+  /* the gap: two strips of fourteen days */
+  .gap { display: flex; flex-direction: column; gap: var(--s-5); background: var(--paper); border-radius: var(--r-xl); padding: var(--s-8) var(--s-10); }
+  .gap-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-3); }
+  .strip { display: grid; grid-template-columns: minmax(0, 19.5rem) minmax(0, 1fr); align-items: center; gap: var(--s-8); background: var(--surface); border-radius: var(--r-lg); padding: var(--s-5) var(--s-6); }
+  .strip-label { display: flex; align-items: flex-start; gap: var(--s-3); line-height: 1.4; }
+  .strip-label > span:last-child { display: flex; flex-direction: column; gap: var(--s-1); }
+  .strip-label b { font-weight: 500; font-size: var(--fs-lg); letter-spacing: -0.01em; }
+  .strip-label span span { font-size: 0.9375rem; color: var(--ink-2); }
+  .strip-icon { flex: none; display: grid; place-items: center; width: 2.75rem; height: 2.75rem; border-radius: 50%; background: var(--grey-1); color: var(--ink-2); }
+  .strip-icon.on { background: var(--acc); color: var(--on-acc); }
+  .plot-daily { padding-top: var(--s-6); }
+  .plot { --plot-h: 6.5rem; position: relative; display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); min-width: 0; }
+  .col { position: relative; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: calc(var(--plot-h) + 1.75rem); }
+  .day { font-size: var(--fs-xs); color: var(--ink-2); line-height: 1.75rem; }
+  .dot { width: 0.875rem; height: 0.875rem; border-radius: 50%; }
+  .plot-some .dot { margin-bottom: calc(var(--plot-h) * 0.3); scale: 0.5; background: var(--grey-2); }
+  .plot-some .called .dot { scale: 1; background: var(--ink-3); }
+  .fine { position: absolute; bottom: calc(var(--plot-h) * 0.3 + 3.25rem); padding: var(--s-1) var(--s-3); border-radius: var(--r-md) var(--r-md) var(--r-md) var(--r-sm); background: var(--grey-1); font-size: var(--fs-sm); white-space: nowrap; }
+  .plot-daily .dot { position: absolute; bottom: calc(1.75rem + var(--up) / 100 * (var(--plot-h) - 0.875rem)); background: var(--acc); }
+  .plot-daily .low .dot { background: var(--deep); box-shadow: 0 0 0 4px var(--acc-soft); }
+  .usual { position: absolute; left: 0; right: 0; bottom: calc(1.75rem + var(--usual) / 100 * (var(--plot-h) - 0.875rem) + 0.4375rem); border-top: 2px dashed var(--line-strong); }
+  .usual span { position: absolute; left: 0; bottom: 0.625rem; font-size: var(--fs-xs); color: var(--ink-2); background: var(--surface); padding-right: var(--s-2); }
+  .said { position: absolute; right: 0; top: 0; padding: var(--s-1) var(--s-3); border-radius: var(--r-md) var(--r-md) var(--r-sm) var(--r-md); background: var(--butter-soft); font-size: var(--fs-sm); white-space: nowrap; }
+  .gap-foot { font-size: var(--fs-sm); color: var(--ink-2); }
+
+  @media (max-width: 64rem) {
+    .fig-older, .fig-alone, .fig-falls, .fig-carers { grid-column: 1 / -1; }
+    .strip { grid-template-columns: minmax(0, 1fr); gap: var(--s-4); }
+  }
   @media (max-width: 40rem) {
-    .why { padding-top: var(--s-24); gap: var(--s-10); }
-    .cmp { padding: var(--s-6); border-radius: var(--r-lg); }
-    .why-text { text-align: left; font-size: var(--fs-body); }
+    .why { padding-top: var(--s-16); gap: var(--s-8); }
+    .fig { padding: var(--s-6) var(--s-5) var(--s-3); border-radius: var(--r-lg); }
+    .fig-row { flex-direction: column; align-items: flex-start; gap: var(--s-5); }
+    .charts { grid-template-columns: minmax(0, 1fr); }
+    .mini + .mini { border-left: 0; padding-left: 0; border-top: 1px solid var(--hair); padding-top: var(--s-5); }
+    .people-ten .person { width: 1.5rem; }
+    .gap { padding: var(--s-5) var(--s-4); border-radius: var(--r-lg); }
+    .strip { padding: var(--s-4) var(--s-3); }
+    .fine { font-size: var(--fs-xs); padding-inline: var(--s-2); }
+    .dot { width: 0.625rem; height: 0.625rem; }
   }
 </style>

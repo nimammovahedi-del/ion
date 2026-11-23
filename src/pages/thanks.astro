@@ -1,33 +1,14 @@
 ---
 import SiteLayout from '@/layouts/SiteLayout.astro';
-import Capybara from '@/components/ui/Capybara.astro';
 import Button from '@/components/ui/Button.astro';
-import Eyebrow from '@/components/ui/Eyebrow.astro';
+import MessageCard from '@/components/site/MessageCard.astro';
 ---
 <SiteLayout title="You are on the list · I-on" description="Thank you for joining the I-on waitlist." active="">
-  <section class="msg wrap" aria-labelledby="msg-title">
-    <div class="msg-card">
-      <div class="msg-copy">
-        <Eyebrow>Waitlist</Eyebrow>
-        <h1 id="msg-title" class="h1">Thank you.<span class="tone-2">You are on the list.</span></h1>
-        <p class="lede">We will write once, when I-on is ready for families. Nothing else, no newsletter. If you change your mind, reply to that email and we will delete your address.</p>
-        <div class="row">
-          <Button href="/" variant="secondary" size="lg">Back to the home page</Button>
-          <Button href="/app/" size="lg" arrow>See the example app</Button>
-        </div>
-      </div>
-      <div class="msg-capy"><Capybara size={260} ground="var(--surface)" /></div>
+  <MessageCard eyebrow="Waitlist" title="Thank you." tone2="You are on the list." doodle="envelope">
+    <p class="lede">We will write once, when I-on is ready for families. Nothing else, no newsletter. If you change your mind, reply to that email and we will delete your address.</p>
+    <div class="row">
+      <Button href="/" variant="secondary" size="lg">Back to the home page</Button>
+      <Button href="/app/" size="lg" arrow>See the example app</Button>
     </div>
-  </section>
+  </MessageCard>
 </SiteLayout>
-<style>
-  .msg { padding-top: var(--s-16); }
-  .msg-card { display: grid; grid-template-columns: minmax(0, 1.4fr) auto; align-items: center; gap: var(--s-10); background: var(--acc-soft); border-radius: var(--r-xl); padding: var(--s-12); }
-  .msg-copy { display: flex; flex-direction: column; gap: var(--s-5); max-width: 38rem; }
-  @media (max-width: 48rem) {
-    .msg { padding-top: var(--s-10); }
-    .msg-card { grid-template-columns: minmax(0, 1fr); padding: var(--s-6); border-radius: var(--r-lg); }
-    .msg-capy { order: -1; }
-    .msg-capy :global(svg) { width: 9rem; }
-  }
-</style>

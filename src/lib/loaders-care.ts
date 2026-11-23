@@ -1,7 +1,7 @@
 // Loaders for the care screens. Like src/lib/loaders.ts, pages call these and never import example data directly.
 // In r2 these read the signed-in family's data.
 import * as care from '@/data/example-care';
-import type { AgendaDay, AgendaItem, CareTask, CircleMember, DoseDay, MedicineGroup } from '@/data/types-care';
+import type { Ability, AgendaDay, AgendaItem, CareTask, CircleMember, DoseDay, MedicineGroup } from '@/data/types-care';
 import { getAskTomorrow, getCalendar, getCallSettings, getFamily, getHerWords, getMedicines, getMetric, getTasks, getToday, lastDays } from './loaders';
 
 /** "9:00 AM" or "14:00" to minutes after midnight. Items with no time sort first. */
@@ -71,7 +71,7 @@ export async function getMedicineGroups(): Promise<MedicineGroup[]> {
   return [
     { when: 'morning', title: 'Morning pills', asked: 'Asked on the 9:00 AM call', items: withRefill('morning'), days: morningDays,
       todayLine: 'On today\'s call she said she took her morning pills.' },
-    { when: 'evening', title: 'Evening pills', asked: 'Evening reminder at 6:00 PM, asked about on the next morning\'s call', items: withRefill('evening'), days: eveningDays,
+    { when: 'evening', title: 'Evening pills', asked: 'Reminder at 6:00 PM. Ion asks the next morning.', items: withRefill('evening'), days: eveningDays,
       todayLine: 'Tonight\'s pills have not come up yet. Ion will ask on tomorrow\'s call.' },
   ];
 }
@@ -98,7 +98,20 @@ const DOES: Record<string, string[]> = {
   'main-caregiver': ['Approves tasks before I-on acts', 'Takes tasks', 'Changes call settings', 'Invites people'],
   family: ['Takes tasks', 'Adds reminders and questions for Ion'],
 };
+/** The same rights as SEES and DOES, as short labels with an icon, for the cards on the Family circle page. */
+const ABILITIES: Omit<Ability, 'allowed'>[] = [
+  { id: 'report', icon: 'today', label: 'Reads the report and trends', mainOnly: false },
+  { id: 'medicines', icon: 'pill', label: 'Sees medicines and reminders', mainOnly: false },
+  { id: 'tasks', icon: 'tasks', label: 'Takes tasks', mainOnly: false },
+  { id: 'ask', icon: 'chat', label: 'Adds reminders and questions', mainOnly: false },
+  { id: 'approve', icon: 'check', label: 'Approves tasks', mainOnly: true },
+  { id: 'settings', icon: 'settings', label: 'Changes call settings', mainOnly: true },
+  { id: 'invite', icon: 'users', label: 'Invites people', mainOnly: true },
+];
 export async function getCircle(): Promise<CircleMember[]> {
   const fam = await getFamily();
-  return fam.map((p) => ({ ...p, hearing: care.hearing[p.id] ?? 'daily', sees: SEES[p.role] ?? SEES.family, does: DOES[p.role] ?? DOES.family, joined: care.joined[p.id] ?? '' }));
+  return fam.map((p) => ({
+    ...p, hearing: care.hearing[p.id] ?? 'daily', sees: SEES[p.role] ?? SEES.family, does: DOES[p.role] ?? DOES.family, joined: care.joined[p.id] ?? '',
+    abilities: ABILITIES.map((a) => ({ ...a, allowed: !a.mainOnly || p.role === 'main-caregiver' })),
+  }));
 }

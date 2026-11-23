@@ -1,6 +1,6 @@
 // The invented example family. Every screen in r1 reads from here through src/lib/loaders.ts.
 // Margaret "Maggie" Ellis is not a real person.
-import type { AgentStep, AskTomorrow, HerWords, CalendarItem, CallSettings, DayPoint, HealthCardData, Medicine, MetricSeries, Person, Reminder, Task, WeekNote } from './types';
+import type { AgentStep, AskTomorrow, DayFlowStep, HerWords, CalendarItem, CallSettings, DayPoint, HealthCardData, Medicine, MetricSeries, Person, Reminder, Task, WeekNote } from './types';
 
 export const TODAY = { iso: '2026-11-24', long: 'Tuesday, November 24', short: 'Tue Nov 24', callTime: '9:04 AM', callMinutes: 6 };
 
@@ -203,4 +203,13 @@ export const metrics: MetricSeries[] = [
     note: 'No falls in the last seven weeks. One stumble on the back step in October, no injury.' },
   { id: 'out', title: 'Getting out', unit: 'times out of the house', icon: 'home', usual: 1, usualLabel: 'out on most days', higherIsBetter: true, min: 0, max: 2, points: series(83, 1, 0.9, 1, 0, 2, [1, 0, 0, 1, 2, 1, 0, 0, 1, 0, 1, 0, 0, 1]), status: 'usual',
     note: 'Out on three days this week, a little less than usual.' },
+];
+
+/** The same morning as `steps`, told as five short stops for the timeline on Today. */
+export const dayFlow: DayFlowStep[] = [
+  { id: 'call', icon: 'phone', time: '9:04 AM', title: 'Ion called', text: 'Her daily morning call', status: 'done' },
+  { id: 'answer', icon: 'chat', time: '9:04 AM', title: 'She answered', text: 'They talked for 6 minutes', status: 'done' },
+  { id: 'report', icon: 'note', time: '9:05 AM', title: 'Report written', text: 'With three tasks from what she asked for', status: 'done' },
+  { id: 'ride', icon: 'car', time: '9:05 AM', title: 'Ride for Thursday', text: 'On the calendar. It needs a yes from the family.', status: 'needs-you', doneText: 'The family said yes. It is on the Tasks page.' },
+  { id: 'evening', icon: 'bell', time: '6:00 PM', title: 'Evening reminder', text: 'Ion will remind her about her evening pills', status: 'later' },
 ];

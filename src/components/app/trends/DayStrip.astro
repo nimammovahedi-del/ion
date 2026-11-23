@@ -1,0 +1,71 @@
+---
+/**
+ * Yes-or-no measures read better as marked days than as a line: one small block per day, one row per thing.
+ * Falls: a fall is an apricot block with a diamond. Getting out: a day out is a sage block. Medicines: one row per pill time.
+ * A day with no answer is an empty dashed block. Today is the last block, with a ring around it.
+ */
+import type { DayPoint } from '@/data/types';
+import { dayLabel } from './measure';
+export type Cell = 'yes' | 'no' | 'flag' | 'none';
+interface Props { points: DayPoint[]; rows: { label?: string; cells: Cell[]; words: string[] }[]; summary: string; keys: { cell: Cell; label: string }[]; mini?: boolean }
+const { points, rows, summary, keys, mini = false } = Astro.props;
+const n = points.length;
+const first = points[0], mid = points[Math.floor((n - 1) / 2)], last = points[n - 1];
+const d = (p?: DayPoint) => (p ? dayLabel(p.date, { month: 'short', day: 'numeric' }) : '');
+---
+{mini ? (
+  <span class="strip-mini" role="img" aria-label={summary}>
+    {rows.map((r) => <span class="mini-row">{r.cells.map((c) => <span class:list={['d', `d-${c}`]}></span>)}</span>)}
+  </span>
+) : (
+  <figure class="strip-fig" data-draw>
+    <div class:list={['strip', { dense: n > 40, labelled: rows.some((r) => r.label) }]} role="img" aria-label={summary}>
+      {rows.map((r) => (
+        <>
+          {r.label && <span class="row-label">{r.label}</span>}
+          <span class="row">
+            {r.cells.map((c, i) => <span class:list={['d', `d-${c}`, 'draw-pop', { today: i === n - 1 }]} style={`--i:${Math.round((i / n) * 12)}`} title={`${points[i].label}: ${r.words[i]}`}></span>)}
+          </span>
+        </>
+      ))}
+      {rows.some((r) => r.label) && <span></span>}
+      <span class="ends" aria-hidden="true"><span>{d(first)}</span><span>{d(mid)}</span><span>Today</span></span>
+    </div>
+    <figcaption>
+      {keys.map((k) => <span class="key"><span class:list={['d', `d-${k.cell}`]} aria-hidden="true"></span>{k.label}</span>)}
+    </figcaption>
+  </figure>
+)}
+<style>
+  .strip-fig { display: flex; flex-direction: column; gap: var(--s-3); min-width: 0; }
+  .strip { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-2) var(--s-4); align-items: center; padding: var(--s-5); border-radius: var(--r-lg); background: var(--paper); }
+  .strip.labelled { grid-template-columns: auto minmax(0, 1fr); }
+  .row-label { font-size: 0.9375rem; font-weight: 500; }
+  .row { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 0.25rem; }
+  .strip.dense .row { gap: 0.125rem; }
+  .row .d { width: auto; height: 2.75rem; border-radius: 0.5rem; }
+  .strip.dense .row .d { border-radius: 0.25rem; }
+  .d { display: inline-grid; place-items: center; width: 0.875rem; height: 1rem; border-radius: 0.25rem; box-sizing: border-box; }
+  .d-yes { background: var(--leaf); }
+  .d-no { background: var(--surface); border: 1.5px solid var(--line-strong); }
+  .d-flag { background: var(--acc); }
+  .d-flag::after { content: ''; width: 0.4375rem; height: 0.4375rem; max-width: 60%; aspect-ratio: 1; background: var(--ink); transform: rotate(45deg); }
+  .d-none { background: transparent; border: 1.5px dashed var(--ink-2); }
+  .row .d.today { outline: 2px solid var(--deep); outline-offset: 2px; }
+  .ends { display: flex; justify-content: space-between; font-size: var(--fs-sm); color: var(--ink-2); }
+  figcaption { display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-5); font-size: var(--fs-sm); color: var(--ink-2); }
+  .key { display: inline-flex; align-items: center; gap: var(--s-2); }
+  /* the small version for an overview card or a table cell */
+  .strip-mini { display: flex; flex-direction: column; gap: 0.1875rem; width: 100%; }
+  .mini-row { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 0.125rem; }
+  .mini-row .d { width: auto; height: 0.875rem; border-radius: 0.1875rem; border-width: 1px; }
+  .mini-row .d-flag::after { display: none; }
+  @media print {
+    .d-yes { background: var(--ink); }
+    .d-no { border: 0.5pt solid var(--ink); background: transparent; }
+    .d-flag { background: transparent; border: 1.5pt solid var(--ink); }
+    .d-none { border: 0.5pt dashed var(--ink); }
+    .mini-row .d { height: 0.4rem; border-radius: 0; }
+    .mini-row .d-flag { height: 0.75rem; margin-block: -0.175rem; }
+  }
+</style>

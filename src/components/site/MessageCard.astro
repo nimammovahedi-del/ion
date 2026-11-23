@@ -1,0 +1,36 @@
+---
+/** The warm card used by the small pages (thanks, not found): words on the left, Ion with a small picture on the right. */
+import Capybara from '@/components/ui/Capybara.astro';
+import Eyebrow from '@/components/ui/Eyebrow.astro';
+import Doodle from './Doodle.astro';
+interface Props { eyebrow: string; title: string; tone2: string; doodle: 'envelope' | 'search' | 'lock' }
+const { eyebrow, title, tone2, doodle } = Astro.props;
+---
+<section class="msg wrap" aria-labelledby="msg-title">
+  <div class="msg-card">
+    <div class="msg-copy">
+      <Eyebrow>{eyebrow}</Eyebrow>
+      <h1 id="msg-title" class="h1">{title}<span class="tone-2">{tone2}</span></h1>
+      <slot />
+    </div>
+    <div class="msg-pic" aria-hidden="true">
+      <Capybara size={280} ground="var(--surface)" label="" waves={doodle !== 'search'} />
+      <span class="msg-doodle"><Doodle name={doodle} size={64} /></span>
+    </div>
+  </div>
+</section>
+<style>
+  .msg { padding-top: var(--s-12); }
+  .msg-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--s-12); background: var(--acc-soft); border-radius: var(--r-xl); padding: var(--s-12) var(--s-16); }
+  .msg-copy { display: flex; flex-direction: column; gap: var(--s-5); max-width: 38rem; }
+  .msg-pic { position: relative; }
+  .msg-doodle { position: absolute; left: -0.75rem; bottom: 0.5rem; display: grid; place-items: center; width: 6rem; height: 6rem; border-radius: 50%; background: var(--surface); box-shadow: var(--shadow-2); }
+  @media (max-width: 48rem) {
+    .msg { padding-top: var(--s-8); }
+    .msg-card { grid-template-columns: minmax(0, 1fr); gap: var(--s-6); padding: var(--s-6); border-radius: var(--r-lg); }
+    .msg-pic { order: -1; justify-self: start; }
+    .msg-pic :global(.capy) { width: 9rem; }
+    .msg-doodle { width: 3.5rem; height: 3.5rem; }
+    .msg-doodle :global(svg) { width: 2.25rem; }
+  }
+</style>

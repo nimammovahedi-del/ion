@@ -56,25 +56,25 @@ export const hearing: Record<string, Hearing> = { sara: 'daily', daniel: 'change
 export const joined: Record<string, string> = { sara: 'Set up I-on in October', daniel: 'Joined in October', priya: 'Joined in November' };
 
 export const plannedServices: PlannedService[] = [
-  { id: 'rides', title: 'Rides', icon: 'car', plan: 'When she asks for a ride, I-on would book one for the time she needs, after you say yes.',
-    today: 'I-on writes down where and when from her words. Someone in the family drives or books the ride.' },
-  { id: 'groceries', title: 'Grocery delivery', icon: 'cart', plan: 'When she says she is low on something, I-on would put a delivery list together for you to check and approve.',
-    today: 'I-on keeps the shopping list from the call. Someone in the family does the shop.' },
-  { id: 'refills', title: 'Pharmacy refills', icon: 'pill', plan: 'When the supply on your list runs low, I-on would ask the pharmacy to get the refill ready. It would never choose or change a medicine.',
-    today: 'I-on shows the days left and puts the refill date in the calendar. Someone in the family calls the pharmacy.' },
-  { id: 'handyman', title: 'A handyman', icon: 'home', plan: 'For small jobs around the house, like a dripping tap or a stiff door, I-on would find a time that suits her.',
-    today: 'I-on notes the job when she mentions it and makes a task. Someone in the family arranges the visit.' },
+  { id: 'rides', title: 'A ride', icon: 'car', plan: 'I-on would book a ride for the time she needs.',
+    today: 'Someone in the family drives or books it.' },
+  { id: 'groceries', title: 'Groceries', icon: 'cart', plan: 'I-on would put a delivery list together for you to check.',
+    today: 'Someone in the family does the shop.' },
+  { id: 'refills', title: 'A refill', icon: 'pill', plan: 'I-on would ask the pharmacy to get it ready. It would never choose or change a medicine.',
+    today: 'Someone in the family calls the pharmacy.' },
+  { id: 'handyman', title: 'A small repair', icon: 'home', plan: 'I-on would find a time that suits her for a small job around the house.',
+    today: 'Someone in the family arranges the visit.' },
 ];
 
 /** The ride request I-on wrote from today's call: what "I-on prepares the request" looks like now. */
 export const preparedRequest = {
   title: 'Ride request, written from today\'s call',
+  quote: 'Could someone take me to the eye doctor on Thursday?',
   lines: [
-    ['Who', 'Maggie Ellis'],
-    ['When', 'Thursday, November 26. Pick up about 1:15 PM.'],
-    ['From', 'Home'],
-    ['To', 'The eye doctor, for 2:00 PM'],
-    ['Back', 'About 4:00 PM'],
-    ['Her words', '"Could someone take me to the eye doctor on Thursday?"'],
-  ] as [string, string][],
+    ['Who', 'Maggie Ellis', 'users'],
+    ['When', 'Thursday, November 26. Pick up about 1:15 PM.', 'clock'],
+    ['From', 'Home', 'home'],
+    ['To', 'The eye doctor, for 2:00 PM', 'door'],
+    ['Back', 'About 4:00 PM', 'home'],
+  ] as [string, string, string][],
 };

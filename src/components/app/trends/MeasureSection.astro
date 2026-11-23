@@ -1,101 +1,142 @@
 ---
 /**
- * One measure on the Trends page. The range blocks (14, 30, 90 days) are all rendered;
- * the page shows one at a time with radio inputs and CSS.
+ * One measure on the Trends page: the chart first and large, two or three figures beside it, one plain sentence,
+ * then what she said. The range blocks (14, 30, 90 days) are all rendered; the page shows one at a time with radio
+ * inputs and CSS. The numbers stay available as a table behind a native <details>.
  */
 import type { HerWords, MetricSeries } from '@/data/types';
 import Chip from '@/components/ui/Chip.astro';
 import Icon from '@/components/ui/Icon.astro';
+import IconBadge from '@/components/ui/IconBadge.astro';
 import LineChart from '@/components/ui/LineChart.astro';
 import StatTile from '@/components/ui/StatTile.astro';
-import FallsStrip from './FallsStrip.astro';
+import DayStrip from './DayStrip.astro';
 import { lastDays } from '@/lib/loaders';
-import { ABOUT, STEPPED, TICKS, dayLabel, summarise, valueWords, short, usualShort } from './measure';
+import { ABOUT, CHART, ICON, STATUS_WORD, TICKS, TONE, dayLabel, dayRows, dayState, latest, summarise, valueWords, short, usualShort } from './measure';
 interface Props { m: MetricSeries; words: HerWords[]; ranges: readonly number[] }
 const { m, words, ranges } = Astro.props;
-const statusLabel = { changed: 'Changed', check: 'Check', usual: 'As usual' }[m.status];
+const kind = CHART[m.id];
+const usual = usualShort(m);
+const UNIT: Record<string, string> = {
+  sleep: 'Hours she said she slept', feeling: 'How she said she felt, out of 10', pain: 'Her pain, out of 10',
+  meals: 'Meals she said she had', fluids: 'Cups she said she drank',
+};
 const blocks = ranges.map((n) => {
   const pts = lastDays(m, n);
   const s = summarise(m, pts);
-  const chartSummary = `${m.title}, last ${n} days. ${s.label}: ${s.value}${s.unit ? ` ${s.unit}` : ''}. Her usual is ${m.usualLabel}. ${s.diff} ${s.noAnswer ? `${s.noAnswer} days with no answer.` : 'An answer on every day.'}`;
-  return { n, pts, s, chartSummary };
+  const chartSummary = `${m.title}, last ${n} days. ${s.label}: ${s.value}${s.unit ? ` ${s.unit}` : ''}. Her usual is ${m.usualLabel}. ${s.diff} ${s.noAnswer ? `${s.noAnswer} ${s.noAnswer === 1 ? 'day' : 'days'} with no answer.` : 'An answer on every day.'}`;
+  const falls = m.id === 'falls' ? pts.filter((p) => (p.value ?? 0) > 0) : [];
+  return { n, pts, s, chartSummary, falls, strip: kind === 'days' ? dayRows(m, pts) : null, flags: pts.map((p) => dayState(m, p.value) === 'changed') };
 });
 const week = summarise(m, lastDays(m, 7));
-const usual = usualShort(m);
-const STRIP = { falls: 'falls', out: 'out' } as const;
-const stripKind = m.id === 'falls' || m.id === 'out' ? STRIP[m.id] : null;
+const lastP = latest(m.points);
+// One thing she said. When two answers disagree (status "check"), both are shown.
+const shown = m.status === 'check' ? words.slice(0, 2) : words.slice(0, 1);
+const more = words.slice(shown.length);
 const table = lastDays(m, 14).slice().reverse();
+const where = (w: HerWords) => `${w.day}, ${w.source ?? 'morning call'}`;
 ---
-<section class="measure" id={m.id} aria-labelledby={`${m.id}-h`}>
+<section class="measure" id={m.id} aria-labelledby={`${m.id}-h`} data-reveal>
   <header class="m-head">
-    <span class="m-icon" aria-hidden="true"><Icon name={m.icon} size={20} /></span>
-    <h2 id={`${m.id}-h`} class="h3">{m.title}</h2>
-    <Chip tone={m.status}>{statusLabel}</Chip>
+    <IconBadge name={ICON[m.id]} tone={TONE[m.id]} size="lg" />
+    <h2 id={`${m.id}-h`} class="m-title">{m.title}</h2>
+    <Chip tone={m.status}>{STATUS_WORD[m.status]}</Chip>
   </header>
-  <p class="m-note">{m.note}</p>
 
   {blocks.map((b) => (
-    <div class="m-range" data-range={b.n}>
-      <div class="tiles">
-        <StatTile label={b.s.label.startsWith("Average") ? `Average, last ${b.n} days` : `Last ${b.n} days`} value={b.s.value} unit={b.s.unit} caption={b.s.diff} flag={b.s.flag} tone={b.s.flag ? 'soft' : 'plain'} />
-        <StatTile label={week.label.startsWith("Average") ? "Average, last 7 days" : "Last 7 days"} value={week.value} unit={week.unit} caption={week.diff} flag={week.flag} tone={week.flag ? 'soft' : 'plain'} />
-        <StatTile label="Her usual" value={usual.value} caption={usual.caption} />
-        <StatTile label="No answer" value={String(b.s.noAnswer)} unit={b.s.noAnswer === 1 ? 'day' : 'days'} caption={`of ${b.n}`} />
+    <div class:list={['m-range', `m-${kind}`]} data-range={b.n}>
+      <div class="m-chart">
+        {b.strip ? (
+          <DayStrip points={b.pts} rows={b.strip.rows} keys={b.strip.keys} summary={b.chartSummary} />
+        ) : (
+          <LineChart points={b.pts} min={m.min} max={m.max} usual={m.usual} usualLabel={usual.value.toLowerCase()} unit={UNIT[m.id] ?? m.title} summary={b.chartSummary} ticks={TICKS[m.id]} kind={kind === 'bars' ? 'bars' : 'line'} flags={b.flags} height={kind === 'bars' ? 230 : 270} />
+        )}
+        {b.falls.length > 0 && (
+          <ul role="list" class="m-falls">
+            {b.falls.map((p) => <li><b>{dayLabel(p.date, { weekday: 'long', month: 'long', day: 'numeric' })}:</b> she told Ion about {p.value === 1 ? 'a fall' : `${p.value} falls`}.</li>)}
+          </ul>
+        )}
       </div>
-      {stripKind ? (
-        <FallsStrip points={b.pts} summary={b.chartSummary} kind={stripKind} />
-      ) : (
-        <LineChart points={b.pts} min={m.min} max={m.max} usual={m.usual} usualLabel={m.usualLabel} unit={`${m.title}, ${m.unit}`} summary={b.chartSummary} ticks={TICKS[m.id]} stepped={STEPPED.includes(m.id)} height={200} />
-      )}
+      <div class="m-figures">
+        <StatTile label={b.s.label.startsWith('Average') ? `Average, last ${b.n} days` : `Last ${b.n} days`} value={b.s.value} unit={b.s.unit} caption={b.s.diff} flag={b.s.flag} tone={b.s.flag ? 'soft' : 'plain'} />
+        {b.n !== 7 && <StatTile label={week.label.startsWith('Average') ? 'Average, last 7 days' : 'Last 7 days'} value={week.value} unit={week.unit} caption={week.flag ? week.diff : undefined} flag={week.flag} tone={week.flag ? 'soft' : 'plain'} />}
+        {kind === 'days' && <StatTile label="Her usual" value={usual.value} caption={usual.caption} />}
+      </div>
     </div>
   ))}
 
-  {words.length > 0 && (
-    <ul role="list" class="m-words" aria-label={`What she said about ${m.title.toLowerCase()}`}>
-      {words.map((w) => (
-        <li><blockquote>&ldquo;{w.text}&rdquo;</blockquote><span>She said, on the {w.day} {w.source ?? 'call'}</span></li>
-      ))}
-    </ul>
-  )}
-
-  <p class="m-about"><b>What this is.</b> {ABOUT[m.id]} It comes from what she said on the call, not from a measurement.</p>
+  <div class="m-story">
+    <p class="m-note">{m.note}</p>
+    {shown.length > 0 && (
+      <div class="m-said">
+        {shown.length > 1 && <p class="m-two"><b>Two answers.</b> Both are kept so you can ask her.</p>}
+        <ul role="list" class:list={['m-words', { two: shown.length > 1 }]} aria-label={`What she said about ${m.title.toLowerCase()}`}>
+          {shown.map((w) => (
+            <li><span class="m-mark" aria-hidden="true">&ldquo;</span><blockquote>{w.text}</blockquote><span class="m-where">{where(w)}</span></li>
+          ))}
+        </ul>
+      </div>
+    )}
+  </div>
 
   <details class="m-table">
-    <summary>Last 14 days as numbers</summary>
-    <div class="t-scroll">
-      <table>
-        <caption class="sr-only">{m.title}, her answer on each of the last 14 days, newest first</caption>
-        <thead><tr><th scope="col">Day</th><th scope="col">Her answer</th><th scope="col">Number</th></tr></thead>
-        <tbody>
-          {table.map((p) => (
-            <tr class:list={{ none: p.value === null }}>
-              <th scope="row">{dayLabel(p.date, { weekday: 'short', month: 'short', day: 'numeric' })}</th>
-              <td>{valueWords(m.id, p.value)}</td>
-              <td class="num">{short(p.value)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <summary><Icon name="down" size={16} />Last 14 days as numbers{more.length > 0 && ', and more of what she said'}</summary>
+    <div class="m-more">
+      <p class="m-about">{ABOUT[m.id]} It is what she said on the call, not a measurement.{lastP && ` Her latest answer: ${valueWords(m.id, lastP.value).toLowerCase()}.`}</p>
+      {more.length > 0 && (
+        <ul role="list" class="m-extra">
+          {more.map((w) => <li><q>{w.text}</q> <span>{where(w)}</span></li>)}
+        </ul>
+      )}
+      <div class="t-scroll" tabindex="0" role="group" aria-label={`${m.title}, last 14 days as numbers. Scroll sideways if needed.`}>
+        <table>
+          <caption class="sr-only">{m.title}, her answer on each of the last 14 days, newest first</caption>
+          <thead><tr><th scope="col">Day</th><th scope="col">Her answer</th><th scope="col">Number</th></tr></thead>
+          <tbody>
+            {table.map((p) => (
+              <tr class:list={{ none: p.value === null }}>
+                <th scope="row">{dayLabel(p.date, { weekday: 'short', month: 'short', day: 'numeric' })}</th>
+                <td>{valueWords(m.id, p.value)}</td>
+                <td class="num">{short(p.value)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   </details>
 </section>
 <style>
-  .measure { display: flex; flex-direction: column; gap: var(--s-4); padding: var(--s-6); border-radius: var(--r-xl); background: var(--surface); border: 1px solid var(--line); min-width: 0; scroll-margin-top: var(--s-6); }
-  .m-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); }
-  .m-icon { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; border-radius: 50%; background: var(--acc-soft); color: var(--acc-text); }
-  .m-head h2 { margin-right: auto; }
-  .m-note { font-size: var(--fs-lg); line-height: 1.5; max-width: 44rem; }
-  .m-range { display: flex; flex-direction: column; gap: var(--s-4); min-width: 0; }
-  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.25rem), 1fr)); gap: var(--s-3); }
-  .m-words { display: flex; flex-direction: column; gap: var(--s-2); }
-  .m-words li { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-1) var(--s-3); padding-left: var(--s-4); border-left: 3px solid var(--acc); }
-  .m-words blockquote { margin: 0; font-size: 1.0625rem; }
-  .m-words span { font-size: var(--fs-sm); color: var(--ink-2); }
-  .m-about { font-size: var(--fs-sm); color: var(--ink-2); }
-  .m-about b { color: var(--ink); font-weight: 600; }
-  .m-table summary { display: inline-flex; align-items: center; min-height: var(--tap); padding: 0 var(--s-4); border-radius: var(--r-pill); border: 1px solid var(--grey-2); font-size: var(--fs-sm); font-weight: 500; cursor: pointer; }
-  .m-table summary:hover { border-color: var(--line-strong); }
-  .m-table[open] summary { margin-bottom: var(--s-3); }
+  .measure { display: flex; flex-direction: column; gap: var(--s-5); padding: var(--s-8); border-radius: var(--r-xl); background: var(--surface); border: 1px solid var(--line); min-width: 0; scroll-margin-top: 6rem; }
+  .m-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-4); }
+  .m-title { margin-right: auto; font-size: 1.75rem; font-weight: 400; line-height: 1.15; letter-spacing: -0.03em; }
+  .m-range { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-5) var(--s-8); align-items: start; min-width: 0; }
+  .m-chart { display: flex; flex-direction: column; gap: var(--s-3); min-width: 0; }
+  .m-figures { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); gap: var(--s-2); }
+  .m-falls { font-size: 0.9375rem; line-height: 1.5; }
+  .m-falls b { font-weight: 500; }
+  .m-story { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: var(--s-4) var(--s-8); align-items: center; padding-top: var(--s-5); border-top: 1px solid var(--line); }
+  .m-note { font-size: 1.3125rem; font-weight: 400; line-height: 1.35; letter-spacing: -0.015em; text-wrap: balance; }
+  .m-words { display: grid; gap: var(--s-3); }
+  .m-words.two { grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); }
+  .m-words li { position: relative; display: flex; flex-direction: column; gap: var(--s-1); padding: var(--s-4) var(--s-5) var(--s-4) 3.75rem; border-radius: var(--r-lg); background: var(--acc-soft); }
+  .m-mark { position: absolute; left: var(--s-4); top: var(--s-4); display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 50%; background: var(--surface); color: var(--acc-text); font-size: 1.75rem; font-weight: 600; line-height: 1; padding-top: 0.625rem; }
+  .m-words blockquote { margin: 0; font-size: 1.0625rem; font-weight: 500; line-height: 1.4; }
+  .m-where { font-size: var(--fs-sm); color: var(--ink-2); }
+  .m-said { display: flex; flex-direction: column; gap: var(--s-2); min-width: 0; }
+  .m-two { font-size: 0.9375rem; color: var(--ink-2); }
+  .m-two b { color: var(--ink); font-weight: 600; }
+  .m-table summary { display: inline-flex; align-items: center; gap: var(--s-2); min-height: var(--tap); font-size: 0.9375rem; font-weight: 500; color: var(--acc-text); cursor: pointer; list-style: none; border-radius: var(--r-sm); }
+  .m-table summary::-webkit-details-marker { display: none; }
+  .m-table summary :global(svg) { transition: transform 0.2s var(--ease); }
+  .m-table[open] summary :global(svg) { transform: rotate(180deg); }
+  .m-table { margin-block: calc(-1 * var(--s-2)); }
+  .m-more { display: flex; flex-direction: column; gap: var(--s-3); padding: var(--s-2) 0 var(--s-3); }
+  .m-about { max-width: 44rem; font-size: 0.9375rem; line-height: 1.55; color: var(--ink-2); }
+  .m-extra { display: flex; flex-direction: column; gap: var(--s-2); font-size: 0.9375rem; }
+  .m-extra li { padding-left: var(--s-3); border-left: 3px solid var(--acc); }
+  .m-extra q { font-weight: 500; }
+  .m-extra span { font-size: var(--fs-sm); color: var(--ink-2); margin-left: var(--s-2); }
   .t-scroll { overflow-x: auto; }
   table { width: 100%; max-width: 32rem; border-collapse: collapse; font-size: 0.9375rem; }
   th, td { padding: var(--s-2) var(--s-3); text-align: left; border-bottom: 1px solid var(--line); }
@@ -103,9 +144,11 @@ const table = lastDays(m, 14).slice().reverse();
   tbody th { font-weight: 400; white-space: nowrap; }
   td.num { text-align: right; font-variant-numeric: tabular-nums; }
   tr.none td { color: var(--ink-2); font-style: italic; }
+  @media (min-width: 80rem) {
+    .m-range:not(.m-days) { grid-template-columns: minmax(0, 1fr) 13.5rem; align-items: center; }
+    .m-range:not(.m-days) .m-figures { grid-template-columns: minmax(0, 1fr); }
+  }
   @media (max-width: 30rem) {
-    .measure { padding: var(--s-4); border-radius: var(--r-lg); }
-    .tiles :global(.tile) { padding: var(--s-3) var(--s-4); }
-    .tiles :global(.tile-value) { font-size: 1.375rem; }
+    .measure { padding: var(--s-5); border-radius: var(--r-lg); }
   }
 </style>

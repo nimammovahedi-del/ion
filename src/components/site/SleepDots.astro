@@ -1,9 +1,10 @@
 ---
 /**
- * Sleep over the last 14 nights as a dot matrix: one column per night, one row of dots per half hour.
+ * Sleep over the last 14 nights as a dot chart: one column per night, one row of dots per half hour.
  * Drawn at build time. The dots fill in from the bottom when the chart comes into view (BaseLayout's
  * [data-reveal] observer adds .is-in). Without JavaScript or with reduced motion every dot is simply shown.
  */
+import Chip from '@/components/ui/Chip.astro';
 import { getMetric, lastDays, getParent } from '@/lib/loaders';
 const [sleep, parent] = await Promise.all([getMetric('sleep'), getParent()]);
 const nights = lastDays(sleep, 14);
@@ -26,12 +27,17 @@ const summary = `Dot chart of ${parent.short}'s sleep over the last 14 nights. H
 const uid = `sd-${Math.random().toString(36).slice(2, 7)}`;
 ---
 <figure class="sd">
+  <figcaption class="sd-head">
+    <span class="sd-title">{parent.short}'s sleep, last 14 nights</span>
+    <Chip tone="info">Example data</Chip>
+  </figcaption>
+  <p class="sd-callout"><strong class="num">{last.value !== null ? fmt(last.value) : 'No answer'} hours last night.</strong> {under > 0 ? `${fmt(under)} hours under her usual, the fourth short night in a row.` : 'Close to her usual.'}</p>
   <div class="sd-chart">
     <div class="sd-plot" data-reveal>
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={summary} preserveAspectRatio="xMidYMid meet">
         <defs>
-          <pattern id={`${uid}-a`} width="10" height={ROW_H} patternUnits="userSpaceOnUse"><circle cx="5" cy="5" r="3.2" class="dot-usual" /></pattern>
-          <pattern id={`${uid}-b`} width="10" height={ROW_H} patternUnits="userSpaceOnUse"><circle cx="5" cy="5" r="3.2" class="dot-low" /></pattern>
+          <pattern id={`${uid}-a`} width="10" height={ROW_H} patternUnits="userSpaceOnUse"><circle cx="5" cy="5" r="3.4" class="dot-usual" /></pattern>
+          <pattern id={`${uid}-b`} width="10" height={ROW_H} patternUnits="userSpaceOnUse"><circle cx="5" cy="5" r="3.4" class="dot-low" /></pattern>
         </defs>
         {cols.map((c, ci) => (
           <g>
@@ -45,17 +51,12 @@ const uid = `sd-${Math.random().toString(36).slice(2, 7)}`;
     </div>
     <div class="sd-axis" aria-hidden="true"><span>{nights[0].label}</span><span>Today</span></div>
   </div>
-  <figcaption class="sd-info">
-    <span class="sd-head">
-      <span class="sd-title"><span class="sd-key-dot" aria-hidden="true"></span>{parent.short}'s sleep, last 14 nights</span>
-      <span class="mono">Example data</span>
-    </span>
-    <span class="sd-callout"><strong class="num">{last.value !== null ? fmt(last.value) : 'No answer'} hours last night.</strong> {under > 0 ? `${fmt(under)} hours under her usual, the fourth short night in a row.` : 'Close to her usual.'}</span>
-    <span class="sd-keys">
-      <span class="key"><span class="key-dash" aria-hidden="true"></span>Her usual, {sleep.usualLabel}</span>
-      <span class="key"><span class="key-dot" aria-hidden="true"></span>Each row of dots is half an hour of sleep</span>
-      <span class="key"><span class="key-dot low" aria-hidden="true"></span>The last four nights, lower than usual</span>
-    </span>
+  <div class="sd-foot">
+    <ul role="list" class="sd-keys">
+      <li class="key"><span class="key-dash" aria-hidden="true"></span>Her usual, {sleep.usualLabel}</li>
+      <li class="key"><span class="key-dot" aria-hidden="true"></span>A row of dots is half an hour</li>
+      <li class="key"><span class="key-dot low" aria-hidden="true"></span>The last four nights, shorter</li>
+    </ul>
     <details class="sd-table">
       <summary>See the numbers</summary>
       <div class="sd-scroll">
@@ -68,26 +69,22 @@ const uid = `sd-${Math.random().toString(36).slice(2, 7)}`;
         </table>
       </div>
     </details>
-  </figcaption>
+  </div>
 </figure>
 <style>
-  .sd { display: grid; grid-template-columns: minmax(0, 20rem) minmax(0, 1fr); gap: var(--s-6) var(--s-12); align-items: end; min-width: 0; }
-  .sd-chart { order: 2; display: flex; flex-direction: column; gap: var(--s-2); min-width: 0; }
-  .sd-info { order: 1; display: flex; flex-direction: column; gap: var(--s-4); min-width: 0; }
-  @media (max-width: 60rem) {
-    .sd { grid-template-columns: minmax(0, 1fr); }
-  }
-  .sd-head { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s-1); }
-  .sd-title { display: inline-flex; line-height: 1.35; align-items: center; gap: var(--s-2); font-weight: 500; font-size: var(--fs-lg); }
-  .sd-key-dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--deep); }
-  .sd-callout { display: block; line-height: 1.55; font-size: var(--fs-body); color: var(--ink-2); }
+  .sd { display: flex; flex-direction: column; gap: var(--s-4); min-width: 0; }
+  .sd-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-2); }
+  .sd-title { font-weight: 500; font-size: var(--fs-h3); letter-spacing: -0.02em; line-height: 1.3; }
+  .sd-callout { line-height: 1.5; color: var(--ink-2); }
   .sd-callout strong { color: var(--ink); font-weight: 600; }
+  .sd-chart { display: flex; flex-direction: column; gap: var(--s-2); min-width: 0; padding-top: var(--s-2); }
   .sd-plot svg { width: 100%; height: auto; overflow: visible; }
   .dot-usual { fill: var(--acc); }
   .dot-low { fill: var(--deep); }
   .sd-usual { stroke: var(--ink); stroke-width: 1.5; stroke-dasharray: 5 5; }
   .sd-axis { display: flex; justify-content: space-between; font-size: var(--fs-sm); color: var(--ink-2); }
-  .sd-keys { display: flex; flex-direction: column; gap: var(--s-2); font-size: var(--fs-sm); color: var(--ink-2); }
+  .sd-foot { display: flex; flex-direction: column; gap: var(--s-1); }
+  .sd-keys { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-5); font-size: var(--fs-sm); color: var(--ink-2); }
   .key { display: inline-flex; align-items: center; gap: var(--s-2); }
   .key-dash { width: 1.25rem; border-top: 2px dashed var(--ink); }
   .key-dot { width: 0.625rem; height: 0.625rem; border-radius: 50%; background: var(--acc); }
@@ -95,7 +92,7 @@ const uid = `sd-${Math.random().toString(36).slice(2, 7)}`;
   .sd-table summary { display: inline-flex; align-items: center; min-height: var(--tap); cursor: pointer; font-size: var(--fs-sm); font-weight: 500; color: var(--acc-text); }
   .sd-scroll { overflow-x: auto; }
   table { border-collapse: collapse; font-size: var(--fs-sm); min-width: 12rem; }
-  th, td { text-align: left; padding: var(--s-1) var(--s-6) var(--s-1) 0; border-bottom: 1px solid var(--line); font-weight: 400; }
+  th, td { text-align: left; padding: var(--s-1) var(--s-6) var(--s-1) 0; border-bottom: 1px solid var(--line-strong); font-weight: 400; }
   thead th { font-weight: 600; }
 
   /* Fill in from the bottom, night by night. */

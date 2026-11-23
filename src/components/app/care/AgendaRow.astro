@@ -1,25 +1,38 @@
 ---
 /** One thing on a calendar day. Also used inside a <template> so items added in the browser look the same. */
-import ListRow from './ListRow.astro';
 import Chip from '@/components/ui/Chip.astro';
 import Icon from '@/components/ui/Icon.astro';
+import IconBadge from '@/components/ui/IconBadge.astro';
 import './care.css';
 interface Props { kind: 'appointment' | 'visit' | 'refill' | 'call'; title?: string; time?: string; note?: string; mention?: string; sort?: number; added?: boolean; id?: string }
 const { kind, title = '', time, note, mention, sort = -1, added = false, id } = Astro.props;
-const KIND = { appointment: { icon: 'clock', label: 'Appointment' }, visit: { icon: 'users', label: 'Visit' }, refill: { icon: 'pill', label: 'Refill' }, call: { icon: 'phone', label: 'Call' } } as const;
+const KIND = {
+  appointment: { icon: 'clock', label: 'Appointment', tone: 'acc' }, visit: { icon: 'users', label: 'Visit', tone: 'leaf' },
+  refill: { icon: 'pill', label: 'Refill', tone: 'sky' }, call: { icon: 'phone', label: 'Call', tone: 'butter' },
+} as const;
 const k = KIND[kind];
 ---
-<ListRow icon={k.icon} data-sort={sort} data-item={id} class="ag">
-  <p class="lr-title" data-slot="title">{title}</p>
-  <p class="lr-meta"><span class="num" data-slot="time">{time ?? ''}</span><Chip tone="info">{k.label}</Chip>{added && <span>Added by you</span>}</p>
-  {(note || added) && <p class="lr-note" data-slot="note" hidden={!note}>{note}</p>}
-  <p class="ag-mention" data-slot-wrap="mention" hidden={!mention}><Icon name="chat" size={16} /><span data-slot="mention">{mention}</span></p>
+<li class="ag" data-sort={sort} data-item={id} data-kind={kind}>
+  <IconBadge name={k.icon} tone={k.tone} size="md" />
+  <div class="ag-body">
+    <p class="ag-title"><span data-slot="title">{title}</span><span class="ag-time num" data-slot="time">{time ?? ''}</span></p>
+    <p class="ag-meta"><Chip tone="info">{k.label}</Chip>{(note || added) && <span data-slot="note" hidden={!note}>{note}</span>}{added && <span>Added by you</span>}</p>
+    <p class="ag-mention" data-slot-wrap="mention" hidden={!mention}><Icon name="chat" size={16} /><span data-slot="mention">{mention}</span></p>
+  </div>
   {added && <button type="button" class="cf-link ag-remove" data-remove>Remove<span class="sr-only" data-slot="remove-label"> {title}</span></button>}
-</ListRow>
+</li>
 <style>
-  .ag-mention { display: flex; align-items: flex-start; gap: var(--s-2); margin-top: var(--s-1); font-size: var(--fs-sm); line-height: 1.5; color: var(--acc-text); }
+  .ag { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--s-3) var(--s-4); padding: var(--s-3) var(--s-4); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); min-width: 0; }
+  .ag-body { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
+  .ag-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--s-3); font-size: 1.0625rem; font-weight: 500; line-height: 1.4; overflow-wrap: anywhere; }
+  .ag-time { font-size: 0.9375rem; font-weight: 400; color: var(--ink-2); }
+  .ag-time:empty { display: none; }
+  .ag-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1) var(--s-3); font-size: var(--fs-sm); color: var(--ink-2); line-height: 1.5; }
+  .ag-mention { display: flex; align-items: flex-start; gap: var(--s-2); font-size: var(--fs-sm); line-height: 1.5; color: var(--acc-text); }
   .ag-mention :global(svg) { flex: none; margin-top: 0.1875rem; }
   .ag-mention[hidden], [data-slot='note'][hidden] { display: none; }
-  [data-slot='time']:empty { display: none; }
-  .ag-remove { align-self: flex-start; margin-left: calc(var(--s-3) * -1); }
+  @media (max-width: 34rem) {
+    .ag { grid-template-columns: auto minmax(0, 1fr); }
+    .ag-remove { grid-column: 2; justify-self: start; margin-left: calc(var(--s-3) * -1); }
+  }
 </style>

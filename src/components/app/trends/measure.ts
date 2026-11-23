@@ -166,3 +166,62 @@ export function usualShort(m: MetricSeries): { value: string; caption?: string }
   const [main, ...rest] = m.usualLabel.split(', ');
   return { value: main.charAt(0).toUpperCase() + main.slice(1), caption: rest.length ? rest.join(', ') : undefined };
 }
+
+// ---- Added for the warm redesign: how each measure is drawn ----
+
+/** The icon on each measure's tile. */
+export const ICON: Record<MetricId, string> = {
+  sleep: 'moon', feeling: 'heart', pain: 'spark', meals: 'bowl', fluids: 'cup', medicines: 'pill', falls: 'walk', out: 'door',
+};
+
+/** The tint of each measure's icon tile. Variety only: the tint never carries meaning. */
+export const TONE: Record<MetricId, 'acc' | 'leaf' | 'butter' | 'sky'> = {
+  sleep: 'sky', feeling: 'acc', pain: 'butter', meals: 'leaf', fluids: 'sky', medicines: 'leaf', falls: 'butter', out: 'leaf',
+};
+
+export const STATUS_WORD = { changed: 'Changed', check: 'Check', usual: 'As usual' } as const;
+
+/** Which picture suits a measure: a line, bars per day, or rows of marked days. */
+export const CHART: Record<MetricId, 'line' | 'bars' | 'days'> = {
+  sleep: 'line', feeling: 'line', pain: 'line', fluids: 'line', meals: 'bars', medicines: 'days', falls: 'days', out: 'days',
+};
+
+/** The most recent answer in a series, or null when there is none. */
+export function latest(pts: DayPoint[]): DayPoint | null {
+  for (let i = pts.length - 1; i >= 0; i--) if (pts[i].value !== null) return pts[i];
+  return null;
+}
+
+/** A changed day's answer, short enough to sit inside a small pill. */
+export function cellShort(id: MetricId, v: number): string {
+  if (id === 'medicines') return `${v} of 2`;
+  if (id === 'falls') return v === 1 ? 'Fall' : `${v} falls`;
+  return Number.isInteger(v) ? String(v) : v.toFixed(1);
+}
+
+/** "Sat, Sun and Mon" */
+export const listWords = (xs: string[]) => (xs.length <= 2 ? xs.join(' and ') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
+
+/** A yes-or-no measure as rows of marked days, for DayStrip. Medicines get one row per pill time. */
+export function dayRows(m: MetricSeries, pts: DayPoint[]): { rows: { label?: string; cells: ('yes' | 'no' | 'flag' | 'none')[]; words: string[] }[]; keys: { cell: 'yes' | 'no' | 'flag' | 'none'; label: string }[] } {
+  const none = { cell: 'none' as const, label: 'No answer' };
+  if (m.id === 'medicines') {
+    // r1 rule, the same as getPillTimesTaken: a day with one of two pill times was the evening pills.
+    const row = (label: string, need: number) => ({
+      label,
+      cells: pts.map((p) => (p.value === null ? 'none' as const : p.value >= need ? 'yes' as const : 'flag' as const)),
+      words: pts.map((p) => (p.value === null ? 'no answer' : p.value >= need ? 'she said she took them' : 'not taken, or she was not sure')),
+    });
+    return { rows: [row('Morning', 1), row('Evening', 2)], keys: [{ cell: 'yes', label: 'She said she took them' }, { cell: 'flag', label: 'Not taken, or not sure' }, none] };
+  }
+  if (m.id === 'falls') {
+    return {
+      rows: [{ cells: pts.map((p) => (p.value === null ? 'none' : p.value > 0 ? 'flag' : 'no')), words: pts.map((p) => (p.value === null ? 'no answer' : p.value > 0 ? 'a fall' : 'no fall')) }],
+      keys: [{ cell: 'no', label: 'No fall' }, { cell: 'flag', label: 'A fall she told Ion about' }, none],
+    };
+  }
+  return {
+    rows: [{ cells: pts.map((p) => (p.value === null ? 'none' : p.value > 0 ? 'yes' : 'no')), words: pts.map((p) => (p.value === null ? 'no answer' : p.value > 1 ? 'out twice' : p.value > 0 ? 'went out' : 'stayed in')) }],
+    keys: [{ cell: 'yes', label: 'Went out' }, { cell: 'no', label: 'Stayed in' }, none],
+  };
+}

@@ -30,6 +30,9 @@ export interface AskedQuestion { id: string; text: string; by: string; date: str
 
 
 export interface PlannedService { id: string; title: string; icon: string; plan: string; today: string; }
+export interface PreparedRequest { title: string; quote: string; lines: [string, string, string][]; }   // each line: label, value, icon
 
 export type Hearing = 'daily' | 'changes';
-export interface CircleMember extends Person { hearing: Hearing; sees: string[]; does: string[]; joined: string; }
+/** One thing a person in the circle may do, with a small icon. `allowed` is false for things only the main caregiver does. */
+export interface Ability { id: string; icon: string; label: string; mainOnly: boolean; allowed: boolean; }
+export interface CircleMember extends Person { hearing: Hearing; sees: string[]; does: string[]; joined: string; abilities: Ability[]; }

@@ -1,0 +1,19 @@
+---
+/** A small sun or moon, for "morning" and "evening". Decoration: the words beside it say which. */
+interface Props { name: 'sun' | 'moon'; class?: string }
+const { name, class: cls = '' } = Astro.props;
+---
+{name === 'sun' ? (
+  <svg class:list={['sky-art', cls]} viewBox="0 0 72 72" aria-hidden="true">
+    <path d="M36 6v8M36 58v8M6 36h8M58 36h8M14.800 14.800l5.600 5.600M51.600 51.600l5.600 5.600M14.800 57.200l5.600-5.600M51.600 20.400l5.600-5.600" fill="none" stroke="var(--sun)" stroke-width="5" stroke-linecap="round" />
+    <circle cx="36" cy="36" r="15" fill="var(--sun)" />
+  </svg>
+) : (
+  <svg class:list={['sky-art', cls]} viewBox="0 0 72 72" aria-hidden="true">
+    <path d="M56 44A23 23 0 0 1 28 16a23 23 0 1 0 28 28z" fill="var(--deep)" />
+    <circle cx="52" cy="18" r="3" fill="var(--surface)" /><circle cx="61" cy="31" r="2" fill="var(--surface)" /><circle cx="42" cy="9" r="2" fill="var(--surface)" />
+  </svg>
+)}
+<style is:global>
+  .sky-art { flex: none; width: 3.5rem; height: 3.5rem; }
+</style>

@@ -1,0 +1,83 @@
+---
+/**
+ * The warm opening of Today: Ion, the day in one sentence, the call, one status in words, and one thing she said in big type.
+ * The rest of what she said sits behind a native <details>, so nothing is lost and nothing shouts.
+ */
+import Chip from '@/components/ui/Chip.astro';
+import Icon from '@/components/ui/Icon.astro';
+import Capybara from '@/components/ui/Capybara.astro';
+interface Props {
+  name: string; callTime: string; callMinutes: number;
+  headline: string; overall: string; overallTone: 'changed' | 'check' | 'usual';
+  quotes: { text: string; about: string }[]; said: string; needsLink?: boolean;
+}
+const { name, callTime, callMinutes, headline, overall, overallTone, quotes, said, needsLink = false } = Astro.props;
+const [main, ...rest] = quotes;
+const lower = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
+---
+<section class="open" aria-labelledby="open-h" data-reveal>
+  <div class="open-ion">
+    <Capybara size={176} ground="var(--surface)" label="Ion the capybara, who made this morning's call" />
+  </div>
+  <div class="open-words">
+    <Chip tone={overallTone} dot>{overall}</Chip>
+    <h2 id="open-h" class="open-headline"><span class="sr-only">How she is today: </span>{headline}</h2>
+    <p class="open-call"><span class="open-call-icon" aria-hidden="true"><Icon name="phone" size={16} /></span>Ion called {name} at {callTime}. They talked for {callMinutes} minutes.</p>
+    {needsLink && <a class="open-needs" href="#needs"><Icon name="tasks" size={16} />See what needs you today</a>}
+  </div>
+  {main && (
+    <figure class="open-quote">
+      <span class="open-mark" aria-hidden="true">&ldquo;</span>
+      <blockquote><p>{main.text}</p></blockquote>
+      <figcaption>{name}, {lower(main.about)}</figcaption>
+      <details class="open-more">
+        <summary><Icon name="down" size={16} />More from the call</summary>
+        <div class="open-more-body">
+          <p>{said}</p>
+          {rest.length > 0 && (
+            <ul role="list">
+              {rest.map((q) => <li><q>{q.text}</q><span>{q.about}</span></li>)}
+            </ul>
+          )}
+        </div>
+      </details>
+    </figure>
+  )}
+</section>
+<style>
+  .open { display: grid; grid-template-columns: auto minmax(0, 1.15fr) minmax(0, 1fr); align-items: center; gap: var(--s-8); padding: var(--s-8) var(--s-10); border-radius: var(--r-xl); background: var(--acc-soft); min-width: 0; }
+  .open-ion :global(svg) { width: 11rem; }
+  .open-words { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s-4); min-width: 0; }
+  .open-words :global(.chip) { white-space: normal; min-height: 2rem; line-height: 1.3; padding-block: 0.25rem; }
+  .open-headline { font-size: clamp(1.75rem, 2.6vw, 2.375rem); font-weight: 400; line-height: 1.12; letter-spacing: -0.03em; text-wrap: balance; }
+  .open-call { display: flex; align-items: center; gap: var(--s-2); font-size: 0.9375rem; line-height: 1.4; color: var(--ink); }
+  .open-call-icon { flex: none; display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 50%; background: var(--surface); color: var(--acc-text); }
+
+  .open-needs { display: inline-flex; align-items: center; gap: var(--s-2); min-height: var(--tap); padding: 0 var(--s-4); border-radius: var(--r-pill); background: var(--deep); color: var(--on-deep); font-size: 0.9375rem; font-weight: 500; text-decoration: none; transition: background 0.15s var(--ease); }
+  .open-needs:hover { background: var(--deep-hover); color: var(--on-deep); }
+  .open-quote { position: relative; display: flex; flex-direction: column; gap: var(--s-2); padding: var(--s-6) var(--s-6) var(--s-3); border-radius: var(--r-lg); background: var(--surface); box-shadow: var(--shadow-1); min-width: 0; }
+  .open-mark { position: absolute; top: calc(-1 * var(--s-5)); left: var(--s-5); display: grid; place-items: center; width: 2.75rem; height: 2.75rem; border-radius: 50%; background: var(--acc); color: var(--on-acc); font-size: 2.25rem; font-weight: 600; line-height: 1; padding-top: 0.75rem; }
+  .open-quote blockquote { margin: 0; padding-top: var(--s-2); }
+  .open-quote blockquote p { font-size: clamp(1.5rem, 2.1vw, 1.875rem); font-weight: 400; line-height: 1.15; letter-spacing: -0.025em; text-wrap: balance; }
+  .open-quote figcaption { font-size: var(--fs-sm); color: var(--ink-2); }
+  .open-more { margin-top: var(--s-2); border-top: 1px solid var(--line); }
+  .open-more summary { display: inline-flex; align-items: center; gap: var(--s-2); min-height: var(--tap); font-size: var(--fs-sm); font-weight: 500; color: var(--acc-text); cursor: pointer; list-style: none; border-radius: var(--r-sm); }
+  .open-more summary::-webkit-details-marker { display: none; }
+  .open-more summary :global(svg) { transition: transform 0.2s var(--ease); }
+  .open-more[open] summary :global(svg) { transform: rotate(180deg); }
+  .open-more-body { display: flex; flex-direction: column; gap: var(--s-3); padding-bottom: var(--s-3); font-size: 0.9375rem; line-height: 1.55; }
+  .open-more-body ul { display: flex; flex-direction: column; gap: var(--s-2); }
+  .open-more-body li { display: flex; flex-direction: column; padding-left: var(--s-3); border-left: 3px solid var(--acc); }
+  .open-more-body q { font-weight: 500; }
+  .open-more-body li span { font-size: var(--fs-sm); color: var(--ink-2); }
+
+  @container (max-width: 58rem) {
+    .open { grid-template-columns: auto minmax(0, 1fr); padding: var(--s-6); gap: var(--s-6); }
+    .open-ion :global(svg) { width: 7rem; }
+    .open-quote { grid-column: 1 / -1; margin-top: var(--s-3); }
+  }
+  @container (max-width: 34rem) {
+    .open { grid-template-columns: minmax(0, 1fr); padding: var(--s-5); border-radius: var(--r-lg); }
+    .open-ion :global(svg) { width: 5.5rem; }
+  }
+</style>

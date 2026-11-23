@@ -1,70 +1,156 @@
 ---
 /**
- * Line chart drawn as inline SVG at build time. No chart library.
- * points: oldest first. Null values are days with no answer and break the line.
- * Always pass `summary`: it is what a screen reader hears, and a data table is rendered next to the chart.
+ * The chart for one measure, drawn as inline SVG at build time. No chart library.
+ * kind "line": a soft filled line. kind "bars": one rounded bar per day (for small whole numbers such as meals).
+ * points: oldest first. A null value is a day with no answer: the line breaks there, and a bar is left out.
+ * usual: her usual, drawn as a dashed line with its label at the right end.
+ * flags: one true per day that was different from her usual. Runs of them get a soft band behind the line.
+ * The last answer is marked with a dot and its value.
+ * Always pass `summary`: it is what a screen reader hears. Offer the numbers as a table next to the chart as well.
  */
 import type { DayPoint } from '@/data/types';
 interface Props {
   points: DayPoint[]; min: number; max: number; usual?: number; usualLabel?: string; unit: string;
-  summary: string; height?: number; ticks?: number[]; area?: boolean; id?: string; stepped?: boolean;
+  summary: string; height?: number; ticks?: number[]; area?: boolean; stepped?: boolean;
+  kind?: 'line' | 'bars'; flags?: boolean[]; lastLabel?: string;
 }
-const { points, min, max, usual, usualLabel, unit, summary, height = 220, ticks, area = true, stepped = false } = Astro.props;
-const W = 720, H = height, L = 40, R = 16, T = 16, B = 30;
+const { points, min, max, usual, usualLabel, unit, summary, height = 280, ticks, area = true, stepped = false, kind = 'line', flags = [], lastLabel } = Astro.props;
+const W = 760, H = height, L = 34, R = usual !== undefined ? 96 : 20, T = 30, B = 34;
 const iw = W - L - R, ih = H - T - B;
-const x = (i: number) => L + (points.length === 1 ? iw / 2 : (i / (points.length - 1)) * iw);
+const n = points.length;
+const step = n > 1 ? iw / (n - 1) : iw;
+const pad = kind === 'bars' ? Math.min(14, step / 2) : 6;   // keep the first and last day off the axis
+const x = (i: number) => L + pad + (n === 1 ? (iw - 2 * pad) / 2 : (i / (n - 1)) * (iw - 2 * pad));
 const y = (v: number) => T + ih - ((v - min) / (max - min)) * ih;
+const f = (v: number) => v.toFixed(1);
 const tk = ticks ?? [min, min + (max - min) / 2, max];
-// split into runs of answered days
-const runs: { i: number; v: number }[][] = [];
-let cur: { i: number; v: number }[] = [];
+const fmt = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1));
+
+// runs of answered days
+type P = { i: number; v: number };
+const runs: P[][] = [];
+let cur: P[] = [];
 points.forEach((p, i) => { if (p.value === null) { if (cur.length) runs.push(cur); cur = []; } else cur.push({ i, v: p.value }); });
 if (cur.length) runs.push(cur);
-const linePath = (run: { i: number; v: number }[]) => run.map((p, k) => {
-  if (k === 0) return `M${x(p.i).toFixed(1)} ${y(p.v).toFixed(1)}`;
-  return stepped ? `H${x(p.i).toFixed(1)} V${y(p.v).toFixed(1)}` : `L${x(p.i).toFixed(1)} ${y(p.v).toFixed(1)}`;
-}).join(' ');
-const areaPath = (run: { i: number; v: number }[]) => `${linePath(run)} L${x(run[run.length - 1].i).toFixed(1)} ${T + ih} L${x(run[0].i).toFixed(1)} ${T + ih} Z`;
-const last = [...points].map((p, i) => ({ ...p, i })).reverse().find((p) => p.value !== null);
-const labelEvery = Math.max(1, Math.round(points.length / 6));
-const fmt = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1));
+
+// A smooth line that passes through every answer and never swings past one (monotone cubic).
+function smooth(run: P[]): string {
+  const px = run.map((p) => x(p.i)), py = run.map((p) => y(p.v));
+  if (run.length < 3 || stepped) {
+    return run.map((p, k) => (k === 0 ? `M${f(px[k])} ${f(py[k])}` : stepped ? `H${f(px[k])} V${f(py[k])}` : `L${f(px[k])} ${f(py[k])}`)).join(' ');
+  }
+  const d: number[] = [], m: number[] = [];
+  for (let k = 0; k < px.length - 1; k++) d.push((py[k + 1] - py[k]) / (px[k + 1] - px[k]));
+  m.push(d[0]);
+  for (let k = 1; k < px.length - 1; k++) m.push(d[k - 1] * d[k] <= 0 ? 0 : (d[k - 1] + d[k]) / 2);
+  m.push(d[d.length - 1]);
+  for (let k = 0; k < d.length; k++) {
+    if (d[k] === 0) { m[k] = 0; m[k + 1] = 0; continue; }
+    const a = m[k] / d[k], b = m[k + 1] / d[k], s = a * a + b * b;
+    if (s > 9) { const t = 3 / Math.sqrt(s); m[k] = t * a * d[k]; m[k + 1] = t * b * d[k]; }
+  }
+  let out = `M${f(px[0])} ${f(py[0])}`;
+  for (let k = 0; k < d.length; k++) {
+    const h = (px[k + 1] - px[k]) / 3;
+    out += ` C${f(px[k] + h)} ${f(py[k] + m[k] * h)} ${f(px[k + 1] - h)} ${f(py[k + 1] - m[k + 1] * h)} ${f(px[k + 1])} ${f(py[k + 1])}`;
+  }
+  return out;
+}
+const areaPath = (run: P[]) => `${smooth(run)} L${f(x(run[run.length - 1].i))} ${T + ih} L${f(x(run[0].i))} ${T + ih} Z`;
+
+// soft bands behind runs of days that were different from her usual
+const bands: { a: number; b: number }[] = [];
+flags.forEach((on, i) => { if (!on) return; const last = bands[bands.length - 1]; if (last && last.b === i - 1) last.b = i; else bands.push({ a: i, b: i }); });
+const half = n > 1 ? Math.max(6, (iw - 2 * pad) / (n - 1) / 2) : 12;
+
+const lastP = [...points].map((p, i) => ({ ...p, i })).reverse().find((p) => p.value !== null);
+const lastText = lastP ? (lastLabel ?? fmt(lastP.value as number)) : '';
+const tagW = lastText.length * 7.6 + 18;
+const tagX = lastP ? Math.min(x(lastP.i) - tagW / 2, W - R - tagW - 2) : 0;
+const tagAbove = lastP ? y(lastP.value as number) - 40 >= 2 : true;
+const tagY = lastP ? (tagAbove ? y(lastP.value as number) - 38 : y(lastP.value as number) + 14) : 0;
+
+const labelEvery = Math.max(1, Math.round(n / 6));
+const showLabel = (i: number) => i === n - 1 || (i % labelEvery === 0 && n - 1 - i >= labelEvery * 0.6);
+const bw = Math.max(3, Math.min(22, step * 0.62));
+const gaps = points.filter((p) => p.value === null).length;
+const [usualA, usualB] = usualLabel ? ['Her usual', usualLabel] : ['Her usual', ''];
 ---
-<figure class="chart">
+<figure class="chart" data-draw>
   <div class="scroll" tabindex="0" role="group" aria-label={`${summary} Scroll sideways to see the whole chart.`}>
-  <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={summary} preserveAspectRatio="xMidYMid meet">
-    <g class="grid">
-      {tk.map((t) => <line x1={L} x2={W - R} y1={y(t)} y2={y(t)} />)}
-    </g>
-    <g class="axis">
-      {tk.map((t) => <text x={L - 8} y={y(t) + 4} text-anchor="end">{fmt(t)}</text>)}
-      {points.map((p, i) => (i % labelEvery === 0 || i === points.length - 1) && (i === points.length - 1 || points.length - 1 - i >= labelEvery * 0.6) ? <text x={x(i)} y={H - 8} text-anchor={i === 0 ? 'start' : i === points.length - 1 ? 'end' : 'middle'}>{p.label}</text> : null)}
-    </g>
-    {usual !== undefined && <line class="usual" x1={L} x2={W - R} y1={y(usual)} y2={y(usual)} />}
-    {area && runs.filter((r) => r.length > 1).map((r) => <path class="area" d={areaPath(r)} />)}
-    {runs.map((r) => r.length > 1 ? <path class="line" d={linePath(r)} /> : <circle class="pt" cx={x(r[0].i)} cy={y(r[0].v)} r="3" />)}
-    {last && <circle class="last" cx={x(last.i)} cy={y(last.value as number)} r="5.5" />}
-  </svg>
+    <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={summary} preserveAspectRatio="xMidYMid meet">
+      {bands.map((b) => <rect class="band" x={x(b.a) - half} y={T - 10} width={x(b.b) - x(b.a) + 2 * half} height={ih + 10} rx="12" />)}
+      <g class="grid">
+        {tk.map((t) => <line x1={L} x2={W - R} y1={y(t)} y2={y(t)} />)}
+      </g>
+      <g class="axis">
+        {tk.map((t) => <text x={L - 10} y={y(t) + 4} text-anchor="end">{fmt(t)}</text>)}
+        {points.map((p, i) => showLabel(i) ? <text x={x(i)} y={H - 10} text-anchor={i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'}>{i === n - 1 ? 'Today' : p.label}</text> : null)}
+      </g>
+      {kind === 'line' && area && runs.filter((r) => r.length > 1).map((r) => <path class="area" d={areaPath(r)} />)}
+      {kind === 'bars' && points.map((p, i) => p.value === null
+        ? <rect class="bar-none" x={x(i) - bw / 2} y={T + ih - 12} width={bw} height="12" rx={Math.min(5, bw / 2)} />
+        : p.value > min && <rect class:list={['bar', 'draw-grow', { low: flags[i] }]} style={`--i:${Math.round((i / n) * 12)}`} x={x(i) - bw / 2} y={y(p.value)} width={bw} height={T + ih - y(p.value)} rx={Math.min(7, bw / 2)} />)}
+      {usual !== undefined && (
+        <g class="usual">
+          <line x1={L} x2={W - R + 4} y1={y(usual)} y2={y(usual)} />
+          <text x={W - R + 12} y={y(usual) - (usualB ? 3 : -4)}>{usualA}</text>
+          {usualB && <text class="usual-v" x={W - R + 12} y={y(usual) + 12}>{usualB}</text>}
+        </g>
+      )}
+      {kind === 'line' && runs.map((r) => r.length > 1
+        ? <path class="line draw-line" d={smooth(r)} pathLength="1" />
+        : <circle class="pt" cx={x(r[0].i)} cy={y(r[0].v)} r="3.5" />)}
+      {lastP && (
+        <g class="last draw-pop" style="--i:12">
+          {kind === 'line' && <circle cx={x(lastP.i)} cy={y(lastP.value as number)} r="6.5" />}
+          <rect class="tag" x={tagX} y={tagY} width={tagW} height="24" rx="12" />
+          <text class="tag-t" x={tagX + tagW / 2} y={tagY + 16.5} text-anchor="middle">{lastText}</text>
+        </g>
+      )}
+    </svg>
   </div>
   <figcaption>
-    {usual !== undefined && <span class="key"><span class="key-dash" aria-hidden="true"></span>Her usual{usualLabel ? `: ${usualLabel}` : ''}</span>}
-    <span class="key"><span class="key-line" aria-hidden="true"></span>{unit}</span>
-    <span class="key"><span class="key-gap" aria-hidden="true"></span>A gap means no answer that day</span>
+    <span class="key"><span class:list={[kind === 'bars' ? 'key-bar' : 'key-line']} aria-hidden="true"></span>{unit}</span>
+    {usual !== undefined && <span class="key"><span class="key-dash" aria-hidden="true"></span>Her usual</span>}
+    {bands.length > 0 && <span class="key"><span class="key-band" aria-hidden="true"></span>Days different from her usual</span>}
+    {gaps > 0 && <span class="key"><span class="key-gap" aria-hidden="true"></span>A gap means no answer that day</span>}
   </figcaption>
 </figure>
 <style>
   .chart { display: flex; flex-direction: column; gap: var(--s-2); min-width: 0; }
-  .scroll { overflow-x: auto; border-radius: var(--r-sm); }
-  svg { display: block; width: 100%; min-width: 32rem; height: auto; }
+  .scroll { overflow-x: auto; border-radius: var(--r-md); }
+  svg { display: block; width: 100%; min-width: 34rem; height: auto; }
+  .band { fill: var(--butter-soft); }
   .grid line { stroke: var(--line); stroke-width: 1; }
-  .axis text { font-family: var(--font); font-size: 12px; fill: var(--ink-2); }
-  .usual { stroke: var(--ink-2); stroke-width: 1.5; stroke-dasharray: 5 5; }
-  .area { fill: var(--acc); fill-opacity: 0.22; }
-  .line { fill: none; stroke: var(--acc-text); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+  .axis text, .usual text { font-family: var(--font); font-size: 12.5px; fill: var(--ink-2); }
+  .usual line { stroke: var(--ink-2); stroke-width: 1.5; stroke-dasharray: 2 6; stroke-linecap: round; }
+  .usual text { fill: var(--ink); font-weight: 500; }
+  .usual .usual-v { fill: var(--ink-2); font-weight: 400; }
+  .area { fill: var(--acc); fill-opacity: 0.14; }
+  .line { fill: none; stroke: var(--acc-text); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
   .pt { fill: var(--acc-text); }
-  .last { fill: var(--deep); stroke: var(--surface); stroke-width: 2; }
-  figcaption { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-5); font-size: var(--fs-sm); color: var(--ink-2); }
+  .bar { fill: var(--leaf); }
+  .bar.low { fill: var(--acc); }
+  .bar-none { fill: none; stroke: var(--ink-2); stroke-width: 1.5; stroke-dasharray: 3 3; }
+  .last circle { fill: var(--deep); stroke: var(--surface); stroke-width: 3; }
+  .tag { fill: var(--deep); }
+  .tag-t { font-family: var(--font); font-size: 13px; font-weight: 600; fill: var(--on-deep); }
+  figcaption { display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-5); font-size: var(--fs-sm); color: var(--ink-2); }
   .key { display: inline-flex; align-items: center; gap: var(--s-2); }
-  .key-dash { width: 1.25rem; border-top: 2px dashed var(--ink-2); }
-  .key-line { width: 1.25rem; border-top: 3px solid var(--acc-text); border-radius: 2px; }
-  .key-gap { width: 1.25rem; border-top: 3px dotted var(--line-strong); }
+  .key-dash { width: 1.25rem; border-top: 2px dotted var(--ink-2); }
+  .key-line { width: 1.25rem; height: 0.1875rem; border-radius: var(--r-pill); background: var(--acc-text); }
+  .key-bar { width: 0.625rem; height: 0.875rem; border-radius: 0.1875rem 0.1875rem 0 0; background: var(--leaf); }
+  .key-band { width: 1.25rem; height: 0.875rem; border-radius: 0.25rem; background: var(--butter-soft); border: 1px solid var(--line-strong); }
+  .key-gap { width: 1.25rem; border-top: 2px dashed var(--line-strong); }
+  /* the fill fades in after the line has drawn */
+  @media (prefers-reduced-motion: no-preference) {
+    :global(.js) .chart[data-draw] .area { opacity: 0; transition: opacity 0.8s var(--ease) 0.5s; }
+    :global(.js) .chart[data-draw].is-in .area { opacity: 1; }
+  }
+  @media print {
+    .band { fill: none; stroke: var(--ink); stroke-width: 0.5; }
+    .area { fill: none; }
+    .line { stroke: var(--ink); }
+  }
 </style>

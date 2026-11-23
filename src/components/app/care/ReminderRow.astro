@@ -1,28 +1,49 @@
 ---
-/** One reminder: her words, when, how it is said, who set it, and an on/off switch. Also used inside a <template>. */
-import ListRow from './ListRow.astro';
-import Chip from '@/components/ui/Chip.astro';
+/** One reminder as a card: what Ion will say in a speech bubble, when, who set it, and an on/off switch. Also used inside a <template>. */
+import Icon from '@/components/ui/Icon.astro';
 import Switch from './Switch.astro';
+import Avatar from './Avatar.astro';
+import Bubble from './Bubble.astro';
+import { ionLead } from './words';
+import type { Face } from './people';
 import './care.css';
-interface Props { id?: string; kind: 'medicine' | 'appointment' | 'other'; text?: string; when?: string; spokenBy: 'call' | 'evening-reminder'; setBy?: string; active?: boolean; added?: boolean }
-const { id = '', kind, text = '', when = '', spokenBy, setBy = '', active = true, added = false } = Astro.props;
+interface Props { id?: string; kind: 'medicine' | 'appointment' | 'other'; text?: string; when?: string; spokenBy: 'call' | 'evening-reminder'; setBy?: string; active?: boolean; added?: boolean; face?: Face }
+const { id = '', kind, text = '', when = '', setBy = '', active = true, added = false, face } = Astro.props;
 const ICON = { medicine: 'pill', appointment: 'calendar', other: 'bell' } as const;
+const fromIon = setBy.startsWith('I-on');
 ---
-<ListRow icon={ICON[kind]} data-reminder={id} class:list={['rem', { off: !active }]}>
-  <p class="lr-title rem-words">“<span data-slot="text">{text}</span>”</p>
-  <p class="lr-meta">
-    <span data-slot="when">{when}</span>
-    <Chip tone={spokenBy === 'call' ? 'waiting' : 'working'}>{spokenBy === 'call' ? 'On the morning call' : 'Evening reminder'}</Chip>
-    <span>Set by <span data-slot="setBy">{setBy}</span></span>
-  </p>
-  {added && <button type="button" class="cf-link rem-remove" data-remove>Remove this reminder</button>}
-  <Fragment slot="end">
+<li class:list={['rem', { off: !active }]} data-reminder={id}>
+  <div class="rem-say">
+    <Avatar ion size="md" />
+    <Bubble tone="butter" class="rem-bubble">
+      <p class="rem-lead" data-slot="lead">{setBy ? ionLead(setBy) : ''}</p>
+      <p class="rem-words">“<span data-slot="text">{text}</span>”</p>
+    </Bubble>
+  </div>
+  <div class="rem-foot">
+    <ul role="list" class="rem-meta">
+      <li><Icon name={ICON[kind]} size={16} /><span data-slot="when">{when}</span></li>
+      <li>{!fromIon && <Avatar size="sm" tone={face?.tone ?? 'paper'} initials={face?.initials ?? ''} class="rem-face" />}<span>Set by <span data-slot="setBy">{setBy}</span></span></li>
+    </ul>
+    {added && <button type="button" class="cf-link" data-remove>Remove<span class="sr-only"> this reminder</span></button>}
     <Switch label={`Ion says: ${text}`} hideLabel checked={active} data-toggle />
-  </Fragment>
-</ListRow>
+  </div>
+</li>
 <style>
-  .rem-words { font-size: 1.125rem !important; }
-  :global(.rem.off) { background: transparent; }
-  :global(.rem.off) .rem-words { color: var(--ink-2); }
-  .rem-remove { align-self: flex-start; margin-left: calc(var(--s-3) * -1); }
+  .rem { display: flex; flex-direction: column; gap: var(--s-3); padding: var(--s-4) var(--s-5); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); min-width: 0; }
+  .rem-say { display: flex; align-items: flex-start; gap: var(--s-3); }
+  .rem-say :global(.bub) { flex: 1 1 auto; }
+  .rem-lead { font-size: var(--fs-sm); color: var(--ink-2); }
+  .rem-lead:empty { display: none; }
+  .rem-words { font-size: 1.125rem; font-weight: 500; line-height: 1.4; }
+  .rem-foot { display: flex; align-items: center; gap: var(--s-1) var(--s-3); }
+  .rem-meta { flex: 1 1 0; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1) var(--s-4); font-size: var(--fs-sm); color: var(--ink-2); line-height: 1.4; }
+  .rem-meta li { display: inline-flex; align-items: center; gap: var(--s-2); }
+  .rem-meta :global(svg) { flex: none; }
+  .rem-meta :global(.rem-face:empty) { display: none; }
+  /* switched off: the bubble goes quiet */
+  .rem.off { background: transparent; border-style: dashed; border-color: var(--line-strong); }
+  .rem.off :global(.bub) { --bub: var(--grey-1); }
+  .rem.off .rem-words { color: var(--ink-2); font-weight: 400; }
+  .rem.off :global(.av-ion) { opacity: 0.55; }
 </style>

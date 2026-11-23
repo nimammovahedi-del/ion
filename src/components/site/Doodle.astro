@@ -1,0 +1,103 @@
+---
+/**
+ * Small flat pictures for the marketing site, drawn in the same manner as the capybara: simple shapes, token colours.
+ * Decorative by default (the words beside a doodle carry the meaning). Pass `label` when it stands alone.
+ * Names: call, talk, report, yes, evening, envelope, lock, search, sun, moon.
+ */
+interface Props { name: 'call' | 'talk' | 'report' | 'yes' | 'evening' | 'envelope' | 'lock' | 'search' | 'sun' | 'moon'; size?: number; label?: string; class?: string }
+const { name, size = 96, label, class: cls = '' } = Astro.props;
+const a11y = label ? ({ role: 'img', 'aria-label': label } as const) : ({ 'aria-hidden': 'true' } as const);
+---
+<svg class:list={['doodle', `doodle-${name}`, cls]} viewBox="0 0 96 96" width={size} height={size} {...a11y}>
+  {name === 'call' && (
+    <g>
+      <g class="d-ring" fill="none" stroke="var(--acc-text)" stroke-width="3.5" stroke-linecap="round">
+        <path d="M13 22q-7 10 0 20" /><path d="M83 22q7 10 0 20" />
+      </g>
+      <path d="M24 54q0-8 8-8h32q8 0 8 8l4 20q1 8-7 8H27q-8 0-7-8z" fill="var(--acc)" />
+      <circle cx="48" cy="64" r="10" fill="var(--surface)" />
+      <circle cx="48" cy="64" r="3.5" fill="var(--acc-text)" />
+      <path class="d-handset" d="M20 34q0-10 10-10h36q10 0 10 10v6q0 5-5 5h-7q-5 0-5-5v-4H37v4q0 5-5 5h-7q-5 0-5-5z" fill="var(--deep)" />
+    </g>
+  )}
+  {name === 'talk' && (
+    <g>
+      <path d="M24 12h28a14 14 0 0 1 14 14v6a14 14 0 0 1-14 14H34L20 58l3-14a14 14 0 0 1-13-14v-4a14 14 0 0 1 14-14z" fill="var(--surface)" stroke="var(--line-strong)" stroke-width="2" stroke-linejoin="round" />
+      <circle cx="27" cy="29" r="3.5" fill="var(--ink-3)" /><circle cx="39" cy="29" r="3.5" fill="var(--ink-3)" /><circle cx="51" cy="29" r="3.5" fill="var(--ink-3)" />
+      <path d="M50 46h24a13 13 0 0 1 13 13v4a13 13 0 0 1-12 13l3 12-14-12H50a13 13 0 0 1-13-13v-4a13 13 0 0 1 13-13z" fill="var(--butter)" />
+      <rect x="48" y="55" width="28" height="4.5" rx="2.25" fill="var(--deep)" /><rect x="48" y="64" width="18" height="4.5" rx="2.25" fill="var(--deep)" />
+    </g>
+  )}
+  {name === 'report' && (
+    <g>
+      <rect x="20" y="8" width="56" height="80" rx="12" fill="var(--surface)" stroke="var(--line-strong)" stroke-width="2" />
+      <circle cx="39" cy="31" r="9" fill="none" stroke="var(--grey-2)" stroke-width="5.5" />
+      <path d="M39 22a9 9 0 1 1-8.5 12" fill="none" stroke="var(--acc)" stroke-width="5.5" stroke-linecap="round" />
+      <rect x="54" y="25" width="13" height="4.5" rx="2.25" fill="var(--grey-2)" /><rect x="54" y="33" width="9" height="4.5" rx="2.25" fill="var(--grey-2)" />
+      <rect x="30" y="52" width="36" height="5" rx="2.5" fill="var(--grey-2)" />
+      <rect x="30" y="62" width="36" height="5" rx="2.5" fill="var(--acc)" />
+      <rect x="30" y="72" width="22" height="5" rx="2.5" fill="var(--grey-2)" />
+    </g>
+  )}
+  {name === 'yes' && (
+    <g>
+      <rect x="8" y="24" width="80" height="48" rx="16" fill="var(--surface)" stroke="var(--line-strong)" stroke-width="2" />
+      <rect x="20" y="39" width="26" height="5" rx="2.5" fill="var(--grey-2)" /><rect x="20" y="50" width="16" height="5" rx="2.5" fill="var(--grey-2)" />
+      <circle cx="67" cy="48" r="14" fill="var(--leaf)" />
+      <path d="M60.5 48.5l4.5 4.5 8.5-10" fill="none" stroke="var(--leaf-text)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+  )}
+  {name === 'evening' && (
+    <g>
+      <path d="M46 12a26 26 0 1 0 30 34 21 21 0 0 1-30-34z" fill="var(--butter)" />
+      <circle cx="70" cy="18" r="3" fill="var(--acc)" /><circle cx="84" cy="34" r="2" fill="var(--acc)" /><circle cx="16" cy="20" r="2" fill="var(--acc)" />
+      <g transform="translate(46 46) scale(1.7)" fill="var(--acc)" stroke="var(--acc-text)" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round">
+        <path d="M6 16v-5a6 6 0 0 1 12 0v5l2 2H4z" /><path d="M10 20.5a2 2 0 0 0 4 0" fill="none" />
+      </g>
+    </g>
+  )}
+  {name === 'envelope' && (
+    <g>
+      <rect x="8" y="22" width="80" height="56" rx="12" fill="var(--surface)" stroke="var(--line-strong)" stroke-width="2" />
+      <path d="M12 30l36 26 36-26" fill="none" stroke="var(--acc-text)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
+      <circle cx="48" cy="58" r="9" fill="var(--acc)" />
+    </g>
+  )}
+  {name === 'lock' && (
+    <g>
+      <path d="M33 44V33a15 15 0 0 1 30 0v11" fill="none" stroke="var(--deep)" stroke-width="7" stroke-linecap="round" />
+      <rect x="20" y="42" width="56" height="42" rx="12" fill="var(--acc)" />
+      <circle cx="48" cy="59" r="5.5" fill="var(--deep)" /><rect x="45.5" y="60" width="5" height="12" rx="2.5" fill="var(--deep)" />
+    </g>
+  )}
+  {name === 'search' && (
+    <g>
+      <path d="M58 58l22 22" fill="none" stroke="var(--deep)" stroke-width="9" stroke-linecap="round" />
+      <circle cx="42" cy="42" r="24" fill="var(--sky-soft)" stroke="var(--deep)" stroke-width="6" />
+      <path d="M30 40a12 12 0 0 1 10-10" fill="none" stroke="var(--surface)" stroke-width="4" stroke-linecap="round" />
+    </g>
+  )}
+  {name === 'sun' && (
+    <g>
+      <g stroke="var(--sun)" stroke-width="6" stroke-linecap="round">
+        <path d="M48 8v10M48 78v10M8 48h10M78 48h10M19.7 19.7l7 7M69.3 69.3l7 7M19.7 76.3l7-7M69.3 26.7l7-7" />
+      </g>
+      <circle cx="48" cy="48" r="20" fill="var(--sun)" />
+    </g>
+  )}
+  {name === 'moon' && (
+    <g>
+      <path d="M52 12a36 36 0 1 0 32 50 30 30 0 0 1-32-50z" fill="var(--butter)" stroke="var(--line-strong)" stroke-width="2" stroke-linejoin="round" />
+      <circle cx="72" cy="22" r="4" fill="var(--butter)" stroke="var(--line-strong)" stroke-width="1.5" />
+    </g>
+  )}
+</svg>
+<style>
+  .doodle { display: block; flex: none; max-width: 100%; height: auto; }
+  @media (prefers-reduced-motion: no-preference) {
+    .d-ring { animation: doodle-ring 3.6s ease-in-out infinite; }
+    .d-handset { transform-origin: 48px 40px; animation: doodle-shake 3.6s ease-in-out infinite; }
+  }
+  @keyframes doodle-ring { 0%, 30%, 100% { opacity: 0.15; } 8%, 20% { opacity: 1; } }
+  @keyframes doodle-shake { 0%, 28%, 100% { transform: rotate(0); } 4%, 12%, 20% { transform: rotate(-4deg); } 8%, 16%, 24% { transform: rotate(4deg); } }
+</style>

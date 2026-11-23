@@ -1,0 +1,17 @@
+---
+/** A measure in miniature for an overview card or a table row: a small line against her usual, or rows of marked days. */
+import type { MetricSeries } from '@/data/types';
+import Spark from '@/components/ui/Spark.astro';
+import DayStrip from './DayStrip.astro';
+import { lastDays } from '@/lib/loaders';
+import { CHART, dayRows, summarise } from './measure';
+interface Props { m: MetricSeries; days: number; width?: number; height?: number }
+const { m, days, width = 200, height = 52 } = Astro.props;
+const pts = lastDays(m, days);
+const s = summarise(m, pts);
+const summary = `${m.title}, last ${days} days. ${s.label}: ${s.value}${s.unit ? ` ${s.unit}` : ''}. Her usual is ${m.usualLabel}.`;
+const strip = CHART[m.id] === 'days' ? dayRows(m, pts) : null;
+---
+{strip
+  ? <DayStrip mini points={pts} rows={strip.rows} keys={strip.keys} summary={summary} />
+  : <Spark values={pts.map((p) => p.value)} usual={m.usual} min={m.id === 'meals' ? 0 : Math.max(m.min, m.usual - 3.5)} max={m.id === 'meals' ? 4 : Math.min(m.max, m.usual + 3.5)} summary={summary} width={width} height={height} />}

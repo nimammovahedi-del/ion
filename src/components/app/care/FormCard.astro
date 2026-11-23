@@ -1,27 +1,27 @@
 ---
-/** A titled card that holds an "Add" form. The page puts the <form class="cf"> in the slot. */
-import Card from '@/components/ui/Card.astro';
-import Icon from '@/components/ui/Icon.astro';
+/** The "Add" part of a care page: a compact titled card that holds a form. The page puts the <form class="cf"> in the slot. */
+import IconBadge from '@/components/ui/IconBadge.astro';
 import './care.css';
-interface Props { title: string; id?: string; sub?: string; icon?: string; tone?: 'surface' | 'paper' | 'soft' }
-const { title, id, sub, icon = 'plus', tone = 'surface' } = Astro.props;
+interface Props { title: string; id?: string; sub?: string; icon?: string; tone?: 'surface' | 'paper' | 'soft'; accent?: 'acc' | 'butter' | 'leaf' | 'sky' }
+const { title, id, sub, icon = 'plus', tone = 'surface', accent = 'acc' } = Astro.props;
 const hid = `${id ?? 'form'}-title`;
 ---
-<Card as="section" tone={tone} pad="lg" class="fcard" id={id} aria-labelledby={hid}>
+<section class:list={['fcard', `fcard-${tone}`]} id={id} aria-labelledby={hid}>
   <div class="fcard-head">
-    <span class="fcard-icon"><Icon name={icon} size={20} /></span>
+    <IconBadge name={icon} tone={accent} size="md" round />
     <div>
       <h2 id={hid}>{title}</h2>
       {sub && <p>{sub}</p>}
     </div>
   </div>
   <slot />
-</Card>
+</section>
 <style>
-  :global(.fcard) { display: flex; flex-direction: column; gap: var(--s-5); scroll-margin-top: var(--s-6); }
-  .fcard-head { display: flex; align-items: flex-start; gap: var(--s-3); }
-  .fcard-icon { display: grid; place-items: center; flex: none; width: 2.5rem; height: 2.5rem; border-radius: 50%; background: var(--acc); color: var(--on-acc); }
-  .fcard-head h2 { font-size: var(--fs-h3); font-weight: 400; line-height: 1.25; letter-spacing: -0.02em; }
-  .fcard-head p { margin-top: var(--s-1); color: var(--ink-2); font-size: 0.9375rem; line-height: 1.55; }
-  @media (max-width: 30rem) { :global(.fcard.pad-lg) { padding: var(--s-5); } }
+  .fcard { display: flex; flex-direction: column; gap: var(--s-5); padding: var(--s-6); border-radius: var(--r-xl); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-1); scroll-margin-top: var(--s-6); min-width: 0; }
+  .fcard-paper { background: var(--paper); box-shadow: none; }
+  .fcard-soft { background: var(--acc-soft); border-color: transparent; box-shadow: none; }
+  .fcard-head { display: flex; align-items: center; gap: var(--s-3); }
+  .fcard-head h2 { font-size: 1.5rem; font-weight: 500; line-height: 1.2; letter-spacing: -0.025em; }
+  .fcard-head p { color: var(--ink-2); font-size: 0.9375rem; line-height: 1.5; }
+  @media (max-width: 30rem) { .fcard { padding: var(--s-5); } }
 </style>

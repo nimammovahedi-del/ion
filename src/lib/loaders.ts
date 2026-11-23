@@ -60,3 +60,6 @@ export async function getPillTimesTaken(n: number) {
     evening: answered.filter((p) => (p.value as number) >= 2).length,
   };
 }
+
+/** The morning as a short timeline for Today: called, she answered, report written, what waits for the family, what comes later. */
+export const getDayFlow = async () => ex.dayFlow;
