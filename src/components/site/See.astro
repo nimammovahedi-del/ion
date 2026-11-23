@@ -1,23 +1,22 @@
 ---
-/** What you see: her sleep as dots beside a small picture of the family report, both from the example family. */
+/** What you see: her sleep as one bar per night, beside the longer view (30-day trends and the one-page doctor sheet). Example family throughout. */
 import SectionHeading from '@/components/ui/SectionHeading.astro';
 import IconBadge from '@/components/ui/IconBadge.astro';
 import Button from '@/components/ui/Button.astro';
-import SleepDots from './SleepDots.astro';
+import SleepBars from './SleepBars.astro';
 import FamilyReport from './FamilyReport.astro';
 import { getParent } from '@/lib/loaders';
 const parent = await getParent();
 const MORE = [
   { icon: 'users', tone: 'acc', title: 'Two answers?', text: 'You see both.' },
   { icon: 'trends', tone: 'leaf', title: 'Trends', text: 'over 14, 30 and 90 days.' },
-  { icon: 'print', tone: 'sky', title: 'One page', text: 'to print for the doctor.' },
 ] as const;
 ---
 <section id="see" class="see wrap" aria-labelledby="see-title">
   <div class="see-grid">
     <div class="see-left">
       <SectionHeading id="see-title" eyebrow="What you see" title="Change against her own usual," tone2="at a glance." text={`Here is ${parent.short}, our invented example. Each answer sits beside what is normal for her, not for anyone else.`} />
-      <div class="see-chart"><SleepDots /></div>
+      <div class="see-chart"><SleepBars /></div>
     </div>
     <FamilyReport />
   </div>

@@ -1,18 +1,19 @@
 ---
 /** One reminder as a card: what Ion will say in a speech bubble, when, who set it, and an on/off switch. Also used inside a <template>. */
-import Icon from '@/components/ui/Icon.astro';
+import AlsoOn from './AlsoOn.astro';
 import Switch from './Switch.astro';
 import Avatar from './Avatar.astro';
 import Bubble from './Bubble.astro';
 import { ionLead } from './words';
 import type { Face } from './people';
 import './care.css';
-interface Props { id?: string; kind: 'medicine' | 'appointment' | 'other'; text?: string; when?: string; spokenBy: 'call' | 'evening-reminder'; setBy?: string; active?: boolean; added?: boolean; face?: Face }
-const { id = '', kind, text = '', when = '', setBy = '', active = true, added = false, face } = Astro.props;
-const ICON = { medicine: 'pill', appointment: 'calendar', other: 'bell' } as const;
+interface Props { id?: string; kind: 'medicine' | 'appointment' | 'other'; text?: string; when?: string; spokenBy: 'call' | 'evening-reminder'; setBy?: string; active?: boolean; added?: boolean; face?: Face; also?: { label: string; href: string }[] }
+const { id = '', kind, text = '', when = '', setBy = '', active = true, added = false, face, also = [] } = Astro.props;
+// The category as a word, where it helps. "Something else" needs no word.
+const ABOUT = { medicine: 'About her pills', appointment: 'About an appointment', other: '' } as const;
 const fromIon = setBy.startsWith('I-on');
 ---
-<li class:list={['rem', { off: !active }]} data-reminder={id}>
+<li class:list={['rem', { off: !active }]} id={id ? `rem-${id}` : undefined} data-reminder={id}>
   <div class="rem-say">
     <Avatar ion size="md" />
     <Bubble tone="butter" class="rem-bubble">
@@ -22,15 +23,17 @@ const fromIon = setBy.startsWith('I-on');
   </div>
   <div class="rem-foot">
     <ul role="list" class="rem-meta">
-      <li><Icon name={ICON[kind]} size={16} /><span data-slot="when">{when}</span></li>
+      <li class="rem-when"><span data-slot="when">{when}</span></li>
+      {ABOUT[kind] && <li>{ABOUT[kind]}</li>}
       <li>{!fromIon && <Avatar size="sm" tone={face?.tone ?? 'paper'} initials={face?.initials ?? ''} class="rem-face" />}<span>Set by <span data-slot="setBy">{setBy}</span></span></li>
     </ul>
     {added && <button type="button" class="cf-link" data-remove>Remove<span class="sr-only"> this reminder</span></button>}
     <Switch label={`Ion says: ${text}`} hideLabel checked={active} data-toggle />
   </div>
+  <AlsoOn links={also} />
 </li>
 <style>
-  .rem { display: flex; flex-direction: column; gap: var(--s-3); padding: var(--s-4) var(--s-5); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); min-width: 0; }
+  .rem { scroll-margin-top: var(--s-6); display: flex; flex-direction: column; gap: var(--s-3); padding: var(--s-4) var(--s-5); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); min-width: 0; }
   .rem-say { display: flex; align-items: flex-start; gap: var(--s-3); }
   .rem-say :global(.bub) { flex: 1 1 auto; }
   .rem-lead { font-size: var(--fs-sm); color: var(--ink-2); }
@@ -39,7 +42,8 @@ const fromIon = setBy.startsWith('I-on');
   .rem-foot { display: flex; align-items: center; gap: var(--s-1) var(--s-3); }
   .rem-meta { flex: 1 1 0; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1) var(--s-4); font-size: var(--fs-sm); color: var(--ink-2); line-height: 1.4; }
   .rem-meta li { display: inline-flex; align-items: center; gap: var(--s-2); }
-  .rem-meta :global(svg) { flex: none; }
+  .rem-when { color: var(--ink); font-weight: 500; }
+  .rem:target { box-shadow: 0 0 0 3px var(--acc); }
   .rem-meta :global(.rem-face:empty) { display: none; }
   /* switched off: the bubble goes quiet */
   .rem.off { background: transparent; border-style: dashed; border-color: var(--line-strong); }

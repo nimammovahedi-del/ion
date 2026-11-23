@@ -1,9 +1,12 @@
 ---
-/** The "Add" part of a care page: a compact titled card that holds a form. The page puts the <form class="cf"> in the slot. */
+/**
+ * The "Add" part of a care page: a compact titled card that holds a form. The page puts the <form class="cf"> in the slot.
+ * It looks the same on every page and sits in the right-hand column (.care-side), with id "add" so the button under the heading can jump to it.
+ */
 import IconBadge from '@/components/ui/IconBadge.astro';
 import './care.css';
 interface Props { title: string; id?: string; sub?: string; icon?: string; tone?: 'surface' | 'paper' | 'soft'; accent?: 'acc' | 'butter' | 'leaf' | 'sky' }
-const { title, id, sub, icon = 'plus', tone = 'surface', accent = 'acc' } = Astro.props;
+const { title, id = 'add', sub, icon = 'plus', tone = 'surface', accent = 'butter' } = Astro.props;
 const hid = `${id ?? 'form'}-title`;
 ---
 <section class:list={['fcard', `fcard-${tone}`]} id={id} aria-labelledby={hid}>
@@ -14,14 +17,15 @@ const hid = `${id ?? 'form'}-title`;
       {sub && <p>{sub}</p>}
     </div>
   </div>
+  <noscript><p class="cf-hint">Adding and changing things needs JavaScript in this example.</p></noscript>
   <slot />
 </section>
 <style>
-  .fcard { display: flex; flex-direction: column; gap: var(--s-5); padding: var(--s-6); border-radius: var(--r-xl); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-1); scroll-margin-top: var(--s-6); min-width: 0; }
+  .fcard { display: flex; flex-direction: column; gap: var(--s-4); padding: var(--s-5); border-radius: var(--r-xl); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-1); scroll-margin-top: var(--s-6); min-width: 0; }
   .fcard-paper { background: var(--paper); box-shadow: none; }
   .fcard-soft { background: var(--acc-soft); border-color: transparent; box-shadow: none; }
   .fcard-head { display: flex; align-items: center; gap: var(--s-3); }
-  .fcard-head h2 { font-size: 1.5rem; font-weight: 500; line-height: 1.2; letter-spacing: -0.025em; }
+  .fcard-head h2 { font-size: 1.375rem; font-weight: 500; line-height: 1.2; letter-spacing: -0.025em; }
   .fcard-head p { color: var(--ink-2); font-size: 0.9375rem; line-height: 1.5; }
   @media (max-width: 30rem) { .fcard { padding: var(--s-5); } }
 </style>

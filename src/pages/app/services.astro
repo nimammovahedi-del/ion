@@ -9,24 +9,26 @@ import Bubble from '@/components/app/care/Bubble.astro';
 import HeadArt from '@/components/app/care/HeadArt.astro';
 import HowFlow from '@/components/app/care/HowFlow.astro';
 import ServiceArt from '@/components/app/care/ServiceArt.astro';
+import AlsoOn from '@/components/app/care/AlsoOn.astro';
+import ExampleNote from '@/components/app/care/ExampleNote.astro';
 import LiveRegion from '@/components/app/care/LiveRegion.astro';
 import { getParent } from '@/lib/loaders';
-import { getPlannedServices, getPreparedRequest } from '@/lib/loaders-care';
+import { getAlso, getPlannedServices, getPreparedRequest } from '@/lib/loaders-care';
 
-const [services, request, parent] = await Promise.all([getPlannedServices(), getPreparedRequest(), getParent()]);
+const [services, request, parent, also] = await Promise.all([getPlannedServices(), getPreparedRequest(), getParent(), getAlso()]);
 const how = [
   { icon: 'phone', title: 'She asks', text: 'On a call, in her own words', tone: 'leaf' },
   { icon: 'check', title: 'You approve', text: 'Nothing happens without a yes', tone: 'acc' },
   { icon: 'car', title: 'It is arranged', text: 'And Ion lets her know', tone: 'leaf' },
 ] as const;
 ---
-<AppLayout title="Services" active="services" eyebrow="Services · coming later"
-  heading="Help I-on could arrange." tone2="Not yet. Here is the plan."
-  lede="None of this is ready, and we would rather say so plainly.">
-  <HeadArt slot="head-art" name="car" />
+<AppLayout title="Services" active="services"
+  heading="Errands I-on could help with."
+  lede="Coming later. None of this is ready yet.">
+  <HeadArt slot="head-art" name="errands" />
   <LiveRegion />
 
-  <Part id="planned" title="What is planned" icon="car" tone="leaf">
+  <Part id="planned" title="What is planned" icon="cart" tone="leaf">
     <ul role="list" class="cards" data-draw>
       {services.map((s, i) => (
         <li class="svc draw-pop" style={`--i:${i * 2}`}>
@@ -45,10 +47,10 @@ const how = [
   <HowFlow steps={[...how]} label="How a service would work, in three steps" title="How it would work" tag="Planned"
     note="Nothing is ever booked or bought without a yes from the family. That stays true when services arrive." />
 
-  <section class="now" aria-labelledby="now-title">
+  <section class="now" id="now" aria-labelledby="now-title">
     <div class="now-text">
       <h2 id="now-title">Today, I-on writes the request.<span class="tone-2">The family does the rest.</span></h2>
-      <p>Here is the one from this morning's call. It is waiting in Tasks for a yes.</p>
+      <p>Here is the one from this morning's call. You will find it in Tasks.</p>
       <Button href="/app/tasks/" variant="dark" size="sm" arrow>See it in Tasks</Button>
     </div>
     <figure class="ticket">
@@ -60,12 +62,23 @@ const how = [
       <dl>
         {request.lines.map(([k, v, icon]) => <div><dt><Icon name={icon} size={16} />{k}</dt><dd>{v}</dd></div>)}
       </dl>
-      <p class="ticket-foot"><Chip tone="waiting" dot>Waiting for a yes</Chip></p>
+      <p class="ticket-foot"><Chip tone="waiting" dot><span data-ride-state>Waiting for a yes</span></Chip><AlsoOn links={also('services', 'now').filter((l) => l.place !== 'tasks')} /></p>
     </figure>
   </section>
+  <ExampleNote />
 </AppLayout>
 
+<script>
+  // The ride card follows what was done on the Tasks page in this browser.
+  import { load } from '@/components/app/care/store';
+  const st = load<Record<string, { status: string; who?: string }>>('tasks', {}).ride;
+  const el = document.querySelector('[data-ride-state]');
+  if (el && st && st.status !== 'needs-you') el.textContent = st.status === 'done' ? 'Marked done in Tasks' : `${st.who ?? 'Someone'} said yes`;
+</script>
+
 <style>
+  .ticket-foot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-4); }
+  .now { scroll-margin-top: var(--s-6); }
   .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: var(--s-4); }
   .svc { display: flex; flex-direction: column; gap: var(--s-2); padding: var(--s-5); border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--line); }
   .svc-top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--s-2); margin-bottom: var(--s-2); }

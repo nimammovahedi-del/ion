@@ -3,12 +3,12 @@ import SiteLayout from '@/layouts/SiteLayout.astro';
 import Button from '@/components/ui/Button.astro';
 import MessageCard from '@/components/site/MessageCard.astro';
 ---
-<SiteLayout title="You are on the list · I-on" description="Thank you for joining the I-on waitlist." active="">
-  <MessageCard eyebrow="Waitlist" title="Thank you." tone2="You are on the list." doodle="envelope">
+<SiteLayout title="You are on the list · I-on" description="Thank you for joining the I-on waitlist." active="" joined>
+  <MessageCard eyebrow="Waitlist" title="Thank you." tone2="You are on the list." doodle="envelope" waves={false}>
     <p class="lede">We will write once, when I-on is ready for families. Nothing else, no newsletter. If you change your mind, reply to that email and we will delete your address.</p>
     <div class="row">
-      <Button href="/" variant="secondary" size="lg">Back to the home page</Button>
       <Button href="/app/" size="lg" arrow>See the example app</Button>
+      <Button href="/" variant="ghost" size="lg">Back to the home page</Button>
     </div>
   </MessageCard>
 </SiteLayout>

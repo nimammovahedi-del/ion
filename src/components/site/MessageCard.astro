@@ -3,8 +3,8 @@
 import Capybara from '@/components/ui/Capybara.astro';
 import Eyebrow from '@/components/ui/Eyebrow.astro';
 import Doodle from './Doodle.astro';
-interface Props { eyebrow: string; title: string; tone2: string; doodle: 'envelope' | 'search' | 'lock' }
-const { eyebrow, title, tone2, doodle } = Astro.props;
+interface Props { eyebrow: string; title: string; tone2: string; doodle: 'envelope' | 'search' | 'lock'; waves?: boolean }
+const { eyebrow, title, tone2, doodle, waves = false } = Astro.props;
 ---
 <section class="msg wrap" aria-labelledby="msg-title">
   <div class="msg-card">
@@ -14,7 +14,7 @@ const { eyebrow, title, tone2, doodle } = Astro.props;
       <slot />
     </div>
     <div class="msg-pic" aria-hidden="true">
-      <Capybara size={280} ground="var(--surface)" label="" waves={doodle !== 'search'} />
+      <Capybara size={280} ground="var(--surface)" label="" waves={waves} />
       <span class="msg-doodle"><Doodle name={doodle} size={64} /></span>
     </div>
   </div>

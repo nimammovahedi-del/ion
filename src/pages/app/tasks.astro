@@ -1,56 +1,30 @@
 ---
 import AppLayout from '@/layouts/AppLayout.astro';
 import Icon from '@/components/ui/Icon.astro';
-import Ring from '@/components/ui/Ring.astro';
 import TaskCard from '@/components/app/care/TaskCard.astro';
 import Part from '@/components/app/care/Part.astro';
 import HeadArt from '@/components/app/care/HeadArt.astro';
-import HowFlow from '@/components/app/care/HowFlow.astro';
 import EmptyState from '@/components/app/care/EmptyState.astro';
 import ExampleNote from '@/components/app/care/ExampleNote.astro';
 import LiveRegion from '@/components/app/care/LiveRegion.astro';
 import { facesOf } from '@/components/app/care/people';
 import { getFamily, getViewer } from '@/lib/loaders';
-import { getCareTasks } from '@/lib/loaders-care';
+import { getAlso, getCareTasks } from '@/lib/loaders-care';
 
-const [tasks, family, viewer] = await Promise.all([getCareTasks(), getFamily(), getViewer()]);
+const [tasks, family, viewer, also] = await Promise.all([getCareTasks(), getFamily(), getViewer(), getAlso()]);
 const groups = [
   { id: 'needs-you', title: 'Waiting for you', sub: 'Say yes, and pick who will do it.', empty: 'Nothing is waiting for you. Well done.', icon: 'bell' },
   { id: 'in-progress', title: 'Someone is on it', sub: '', empty: 'Nobody has a task right now.', icon: 'users' },
   { id: 'done', title: 'Done', sub: '', empty: 'Nothing finished yet.', icon: 'check' },
 ] as const;
-const count = (id: string) => tasks.filter((t) => t.status === id).length;
-const done = count('done');
-const how = [
-  { icon: 'phone', title: 'She mentions it', text: 'On a call, in her own words', tone: 'butter' },
-  { icon: 'tasks', title: 'Ion writes it up', text: 'It lands here as a task', tone: 'butter' },
-  { icon: 'check', title: 'You say yes', text: 'And pick who will do it', tone: 'acc' },
-  { icon: 'chat', title: 'Ion tells her', text: 'On the next call', tone: 'butter' },
-] as const;
 ---
-<AppLayout title="Tasks" active="tasks" eyebrow="Tasks"
-  heading="What needs doing." tone2="Say yes, and pick who."
-  lede="Things she asked for on her calls. Nothing happens until someone in the family says yes.">
+<AppLayout title="Tasks" active="tasks"
+  heading="What needs doing."
+  lede="Tasks come from her calls and from the family's notes. Nothing happens until someone in the family says yes.">
   <HeadArt slot="head-art" name="tasks" />
+  <p slot="head-actions" class="honest"><Icon name="shield" size={16} /><span>Nothing is booked, bought or sent by I-on in this version. The family does the doing.</span></p>
   <LiveRegion />
-
-  <div class="sum" data-draw data-viewer={viewer.short} data-faces={JSON.stringify(facesOf(family))}>
-    <div class="sum-ring" data-ring>
-      <Ring value={done} max={tasks.length} size={84} tone="leaf" label={`${done} of ${tasks.length} tasks done`}>{done}</Ring>
-      <p><b><span data-ring-done>{done}</span> of {tasks.length}</b><span>done</span></p>
-    </div>
-    <ul role="list" class="sum-tiles">
-      {groups.map((g) => (
-        <li>
-          <a href={`#${g.id}`} class:list={['sum-tile', `sum-${g.id}`]}>
-            <span class="sum-n num" data-count={g.id}>{count(g.id)}</span>
-            <span class="sum-label">{g.title}</span>
-            <Icon name="down" size={18} />
-          </a>
-        </li>
-      ))}
-    </ul>
-  </div>
+  <div hidden data-viewer={viewer.short} data-faces={JSON.stringify(facesOf(family))}></div>
 
   {groups.map((g) => {
     const list = tasks.filter((t) => t.status === g.id);
@@ -58,15 +32,13 @@ const how = [
       <Part id={g.id} title={g.title} icon={g.icon} tone={g.id === 'done' ? 'leaf' : 'butter'} sub={g.sub || undefined}
         count={list.length} countLabel={list.length === 1 ? 'task' : 'tasks'} countId={`count-${g.id}`}>
         <ul role="list" class:list={['cards', `cards-${g.id}`]} data-list={g.id}>
-          {list.map((t) => <li><TaskCard task={t} people={family} viewerId={viewer.id} /></li>)}
+          {list.map((t) => <li><TaskCard task={t} people={family} viewerId={viewer.id} also={also('tasks', t.id)} /></li>)}
         </ul>
         <EmptyState icon={g.icon} text={g.empty} hidden={list.length > 0} data-empty={g.id} />
       </Part>
     );
   })}
 
-  <HowFlow steps={[...how]} label="How a task comes about, in four steps"
-    note="Nothing is booked, bought or sent by I-on in this version. The family does the doing." />
   <ExampleNote />
 </AppLayout>
 
@@ -83,33 +55,17 @@ const how = [
 
   function refreshCounts() {
     let waiting = 0;
-    let total = 0;
-    let done = 0;
     document.querySelectorAll<HTMLElement>('[data-list]').forEach((list) => {
       const id = list.dataset.list as string;
       const n = list.children.length;
-      total += n;
       if (id === 'needs-you') waiting = n;
-      if (id === 'done') done = n;
       const c = document.getElementById(`count-${id}`);
       if (c) c.firstChild!.textContent = String(n);
       const word = c?.querySelector('.sr-only');
       if (word) word.textContent = n === 1 ? ' task' : ' tasks';
-      const tile = document.querySelector(`[data-count="${id}"]`);
-      if (tile) tile.textContent = String(n);
       const empty = document.querySelector<HTMLElement>(`[data-empty="${id}"]`);
       if (empty) empty.hidden = n > 0;
     });
-    // the little ring at the top
-    const ring = document.querySelector<HTMLElement>('[data-ring] .ring');
-    const frac = total ? done / total : 0;
-    ring?.setAttribute('aria-label', `${done} of ${total} tasks done`);
-    const arc = ring?.querySelector<SVGCircleElement>('.ring-arc');
-    if (arc) { arc.setAttribute('stroke-dasharray', `${frac} 1`); arc.style.setProperty('--frac', String(frac)); }
-    const mid = ring?.querySelector('.ring-mid');
-    if (mid) mid.textContent = String(done);
-    const words = document.querySelector('[data-ring-done]');
-    if (words) words.textContent = String(done);
     save('waiting', waiting);
     syncWaitingBadge(waiting);
   }
@@ -170,32 +126,9 @@ const how = [
 </script>
 
 <style>
-  .sum { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: var(--s-5) var(--s-8); padding: var(--s-5) var(--s-6); border-radius: var(--r-xl); background: var(--butter-soft); }
-  .sum-ring { display: flex; align-items: center; gap: var(--s-4); }
-  .sum-ring p { display: flex; flex-direction: column; line-height: 1.25; color: var(--ink-2); }
-  .sum-ring b { font-size: 1.375rem; font-weight: 500; letter-spacing: -0.02em; color: var(--ink); white-space: nowrap; }
-  .sum-ring :global(.ring-track) { stroke: var(--surface); }
-  .sum-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-3); }
-  .sum-tile { display: flex; align-items: center; gap: var(--s-3); min-height: 4rem; padding: var(--s-3) var(--s-4); border-radius: var(--r-lg); background: var(--surface); color: var(--ink); text-decoration: none; transition: transform 0.15s var(--ease), box-shadow 0.15s var(--ease); }
-  .sum-tile:hover { color: var(--ink); transform: translateY(-2px); box-shadow: var(--shadow-1); }
-  .sum-tile :global(svg) { margin-left: auto; flex: none; color: var(--ink-2); }
-  .sum-n { display: grid; place-items: center; flex: none; min-width: 2.5rem; height: 2.5rem; padding: 0 var(--s-2); border-radius: var(--r-pill); font-size: 1.25rem; font-weight: 600; }
-  .sum-label { font-weight: 500; line-height: 1.25; }
-  /* the three shapes echo the three kinds of card below */
-  .sum-needs-you .sum-n { background: var(--butter); }
-  .sum-in-progress .sum-n { background: var(--paper); }
-  .sum-done { background: transparent; box-shadow: inset 0 0 0 1px var(--line-strong); }
-  .sum-done .sum-n { background: var(--leaf); }
-
+  .honest { display: flex; align-items: flex-start; gap: var(--s-2); font-size: var(--fs-sm); line-height: 1.5; color: var(--ink-2); }
+  .honest :global(svg) { flex: none; margin-top: 0.1875rem; }
   .cards { display: flex; flex-direction: column; gap: var(--s-3); }
   .cards-needs-you { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr)); gap: var(--s-4); }
   .cards:empty { display: none; }
-
-  @media (max-width: 62rem) {
-    .sum { grid-template-columns: minmax(0, 1fr); }
-  }
-  @media (max-width: 40rem) {
-    .sum-tiles { grid-template-columns: minmax(0, 1fr); }
-    .sum { padding: var(--s-4); }
-  }
 </style>

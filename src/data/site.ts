@@ -30,14 +30,13 @@ export const sourceLine = (s: SiteSource) => `${s.name}, ${s.title}${s.year && !
  */
 export const WHY = {
   // ACL: "People 65+ represented 17.3% of the population in the year 2022. That percentage is expected to grow to 22% by 2040."
-  // ACL: "from 43.1 million in 2012 to 57.8 million in 2022", "By 2040, about 78.3 million people will be 65 or older".
   // ACL: "The 85 and older population is projected to more than double from 6.5 million in 2022 to 13.7 million in 2040".
   older: {
     source: ACL,
     title: 'More of us are living longer',
     share: [
-      { year: 2022, pct: 17.3, people: '57.8 million people' },
-      { year: 2040, pct: 22, people: 'about 78.3 million', expected: true },
+      { year: 2022, pct: 17.3 },
+      { year: 2040, pct: 22, expected: true },
     ],
     oldest: [
       { year: 2022, millions: 6.5 },
@@ -45,29 +44,26 @@ export const WHY = {
     ],
     shareLine: 'of Americans are 65 or older',
     oldestTitle: 'Americans 85 or older',
-    oldestLine: 'Expected to more than double.',
   },
-  // ACL: "In 2023, about 28% (16.2 million) of all older adults living in the community lived alone", "Among women 75 and older, for example, 42% lived alone."
+  // ACL: "In 2023, about 28% (16.2 million) of all older adults living in the community lived alone".
   alone: {
     source: ACL,
     pct: 28, of: 25, tinted: 7,   // 7 houses in 25 is 28%
     value: '28%',
     label: 'of older adults lived alone in 2023.',
-    detail: 'About 16.2 million people living in the community. Among women 75 and older, 42%.',
   },
-  // CDC: "more than one out of four older people falls each year, but less than half tell their doctor."
+  // CDC: "more than one out of four older people falls each year".
   falls: {
     source: CDC,
     of: 4, tinted: 1,
     value: '1 in 4',
     label: 'More than one in four older adults falls each year.',
-    detail: 'Fewer than half tell their doctor.',
   },
-  // AARP and NAC: "63 million Americans, nearly 1 in 4 adults", "an increase of 20 million from 2015 to 2025",
+  // AARP and NAC: "63 million Americans, nearly 1 in 4 adults",
   // "Six in 10 family caregivers are employed on top of their family caregiving responsibilities".
   carers: {
     source: AARP,
-    of: 10, tinted: 6,
+    of: 4, tinted: 1,   // the picture shows the headline: nearly one adult in four
     value: '63 million',
     label: 'Americans are family caregivers. That is nearly one adult in four.',
     detail: 'Six in ten also hold a job.',
@@ -78,7 +74,7 @@ export const WHY = {
 export const GAP = {
   title: 'The same two weeks, two ways',
   some: { label: 'A call when there is time', days: [2, 6, 12], said: 'I\'m fine.', note: 'Three calls. Three times, "I\'m fine."' },
-  daily: { label: 'A short call every morning', note: 'Fourteen answers, side by side. Here, four shorter nights in a row.' },
+  daily: { label: 'A short call every morning', note: 'Fourteen answers, side by side. Here, four shorter nights in a row.', usualKey: 'Close to her usual', shortKey: 'A shorter night' },
   foot: 'Example data. A daily call is a record to look back on. It is not a promise to notice everything.',
 };
 
@@ -125,11 +121,9 @@ export const CARE_FIRST = {
   strong: 'In an emergency, call 911.',
 };
 export const CARE_POINTS = [
-  { icon: 'chat', tone: 'leaf', title: 'She is asked each time', text: 'Each call starts by asking if she is happy to answer today. If she would rather not, that is fine, and the family is told.' },
-  { icon: 'pill', tone: 'acc', title: 'No medical advice', text: 'Ion never names a medicine and never gives a diagnosis. At most, it suggests asking her doctor or pharmacist.' },
-  { icon: 'users', tone: 'sky', title: 'You see what she said', text: 'Her own words, and where each answer came from. When two answers disagree, you see both.' },
-  { icon: 'book', tone: 'butter', title: 'The family here is invented', text: 'Maggie, her children and every answer on these pages are example data.' },
-  { icon: 'clock', tone: 'paper', title: 'Still in development', text: 'I-on is not calling anyone yet. People on the waitlist hear first.' },
+  { icon: 'chat', tone: 'leaf', title: 'She is asked each time', text: 'If she would rather not answer today, that is fine.' },
+  { icon: 'pill', tone: 'acc', title: 'No medical advice', text: 'Ion never names a medicine or gives a diagnosis.' },
+  { icon: 'clock', tone: 'butter', title: 'Still in development', text: 'I-on is not calling anyone yet.' },
 ] as const;
 
 export const FAQS = [

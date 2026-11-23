@@ -1,17 +1,16 @@
 ---
 /**
  * A topic Ion asks about, as an icon tile with an on/off switch. A real checkbox with role="switch".
- * Fixed topics are drawn the same way with a lock and the words "Always on", and have no control.
+ * Fixed topics are drawn the same way with the words "Asked on every call", and have no control.
  */
 import IconBadge from '@/components/ui/IconBadge.astro';
-import Icon from '@/components/ui/Icon.astro';
 interface Props { label: string; icon: string; id: string; on?: boolean; fixed?: boolean }
 const { label, icon, id, on = true, fixed = false } = Astro.props;
 ---
 {fixed ? (
   <div class="tt tt-fixed">
     <IconBadge name={icon} tone="surface" size="sm" round />
-    <span class="tt-words"><span class="sw-label">{label}</span><span class="tt-state"><Icon name="lock" size={14} />Always on</span></span>
+    <span class="tt-words"><span class="sw-label">{label}</span><span class="tt-state">Asked on every call</span></span>
   </div>
 ) : (
   <label class="tt">

@@ -1,0 +1,8 @@
+---
+/** Small links from one copy of a thing to its other copies on other pages: "Also in Tasks", "On the calendar". */
+import Icon from '@/components/ui/Icon.astro';
+import './care.css';
+interface Props { links?: { label: string; href: string }[]; class?: string }
+const { links = [], class: cls = '' } = Astro.props;
+---
+{links.length > 0 && <p class:list={['also', cls]}><Icon name="arrow" size={14} />{links.map((l) => <a href={l.href}>{l.label}</a>)}</p>}

@@ -1,7 +1,7 @@
 ---
 /**
  * Frame for every caregiver app page.
- * Left: a rail with Ion, who the report is about, and the menu in four plain groups ("How she is", "Things to do", "Her care", "Set up").
+ * Left: a rail with Ion, who the report is about, and the menu in four plain groups ("How she is", "Things to do", "On her calls", "Set up").
  * Right: a slim top strip (family circle, what is waiting for you), the page heading and the page.
  * Slots: default (the page), "head-actions" (buttons under the heading), "head-art" (a small picture beside the heading).
  */
@@ -18,13 +18,13 @@ const hasArt = Astro.slots.has('head-art');
 ---
 <BaseLayout title={`${title} · I-on`} bodyClass="app">
   <div class="shell">
-    <div class="rail">
+    <aside class="rail" aria-label="I-on app">
       <a class="brand" href="/app/" aria-label="I-on, today">
         <Capybara size={44} waves={false} ground="var(--acc-soft)" label="" />
         <span>I-on</span>
       </a>
       <div class="who">
-        <span class="who-avatar" aria-hidden="true">{parent.initials}</span>
+        <span class="who-avatar" aria-hidden="true">{parent.short.charAt(0)}</span>
         <span class="who-text"><b>{parent.short}</b><span><Icon name="check" size={14} />Call done {today.callTime}</span></span>
       </div>
       <nav class="menu" aria-label="App sections">
@@ -47,7 +47,7 @@ const hasArt = Astro.slots.has('head-art');
         ))}
       </nav>
       <a class="menu-site" href="/"><Icon name="home" size={16} />Back to the website</a>
-    </div>
+    </aside>
 
     <div class="main">
       <header class="topbar">
@@ -62,7 +62,6 @@ const hasArt = Astro.slots.has('head-art');
       <main id="main" class="content">
         <div class:list={['page-head', { 'has-art': hasArt }]}>
           <div class="page-words">
-            {eyebrow && <p class="page-eyebrow">{eyebrow}</p>}
             <h1 class="h1">{heading}{tone2 && <span class="tone-2">{tone2}</span>}</h1>
             {lede && <p class="lede">{lede}</p>}
             <slot name="head-actions" />
@@ -110,7 +109,7 @@ const hasArt = Astro.slots.has('head-art');
   .menu a:hover { background: var(--grey-1); color: var(--ink); }
   .menu a[aria-current='page'] { background: var(--deep); color: var(--on-deep); font-weight: 500; }
   .menu a[aria-current='page']:hover { background: var(--deep-hover); color: var(--on-deep); }
-  .menu-count { margin-left: auto; display: grid; place-items: center; min-width: 1.5rem; height: 1.5rem; padding: 0 0.375rem; border-radius: var(--r-pill); background: var(--acc); color: var(--on-acc); font-size: var(--fs-sm); font-weight: 600; }
+  .menu-count { position: relative; margin-left: auto; display: grid; place-items: center; min-width: 1.5rem; height: 1.5rem; padding: 0 0.375rem; border-radius: var(--r-pill); background: var(--acc); color: var(--on-acc); font-size: var(--fs-sm); font-weight: 600; }
   .menu em { margin-left: auto; font-style: normal; font-size: var(--fs-xs); color: var(--ink-2); background: var(--grey-1); border-radius: var(--r-pill); padding: 0.125rem 0.5rem; }
   .menu a[aria-current='page'] em { color: var(--ink); }
   .menu-site { display: inline-flex; align-items: center; gap: var(--s-2); min-height: var(--tap); padding: 0 var(--s-2); border-top: 1px solid var(--line); color: var(--ink-2); font-size: var(--fs-sm); text-decoration: none; }

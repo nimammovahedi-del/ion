@@ -8,10 +8,10 @@ import Icon from '@/components/ui/Icon.astro';
 import Capybara from '@/components/ui/Capybara.astro';
 interface Props {
   name: string; callTime: string; callMinutes: number;
-  headline: string; overall: string; overallTone: 'changed' | 'check' | 'usual';
-  quotes: { text: string; about: string }[]; said: string; needsLink?: boolean;
+  headline: string; overall: string; overallTone: 'changed' | 'check' | 'little' | 'usual';
+  quotes: { text: string; about: string }[]; said: string;
 }
-const { name, callTime, callMinutes, headline, overall, overallTone, quotes, said, needsLink = false } = Astro.props;
+const { name, callTime, callMinutes, headline, overall, overallTone, quotes, said } = Astro.props;
 const [main, ...rest] = quotes;
 const lower = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
 ---
@@ -23,7 +23,6 @@ const lower = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
     <Chip tone={overallTone} dot>{overall}</Chip>
     <h2 id="open-h" class="open-headline"><span class="sr-only">How she is today: </span>{headline}</h2>
     <p class="open-call"><span class="open-call-icon" aria-hidden="true"><Icon name="phone" size={16} /></span>Ion called {name} at {callTime}. They talked for {callMinutes} minutes.</p>
-    {needsLink && <a class="open-needs" href="#needs"><Icon name="tasks" size={16} />See what needs you today</a>}
   </div>
   {main && (
     <figure class="open-quote">
@@ -53,8 +52,6 @@ const lower = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
   .open-call { display: flex; align-items: center; gap: var(--s-2); font-size: 0.9375rem; line-height: 1.4; color: var(--ink); }
   .open-call-icon { flex: none; display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 50%; background: var(--surface); color: var(--acc-text); }
 
-  .open-needs { display: inline-flex; align-items: center; gap: var(--s-2); min-height: var(--tap); padding: 0 var(--s-4); border-radius: var(--r-pill); background: var(--deep); color: var(--on-deep); font-size: 0.9375rem; font-weight: 500; text-decoration: none; transition: background 0.15s var(--ease); }
-  .open-needs:hover { background: var(--deep-hover); color: var(--on-deep); }
   .open-quote { position: relative; display: flex; flex-direction: column; gap: var(--s-2); padding: var(--s-6) var(--s-6) var(--s-3); border-radius: var(--r-lg); background: var(--surface); box-shadow: var(--shadow-1); min-width: 0; }
   .open-mark { position: absolute; top: calc(-1 * var(--s-5)); left: var(--s-5); display: grid; place-items: center; width: 2.75rem; height: 2.75rem; border-radius: 50%; background: var(--acc); color: var(--on-acc); font-size: 2.25rem; font-weight: 600; line-height: 1; padding-top: 0.75rem; }
   .open-quote blockquote { margin: 0; padding-top: var(--s-2); }

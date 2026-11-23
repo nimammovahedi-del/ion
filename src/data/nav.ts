@@ -10,7 +10,7 @@ export interface NavItem {
 export const appGroups = [
   { id: 'her', label: 'How she is' },
   { id: 'do', label: 'Things to do' },
-  { id: 'care', label: 'Her care' },
+  { id: 'care', label: 'On her calls' },
   { id: 'setup', label: 'Set up' },
 ] as const;
 
@@ -19,10 +19,10 @@ export const appNav: NavItem[] = [
   { id: 'trends', label: 'Trends', href: '/app/trends/', icon: 'trends', access: 'family', group: 'her', tone: 'acc', hint: 'Sleep, meals, mood and more over time' },
   { id: 'tasks', label: 'Tasks', href: '/app/tasks/', icon: 'tasks', access: 'family', group: 'do', tone: 'butter', hint: 'What she asked for, and who is on it' },
   { id: 'calendar', label: 'Calendar', href: '/app/calendar/', icon: 'calendar', access: 'family', group: 'do', tone: 'butter', hint: 'Appointments, visits and refills' },
-  { id: 'reminders', label: 'Reminders', href: '/app/reminders/', icon: 'bell', access: 'family', group: 'do', tone: 'butter', hint: 'Things Ion says to her on a call' },
+  { id: 'services', label: 'Services', href: '/app/services/', icon: 'cart', access: 'family', group: 'do', tone: 'butter', soon: true, hint: 'Rides and errands, coming later' },
+  { id: 'reminders', label: 'Reminders', href: '/app/reminders/', icon: 'bell', access: 'family', group: 'care', tone: 'leaf', hint: 'Things Ion says to her on a call' },
   { id: 'medicines', label: 'Medicines', href: '/app/medicines/', icon: 'pill', access: 'family', group: 'care', tone: 'leaf', hint: 'Her pills, by your family\'s own names' },
   { id: 'ask', label: 'Ask tomorrow', href: '/app/ask/', icon: 'chat', access: 'family', group: 'care', tone: 'leaf', hint: 'Add a question of your own to the next call' },
-  { id: 'services', label: 'Services', href: '/app/services/', icon: 'car', access: 'family', group: 'care', tone: 'leaf', soon: true, hint: 'Rides, groceries and refills' },
   { id: 'family', label: 'Family circle', href: '/app/family/', icon: 'users', access: 'main-caregiver', group: 'setup', tone: 'sky', hint: 'Who sees the report and who can change things' },
   { id: 'settings', label: 'Call settings', href: '/app/settings/', icon: 'settings', access: 'main-caregiver', group: 'setup', tone: 'sky', hint: 'When Ion calls and what it asks about' },
 ];

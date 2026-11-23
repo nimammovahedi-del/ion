@@ -1,0 +1,16 @@
+---
+/** Seven day pills, Monday to Sunday. Real checkboxes. A chosen day is filled and ticked; a day left out is an empty dashed ring. */
+import './care.css';
+interface Props { name?: string; checked?: string[] }
+const { name = 'days', checked } = Astro.props;
+const WEEK = [['Mon', 'Monday'], ['Tue', 'Tuesday'], ['Wed', 'Wednesday'], ['Thu', 'Thursday'], ['Fri', 'Friday'], ['Sat', 'Saturday'], ['Sun', 'Sunday']] as const;
+---
+<div class="cf-choices cf-days">
+  {WEEK.map(([d, long]) => (
+    <label class="cf-choice dayp">
+      <input type="checkbox" name={name} value={d} checked={!checked || checked.includes(d)} />
+      <span aria-hidden="true">{d}</span><span class="sr-only">{long}</span>
+      <span class="dayp-tick" aria-hidden="true"><svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10" /></svg></span>
+    </label>
+  ))}
+</div>

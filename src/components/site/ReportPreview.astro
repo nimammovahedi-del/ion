@@ -42,8 +42,9 @@ const bars = week.map((n, i) => ({ x: i * (BAR_W + GAP), h: n.value === null ? 0
   .rp-tile b { font-size: 0.9375rem; font-weight: 600; white-space: nowrap; }
   .rp-tile span { font-size: var(--fs-xs); color: var(--ink-2); }
   .rp-bars { flex: none; }
-  .rp-bars rect { fill: var(--acc); }
-  .rp-bars rect.low { fill: var(--deep); }
+  /* sage for her usual nights, apricot for the shorter ones */
+  .rp-bars rect { fill: var(--leaf); }
+  .rp-bars rect.low { fill: var(--acc); }
   .rp-line { display: flex; gap: var(--s-2); font-size: var(--fs-sm); line-height: 1.5; }
   .rp-dot { flex: none; width: 0.5rem; height: 0.5rem; margin-top: 0.4rem; border-radius: 50%; background: var(--acc); }
 </style>

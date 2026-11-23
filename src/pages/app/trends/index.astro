@@ -6,30 +6,35 @@ import Capybara from '@/components/ui/Capybara.astro';
 import ThisWeek from '@/components/app/trends/ThisWeek.astro';
 import Overview from '@/components/app/trends/Overview.astro';
 import MeasureSection from '@/components/app/trends/MeasureSection.astro';
-import { ICON } from '@/components/app/trends/measure';
 import { getHerWords, getMetrics, getParent, getWeekNotes } from '@/lib/loaders';
 
 const [parent, metrics, notes, words] = await Promise.all([getParent(), getMetrics(), getWeekNotes(), getHerWords()]);
 const RANGES = [14, 30, 90] as const;
 const ORDER = ['sleep', 'feeling', 'pain', 'meals', 'fluids', 'medicines', 'falls', 'out'];
 const measures = ORDER.map((id) => metrics.find((m) => m.id === id)).filter((m) => m !== undefined);
+// Measures that are different from her usual are shown open, the ones to look at first. The rest are one row each.
+const rank = { changed: 0, check: 1, little: 2, usual: 3 };
+const open = measures.filter((m) => m.status !== 'usual').sort((a, b) => rank[a.status] - rank[b.status]);
+const steady = measures.filter((m) => m.status === 'usual');
 ---
 <AppLayout
   title="Trends"
   active="trends"
-  eyebrow="Trends"
   heading={`How ${parent.short} has been`}
   tone2="over the last weeks and months"
   lede="Every number is her own answer on a daily call, not a measurement. She is only ever compared with her own usual."
 >
   <Button slot="head-actions" href="/app/trends/doctor-visit/" variant="dark"><Icon name="print" size={18} />For a doctor visit</Button>
-  <Capybara slot="head-art" size={148} ground="var(--acc-soft)" waves={false} label="" />
+  <Capybara slot="head-art" size={148} ground="var(--surface)" label="" />
 
   <div class="trends" data-trends data-active="30">
     <ThisWeek measures={measures} notes={notes} />
-    <Overview measures={measures} />
 
     <div class="bar">
+      <div class="bar-words">
+        <h2 class="h3">Each measure</h2>
+        <p class="muted small">Pick one to see more. The dotted line is her usual.</p>
+      </div>
       <fieldset class="range">
         <legend>Show the last</legend>
         <div class="range-opts">
@@ -41,18 +46,24 @@ const measures = ORDER.map((id) => metrics.find((m) => m.id === id)).filter((m) 
           ))}
         </div>
       </fieldset>
-      <nav class="jump" aria-label="Jump to a measure">
-        <ul role="list">
-          {measures.map((m) => (
-            <li><a href={`#${m.id}`}><Icon name={ICON[m.id]} size={16} /><span>{m.title}</span></a></li>
-          ))}
-        </ul>
-      </nav>
     </div>
+    <Overview measures={measures} ranges={RANGES} />
 
-    {measures.map((m) => (
+    {open.map((m) => (
       <MeasureSection m={m} words={words.filter((w) => w.metric === m.id)} ranges={RANGES} />
     ))}
+
+    {steady.length > 0 && (
+      <section class="usual" aria-labelledby="usual-h" data-reveal>
+        <div class="usual-head">
+          <h2 id="usual-h" class="h3">As usual</h2>
+          <p class="muted small">Open a row to see its chart.</p>
+        </div>
+        {steady.map((m) => (
+          <MeasureSection compact m={m} words={words.filter((w) => w.metric === m.id)} ranges={RANGES} />
+        ))}
+      </section>
+    )}
 
     <div class="foot">
       <p class="muted small">Family notes from daily check-in calls, in her own words. Not a medical record. A pattern is something to ask her about, not a diagnosis. If something worries you, call her, or call her doctor.</p>
@@ -82,49 +93,60 @@ const measures = ORDER.map((id) => metrics.find((m) => m.id === id)).filter((m) 
         try { localStorage.setItem(KEY, input.value); } catch { /* storage may be off */ }
       });
     });
+    // A link to a measure that is shown as a closed row opens that row. Without JavaScript the row is one tap away.
+    const openTarget = () => {
+      const id = decodeURIComponent(location.hash.slice(1));
+      const el = id ? document.getElementById(id) : null;
+      if (el instanceof HTMLDetailsElement && !el.open) { el.open = true; toNewest(); el.scrollIntoView({ block: 'start' }); }
+    };
+    openTarget();
+    window.addEventListener('hashchange', openTarget);
+    root.querySelectorAll<HTMLAnchorElement>('a[href^="#"]').forEach((a) => a.addEventListener('click', () => window.setTimeout(openTarget, 0)));
   }
 </script>
 
 <style>
   .trends { display: flex; flex-direction: column; gap: var(--s-8); min-width: 0; }
 
-  /* the bar that stays in view: how many days to show, and a jump to each measure */
-  .bar { position: sticky; top: var(--s-3); z-index: 5; display: flex; align-items: center; gap: var(--s-2) var(--s-4); padding: var(--s-2); border-radius: var(--r-xl); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-2); min-width: 0; }
+  /* the bar that stays in view: the heading of the measures and how many days every picture below shows */
+  .bar { position: sticky; top: var(--s-3); z-index: 5; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-2) var(--s-6); margin-bottom: calc(-1 * var(--s-4)); padding: var(--s-2) var(--s-2) var(--s-2) var(--s-6); border-radius: var(--r-xl); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-2); min-width: 0; }
+  .bar-words { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--s-4); min-width: 0; }
 
   /* range switch: native radios styled as a segmented control */
-  .range { display: flex; align-items: center; gap: var(--s-3); border: 0; margin: 0; padding: 0 0 0 var(--s-3); min-width: 0; flex: none; }
+  .range { display: flex; align-items: center; gap: var(--s-3); border: 0; margin: 0; padding: 0; min-width: 0; flex: none; }
   .range legend { float: left; padding: 0; font-size: var(--fs-sm); font-weight: 500; white-space: nowrap; }
   .range-opts { display: flex; padding: 0.1875rem; border-radius: var(--r-pill); background: var(--paper); }
   .range label { flex: 1; position: relative; }
   .range input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
-  .range span { display: flex; align-items: center; justify-content: center; min-height: var(--tap); padding: 0 var(--s-3); border-radius: var(--r-pill); font-size: var(--fs-sm); font-weight: 500; white-space: nowrap; }
+  .range span { display: flex; align-items: center; justify-content: center; min-height: var(--tap); padding: 0 var(--s-4); border-radius: var(--r-pill); font-size: var(--fs-sm); font-weight: 500; white-space: nowrap; }
   .range input:checked + span { background: var(--deep); color: var(--on-deep); }
   .range input:focus-visible + span { outline: 3px solid var(--focus); outline-offset: 2px; }
 
-  .jump { min-width: 0; margin-left: auto; }
-  .jump ul { display: flex; gap: 0.125rem; overflow-x: auto; }
-  .jump a { display: flex; align-items: center; gap: var(--s-2); min-height: var(--tap); padding: 0 var(--s-3); border-radius: var(--r-pill); font-size: var(--fs-sm); font-weight: 500; text-decoration: none; white-space: nowrap; color: var(--ink); }
-  .jump a:hover { background: var(--acc-soft); color: var(--ink); }
-  .jump a :global(svg) { color: var(--acc-text); flex: none; }
+  .usual { display: flex; flex-direction: column; gap: var(--s-3); min-width: 0; }
+  .usual-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--s-4); }
 
   .foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-4) var(--s-8); }
   .foot p { flex: 1 1 24rem; max-width: 44rem; }
 
-  /* Show one range at a time. Default (and with no :has support): 30 days. */
-  .trends :global([data-range]:not([data-range='30'])) { display: none; }
-  .trends[data-active='14'] :global([data-range='30']), .trends:has(#range-14:checked) :global([data-range='30']) { display: none; }
-  .trends[data-active='90'] :global([data-range='30']), .trends:has(#range-90:checked) :global([data-range='30']) { display: none; }
-  .trends[data-active='14'] :global([data-range='14']), .trends:has(#range-14:checked) :global([data-range='14']) { display: grid; }
-  .trends[data-active='90'] :global([data-range='90']), .trends:has(#range-90:checked) :global([data-range='90']) { display: grid; }
-
-  @media (max-width: 85rem) {
-    .jump a :global(svg) { display: none; }
+  /* One window per view: every picture, sentence and table row follows the switch. 30 days is the start, also with no JavaScript. */
+  .trends:has(#range-14:checked) :global([data-range]:not([data-range='14'])),
+  .trends:has(#range-30:checked) :global([data-range]:not([data-range='30'])),
+  .trends:has(#range-90:checked) :global([data-range]:not([data-range='90'])),
+  .trends:has(#range-14:checked) :global([data-in]),
+  .trends:has(#range-30:checked) :global([data-in='90']) { display: none; }
+  @supports not selector(:has(*)) {
+    .trends[data-active='14'] :global([data-range]:not([data-range='14'])),
+    .trends[data-active='30'] :global([data-range]:not([data-range='30'])),
+    .trends[data-active='90'] :global([data-range]:not([data-range='90'])),
+    .trends[data-active='14'] :global([data-in]),
+    .trends[data-active='30'] :global([data-in='90']) { display: none; }
   }
+
   @media (max-width: 60rem) {
-    .bar { flex-wrap: wrap; border-radius: var(--r-lg); }
-    .range { flex: 1 1 100%; padding-left: var(--s-2); }
+    /* on small screens the bar scrolls away with the page, so it never covers a heading after a jump */
+    .bar { position: static; border-radius: var(--r-lg); padding: var(--s-3) var(--s-4); }
+    .range { flex: 1 1 100%; }
     .range-opts { flex: 1; }
-    .jump { margin-left: 0; flex: 1 1 100%; }
   }
   @media print {
     .bar { display: none; }

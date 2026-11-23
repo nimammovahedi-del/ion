@@ -5,65 +5,56 @@ import Button from '@/components/ui/Button.astro';
 import ReminderRow from '@/components/app/care/ReminderRow.astro';
 import SkyArt from '@/components/app/care/SkyArt.astro';
 import HeadArt from '@/components/app/care/HeadArt.astro';
-import HowFlow from '@/components/app/care/HowFlow.astro';
 import FormCard from '@/components/app/care/FormCard.astro';
 import Field from '@/components/app/care/Field.astro';
+import DayPills from '@/components/app/care/DayPills.astro';
 import ExampleNote from '@/components/app/care/ExampleNote.astro';
 import LiveRegion from '@/components/app/care/LiveRegion.astro';
 import { facesOf } from '@/components/app/care/people';
 import { getCallSettings, getFamily, getParent, getReminders, getViewer } from '@/lib/loaders';
+import { getAlso } from '@/lib/loaders-care';
 
-const [reminders, parent, settings, viewer, family] = await Promise.all([getReminders(), getParent(), getCallSettings(), getViewer(), getFamily()]);
+const [reminders, parent, settings, viewer, family, also] = await Promise.all([getReminders(), getParent(), getCallSettings(), getViewer(), getFamily(), getAlso()]);
 const faces = facesOf(family);
+const EVENING = '6:00 PM';
 const blocks = [
-  { id: 'call', art: 'sun', title: 'On the morning call', time: settings.time },
-  { id: 'evening-reminder', art: 'moon', title: 'Evening reminder', time: '6:00 PM' },
+  { id: 'call', art: 'sun', title: 'On the morning call', sub: `Every day at ${settings.time}.` },
+  { id: 'evening-reminder', art: 'moon', title: 'Evening reminder', sub: `A short call at ${EVENING}, only on days that have a reminder.` },
 ] as const;
 const kinds = ['medicine', 'appointment', 'other'] as const;
 const kindLabel = { medicine: 'Pills', appointment: 'An appointment', other: 'Something else' };
-const how = [
-  { icon: 'note', title: 'You write it', text: 'Short, warm, about one thing', tone: 'butter' },
-  { icon: 'phone', title: 'Ion says it', text: 'On the call or in the evening', tone: 'butter' },
-  { icon: 'chat', title: 'She answers', text: 'In her own words', tone: 'butter' },
-  { icon: 'today', title: 'You see it', text: 'In the daily report', tone: 'acc' },
-] as const;
 ---
-<AppLayout title="Reminders" active="reminders" eyebrow="Reminders"
-  heading={`What Ion says to ${parent.short}.`} tone2="Kindly, in your words."
+<AppLayout title="Reminders" active="reminders"
+  heading={`What Ion says to ${parent.short}.`}
   lede="Switch one off and Ion stops saying it, straight away.">
   <HeadArt slot="head-art" name="bell" />
-  <Button slot="head-actions" href="#add" variant="primary" size="sm"><Icon name="plus" size={16} />Add a reminder</Button>
+  <Button slot="head-actions" href="#add" variant="secondary" size="sm"><Icon name="plus" size={16} />Add a reminder</Button>
   <LiveRegion />
 
-  <div class="moments">
-    {blocks.map((b) => (
-      <section class:list={['moment', `moment-${b.id}`]} aria-labelledby={`m-${b.id}`}>
-        <header class="moment-head">
-          <SkyArt name={b.art} />
-          <div>
-            <h2 id={`m-${b.id}`}>{b.title}</h2>
-            <p class="num">{b.time}</p>
-          </div>
-        </header>
-        <ul role="list" class="rows" data-rows={b.id}>
-          {reminders.filter((r) => r.spokenBy === b.id).map((r) => <ReminderRow id={r.id} kind={r.kind} text={r.text} when={r.when} spokenBy={r.spokenBy} setBy={r.setBy} active={r.active} face={faces[r.setBy]} />)}
-        </ul>
-      </section>
-    ))}
-  </div>
+  <div class="care-cols">
+    <div class="moments">
+      {blocks.map((b) => (
+        <section class:list={['moment', `moment-${b.id}`]} aria-labelledby={`m-${b.id}`}>
+          <header class="moment-head">
+            <SkyArt name={b.art} />
+            <div>
+              <h2 id={`m-${b.id}`}>{b.title}</h2>
+              <p>{b.sub}</p>
+            </div>
+          </header>
+          <ul role="list" class="rows" data-rows={b.id}>
+            {reminders.filter((r) => r.spokenBy === b.id).map((r) => <ReminderRow id={r.id} kind={r.kind} text={r.text} when={r.when} spokenBy={r.spokenBy} setBy={r.setBy} active={r.active} face={faces[r.setBy]} also={also('reminders', r.id)} />)}
+          </ul>
+        </section>
+      ))}
+    </div>
 
-  <FormCard id="add" title="Add a reminder" accent="butter" sub="Write it as you would say it to her.">
-    <form class="cf" data-add novalidate>
-      <div class="add-grid">
-        <div class="cf">
+    <div class="care-side">
+      <FormCard title="Add a reminder" sub="Write it as you would say it to her.">
+        <form class="cf" data-add novalidate data-call-time={settings.time} data-evening-time={EVENING}>
           <Field label="What Ion should say" for="rem-text">
-            <textarea class="cf-textarea" id="rem-text" name="text" required maxlength="140" rows="2" placeholder="Put the bins out tonight." aria-describedby="rem-error"></textarea>
+            <textarea class="cf-textarea" id="rem-text" name="text" required maxlength="140" rows="2" placeholder="One short sentence" aria-describedby="rem-error"></textarea>
           </Field>
-          <Field label="When" for="rem-when" hint="Which days, and a time for evening reminders.">
-            <input class="cf-input" id="rem-when" name="when" type="text" maxlength="60" autocomplete="off" placeholder="Every Wednesday" aria-describedby="rem-when-hint" />
-          </Field>
-        </div>
-        <div class="cf">
           <fieldset class="cf-set">
             <legend class="cf-legend">How Ion says it</legend>
             <div class="cf-choices">
@@ -71,21 +62,24 @@ const how = [
               <label class="cf-choice"><input type="radio" name="spokenBy" value="evening-reminder" />As an evening reminder</label>
             </div>
           </fieldset>
+          <fieldset class="cf-set" aria-describedby="rem-days-error">
+            <legend class="cf-legend">Which days</legend>
+            <DayPills name="days" />
+          </fieldset>
           <fieldset class="cf-set">
             <legend class="cf-legend">What it is about</legend>
             <div class="cf-choices">
               {kinds.map((k, i) => <label class="cf-choice"><input type="radio" name="kind" value={k} checked={i === 2} />{kindLabel[k]}</label>)}
             </div>
           </fieldset>
-        </div>
-      </div>
-      <p class="cf-hint err" id="rem-error" hidden>Please write what Ion should say.</p>
-      <div class="cf-actions"><Button type="submit" variant="dark"><Icon name="plus" size={16} />Add reminder</Button></div>
-      <p class="cf-done" data-done hidden><Icon name="check" size={16} /><span data-msg></span></p>
-    </form>
-  </FormCard>
-
-  <HowFlow steps={[...how]} label="How a reminder works, in four steps" />
+          <p class="cf-hint err" id="rem-error" hidden>Please write what Ion should say.</p>
+          <p class="cf-hint err" id="rem-days-error" hidden>Please pick at least one day.</p>
+          <div class="cf-actions"><Button type="submit" variant="dark"><Icon name="plus" size={16} />Add reminder</Button></div>
+          <p class="cf-done" data-done hidden><Icon name="check" size={16} /><span data-msg></span></p>
+        </form>
+      </FormCard>
+    </div>
+  </div>
   <ExampleNote />
 
   {kinds.map((k) => <template id={`tpl-${k}`}><ReminderRow kind={k} spokenBy="call" added face={faces[viewer.short]} /></template>)}
@@ -144,7 +138,13 @@ const how = [
     if (!text) { if (err) err.hidden = false; area.setAttribute('aria-invalid', 'true'); area.focus(); return; }
     if (err) err.hidden = true;
     area.removeAttribute('aria-invalid');
-    const a: Added = { id: uid(), text, when: String(fd.get('when') ?? '').trim(), kind: (fd.get('kind') as Added['kind']) ?? 'other', spokenBy: fd.get('spokenBy') === 'evening-reminder' ? 'evening-reminder' : 'call', setBy: viewer };
+    const days = fd.getAll('days').map(String);
+    const daysErr = document.getElementById('rem-days-error');
+    if (daysErr) daysErr.hidden = days.length > 0;
+    if (!days.length) { form.querySelector<HTMLInputElement>('input[name="days"]')?.focus(); announce('Please pick at least one day.'); return; }
+    const evening = fd.get('spokenBy') === 'evening-reminder';
+    const when = `${days.length === 7 ? 'Every day' : days.join(', ')}, ${evening ? form.dataset.eveningTime : `on the ${form.dataset.callTime} call`}`;
+    const a: Added = { id: uid(), text, when, kind: (fd.get('kind') as Added['kind']) ?? 'other', spokenBy: fd.get('spokenBy') === 'evening-reminder' ? 'evening-reminder' : 'call', setBy: viewer };
     added.push(a);
     save('reminders', added);
     render(a);
@@ -155,24 +155,20 @@ const how = [
     if (done) done.hidden = false;
     announce(msg);
     area.value = '';
-    (document.getElementById('rem-when') as HTMLInputElement).value = '';
+    form.querySelectorAll<HTMLInputElement>('input[name="days"]').forEach((i) => { i.checked = true; });
   });
 </script>
 
 <style>
-  .moments { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-5); align-items: start; }
+  .moments { display: flex; flex-direction: column; gap: var(--s-5); min-width: 0; }
   .moment { display: flex; flex-direction: column; gap: var(--s-4); padding: var(--s-5); border-radius: var(--r-xl); background: var(--butter-soft); min-width: 0; }
   .moment-evening-reminder { background: var(--sky-soft); }
   .moment-head { display: flex; align-items: center; gap: var(--s-4); padding: 0 var(--s-1); }
   .moment-head h2 { font-size: 1.5rem; font-weight: 500; line-height: 1.2; letter-spacing: -0.025em; }
-  .moment-head p { color: var(--ink-2); font-size: 0.9375rem; }
+  .moment-head p { color: var(--ink-2); font-size: 0.9375rem; line-height: 1.45; }
   .rows { display: flex; flex-direction: column; gap: var(--s-3); }
   .moment-evening-reminder :global(.rem:not(.off) .bub) { --bub: var(--sky-soft); }
-  .add-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-4) var(--s-8); }
   .err { color: var(--ink); font-weight: 500; }
   .err[hidden] { display: none; }
-  @media (max-width: 62rem) {
-    .moments, .add-grid { grid-template-columns: minmax(0, 1fr); }
-  }
   @media (max-width: 40rem) { .moment { padding: var(--s-3); } }
 </style>

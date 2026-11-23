@@ -1,31 +1,55 @@
 ---
 /**
- * The week at a glance: seven days across, one row per measure, today highlighted.
- * A day close to her usual is a slim sage capsule. A day that changed is a taller apricot pill with her answer written in it.
- * A day with no answer is an empty dashed capsule. So the three differ by shape and words, not only colour.
+ * The week at a glance. Only the measures that were different this week get a row of seven days; the ones that were
+ * as usual every day are named in one line underneath, so the picture is not forty identical marks.
+ * Marks differ by shape and words, not only colour: a slim sage capsule is a usual day, a butter pill with her answer is
+ * a little different, an apricot pill with her answer is changed, a dashed butter pill is two different answers,
+ * and an empty dashed capsule is a day with no answer.
+ * Medicines are shown by pill time on its own date: Monday evening's two answers sit on Monday, not on today.
  * It is a real table: screen readers can move by row and column, and every cell says its state and her answer.
  */
 import type { MetricSeries } from '@/data/types';
 import IconBadge from '@/components/ui/IconBadge.astro';
-import { lastDays } from '@/lib/loaders';
-import { ICON, TONE, cellShort, dayLabel, dayState, listWords, valueWords, type DayState } from '@/components/app/trends/measure';
+import { lastDays, pillDays } from '@/lib/loaders';
+import { ICON, TONE, PILL_WORDS, cellShort, dayLabel, dayState, listWords, statusWord, valueWords } from '@/components/app/trends/measure';
 interface Props { metrics: MetricSeries[] }
 const { metrics } = Astro.props;
 const ORDER = ['sleep', 'feeling', 'pain', 'meals', 'medicines', 'falls', 'out'] as const;
+type Mark = 'usual' | 'little' | 'changed' | 'two' | 'none' | 'out' | 'home';
+interface Cell { date: string; mark: Mark; text: string; words: string }
+const WORD: Record<Mark, string> = { usual: 'As usual', little: 'A little different', changed: 'Changed', two: 'Two different answers', none: 'No answer', out: 'Went out', home: 'Stayed in' };
+
 const rows = ORDER.map((id) => metrics.find((m) => m.id === id)).filter((m): m is MetricSeries => !!m).map((m) => {
   const pts = lastDays(m, 7);
-  return { m, cells: pts.map((p) => ({ p, state: dayState(m, p.value) })) };
+  let cells: Cell[];
+  if (m.id === 'medicines') {
+    cells = pillDays(pts).map((d) => {
+      const both = [d.morning, d.evening];
+      const mark: Mark = both.includes('two') ? 'two' : both.includes('no') ? 'changed' : d.morning === 'no-call' ? 'none' : 'usual';
+      return { date: d.date, mark, text: mark === 'two' ? 'Two answers' : mark === 'changed' ? 'Not sure' : '',
+        words: `Morning pills: ${PILL_WORDS[d.morning].toLowerCase()}. Evening pills: ${d.evening === 'later' ? 'later today, Ion asks tomorrow' : PILL_WORDS[d.evening].toLowerCase()}.` };
+    });
+  } else if (m.id === 'out') {
+    cells = pts.map((p) => ({ date: p.date, mark: p.value === null ? 'none' : p.value > 0 ? 'out' : 'home', text: p.value ? 'Out' : '', words: valueWords(m.id, p.value) }));
+  } else {
+    cells = pts.map((p) => {
+      const st = dayState(m, p.value);
+      return { date: p.date, mark: st, text: (st === 'changed' || st === 'little') && p.value !== null ? cellShort(m.id, p.value) : '', words: valueWords(m.id, p.value) };
+    });
+  }
+  // A row is shown when the measure is different this week, or when any day in it is.
+  const differs = m.status !== 'usual' || cells.some((c) => c.mark === 'changed' || c.mark === 'little' || c.mark === 'two' || c.mark === 'none');
+  return { m, cells, differs };
 });
-const days = rows[0]?.cells.map((c) => c.p) ?? [];
-const WORD: Record<DayState, string> = { usual: 'As usual', changed: 'Changed', none: 'No answer' };
-
-// One plain line that says the same as the picture.
-const changedRows = rows.map((r) => ({ title: r.m.title, days: r.cells.filter((c) => c.state === 'changed').map((c) => dayLabel(c.p.date)) })).filter((r) => r.days.length);
-const noAnswer = rows.reduce((a, r) => a + r.cells.filter((c) => c.state === 'none').length, 0);
-const summary = [
-  changedRows.length ? `Different from her usual: ${changedRows.map((r) => `${r.title.toLowerCase()} on ${listWords(r.days)}`).join(', and ')}. Everything else was as usual.` : 'Everything was close to her usual all week.',
-  noAnswer ? `${noAnswer} answer${noAnswer > 1 ? 's are' : ' is'} missing.` : '',
-].filter(Boolean).join(' ');
+const shown = rows.filter((r) => r.differs);
+const quiet = rows.filter((r) => !r.differs);
+const days = rows[0]?.cells.map((c) => c.date) ?? [];
+const has = (mk: Mark) => shown.some((r) => r.cells.some((c) => c.mark === mk));
+const quietLine = quiet.length ? `${listWords(quiet.map((r, i) => (i === 0 ? r.m.title : r.m.title.toLowerCase())))}: as usual all week.` : '';
+const NUM = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven'];
+const summary = shown.length
+  ? `${NUM[shown.length] ?? shown.length} ${shown.length === 1 ? 'thing was' : 'things were'} different from her usual. The rows show on which days.`
+  : 'Everything was as usual all week.';
 const first = days[0], last = days[days.length - 1];
 const span = { month: 'short', day: 'numeric' } as const;
 ---
@@ -35,41 +59,51 @@ const span = { month: 'short', day: 'numeric' } as const;
       <h2 id="week-h" class="h3">The week at a glance</h2>
       <p class="summary">{summary}</p>
     </div>
-    <ul role="list" class="legend" aria-label="Key">
-      <li><span class="mk mk-usual" aria-hidden="true"></span>As usual</li>
-      <li><span class="mk mk-changed" aria-hidden="true"></span>Changed</li>
-      <li><span class="mk mk-none" aria-hidden="true"></span>No answer</li>
-    </ul>
+    {shown.length > 0 && (
+      <ul role="list" class="legend" aria-label="Key">
+        <li><span class="mk mk-usual" aria-hidden="true"></span>As usual</li>
+        {has('little') && <li><span class="mk mk-little" aria-hidden="true"></span>A little different</li>}
+        {has('changed') && <li><span class="mk mk-changed" aria-hidden="true"></span>Changed</li>}
+        {has('two') && <li><span class="mk mk-two" aria-hidden="true"></span>Two answers</li>}
+        {has('home') && <li><span class="mk mk-home" aria-hidden="true"></span>Stayed in</li>}
+        {has('none') && <li><span class="mk mk-none" aria-hidden="true"></span>No answer</li>}
+      </ul>
+    )}
   </div>
-  <div class="scroll" tabindex="0" role="group" aria-label="Week at a glance table. Scroll sideways if needed.">
-    <table>
-      <caption class="sr-only">Each measure for the seven days from {first && dayLabel(first.date, span)} to {last && dayLabel(last.date, span)}: as usual, changed or no answer</caption>
-      <thead>
-        <tr>
-          <th scope="col"><span class="sr-only">Measure</span></th>
-          {days.map((d, i) => (
-            <th scope="col" class:list={{ today: i === days.length - 1 }}>
-              <span class="dw">{i === days.length - 1 ? 'Today' : dayLabel(d.date)}</span>
-              <span class="dn num">{dayLabel(d.date, { day: 'numeric' })}</span>
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((r, k) => (
+  {shown.length > 0 && (
+    <div class="scroll" tabindex="0" role="group" aria-label="Week at a glance table. Scroll sideways if needed.">
+      <table>
+        <caption class="sr-only">The measures that were different this week, for the seven days from {first && dayLabel(first, span)} to {last && dayLabel(last, span)}. {quietLine}</caption>
+        <thead>
           <tr>
-            <th scope="row"><a href={`/app/trends/#${r.m.id}`}><IconBadge name={ICON[r.m.id]} tone={TONE[r.m.id]} size="sm" />{r.m.title}</a></th>
-            {r.cells.map((c, i) => (
-              <td class:list={{ today: i === r.cells.length - 1 }} title={`${dayLabel(c.p.date)}: ${valueWords(r.m.id, c.p.value)}`}>
-                <span class:list={['mk', `mk-${c.state}`, 'draw-pop']} style={`--i:${k + i}`} aria-hidden="true">{c.state === 'changed' && c.p.value !== null ? cellShort(r.m.id, c.p.value) : ''}</span>
-                <span class="sr-only">{WORD[c.state]}: {valueWords(r.m.id, c.p.value)}</span>
-              </td>
+            <th scope="col"><span class="sr-only">Measure</span></th>
+            {days.map((d, i) => (
+              <th scope="col" class:list={{ today: i === days.length - 1 }}>
+                <span class="dw">{i === days.length - 1 ? 'Today' : dayLabel(d)}</span>
+                <span class="dn num">{dayLabel(d, { day: 'numeric' })}</span>
+              </th>
             ))}
           </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
+        </thead>
+        <tbody>
+          {shown.map((r, k) => (
+            <tr>
+              <th scope="row">
+                <a href={`/app/trends/#${r.m.id}`}><IconBadge name={ICON[r.m.id]} tone={TONE[r.m.id]} size="sm" /><span class="rw"><span>{r.m.title}</span><span class="rs">{statusWord(r.m)}</span></span></a>
+              </th>
+              {r.cells.map((c, i) => (
+                <td class:list={{ today: i === r.cells.length - 1 }} title={`${dayLabel(c.date)}: ${c.words}`}>
+                  <span class:list={['mk', `mk-${c.mark}`, 'draw-pop']} style={`--i:${k + i}`} aria-hidden="true">{c.text}</span>
+                  <span class="sr-only">{WORD[c.mark]}: {c.words}</span>
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
+  {quietLine && <p class="quiet"><span class="mk mk-usual" aria-hidden="true"></span>{quietLine}</p>}
 </section>
 <style>
   .week { display: flex; flex-direction: column; gap: var(--s-4); padding: var(--s-8); border-radius: var(--r-xl); background: var(--surface); border: 1px solid var(--line); min-width: 0; }
@@ -78,9 +112,11 @@ const span = { month: 'short', day: 'numeric' } as const;
   .summary { max-width: 40rem; line-height: 1.5; color: var(--ink-2); }
   .legend { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-4); font-size: var(--fs-sm); color: var(--ink-2); }
   .legend li { display: inline-flex; align-items: center; gap: var(--s-2); }
-  .scroll { overflow-x: auto; border-radius: var(--r-md); }
-  table { width: 100%; min-width: 30rem; border-collapse: separate; border-spacing: 0; }
-  th, td { padding: 0.3125rem var(--s-1); text-align: center; }
+  /* position: relative keeps the screen-reader-only words inside the cells from widening the page on a phone */
+  .scroll { position: relative; overflow-x: auto; border-radius: var(--r-md); }
+  table { width: 100%; min-width: 40rem; table-layout: fixed; border-collapse: separate; border-spacing: 0; }
+  thead th:first-child { width: 11rem; }
+  th, td { padding: var(--s-2) var(--s-1); text-align: center; }
   thead th { padding-block: var(--s-3); font-weight: 400; font-size: var(--fs-sm); color: var(--ink-2); line-height: 1.25; }
   thead th span { display: block; }
   .dn { font-size: 1.0625rem; font-weight: 500; color: var(--ink); }
@@ -88,15 +124,24 @@ const span = { month: 'short', day: 'numeric' } as const;
   th.today, td.today { background: var(--paper); }
   thead th.today { border-radius: var(--r-lg) var(--r-lg) 0 0; }
   tbody tr:last-child td.today { border-radius: 0 0 var(--r-lg) var(--r-lg); }
-  tbody th { text-align: left; font-weight: 500; font-size: 0.9375rem; white-space: nowrap; width: 1%; padding-right: var(--s-8); padding-left: 0; }
+  tbody th { text-align: left; font-weight: 500; font-size: 0.9375rem; white-space: nowrap; padding-left: 0; }
   tbody th a { display: inline-flex; align-items: center; gap: var(--s-3); min-height: var(--tap); color: var(--ink); text-decoration: none; border-radius: var(--r-md); }
   tbody th a:hover { color: var(--acc-text); text-decoration: underline; }
+  .rw { display: flex; flex-direction: column; line-height: 1.3; }
+  .rs { font-size: var(--fs-sm); font-weight: 400; color: var(--ink-2); }
   .mk { display: inline-grid; place-items: center; vertical-align: middle; box-sizing: border-box; }
   .mk-usual { width: 2.5rem; height: 0.75rem; border-radius: var(--r-pill); background: var(--leaf); }
-  .mk-changed { min-width: 3rem; height: 2rem; padding: 0 var(--s-2); border-radius: var(--r-sm); background: var(--acc); color: var(--on-acc); font-size: var(--fs-sm); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .mk-little, .mk-changed, .mk-two, .mk-out { min-width: 3rem; height: 2rem; padding: 0 var(--s-2); border-radius: var(--r-sm); color: var(--ink); font-size: var(--fs-sm); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .mk-little { background: var(--butter-soft); border: 1.5px solid var(--butter); }
+  .mk-changed { background: var(--acc); color: var(--on-acc); }
+  .mk-two { background: var(--butter); border: 1.5px dashed var(--ink); }
+  .mk-out { background: var(--leaf); font-weight: 500; }
+  .mk-home { width: 2.5rem; height: 0.75rem; border-radius: var(--r-pill); background: var(--grey-2); }
   .mk-none { width: 2.5rem; height: 0.75rem; border-radius: var(--r-pill); border: 1.5px dashed var(--ink-2); }
-  .legend .mk-usual, .legend .mk-none { width: 1.5rem; }
-  .legend .mk-changed { min-width: 1.5rem; height: 1.125rem; padding: 0; border-radius: 0.3125rem; }
+  .legend .mk-usual, .legend .mk-none, .legend .mk-home { width: 1.5rem; }
+  .legend .mk-little, .legend .mk-changed, .legend .mk-two { min-width: 1.5rem; height: 1.125rem; padding: 0; border-radius: 0.3125rem; }
+  .quiet { display: flex; align-items: center; gap: var(--s-3); padding: var(--s-3) var(--s-4); border-radius: var(--r-md); background: var(--leaf-soft); font-size: 0.9375rem; line-height: 1.4; }
+  .quiet .mk { flex: none; width: 1.5rem; }
   @media (max-width: 30rem) {
     .week { padding: var(--s-5); border-radius: var(--r-lg); }
   }

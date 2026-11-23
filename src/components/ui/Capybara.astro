@@ -5,7 +5,7 @@ interface Props { size?: number; ground?: string; scarf?: string; waves?: boolea
 const { size = 320, ground = 'var(--paper)', scarf = 'var(--leaf)', waves = true, class: cls = '', label = 'Ion, a cartoon capybara in a green scarf with a small orange on its head' } = Astro.props;
 const id = `capy-${Math.random().toString(36).slice(2, 8)}`;
 ---
-<svg class:list={['capy', cls]} viewBox="0 0 320 320" width={size} height={size} role="img" aria-label={label}>
+<svg class:list={['capy', cls]} viewBox="0 0 320 320" width={size} height={size} role={label ? "img" : undefined} aria-label={label || undefined} aria-hidden={label ? undefined : "true"}>
   <defs><clipPath id={id}><circle cx="160" cy="160" r="150" /></clipPath></defs>
   <circle cx="160" cy="160" r="150" fill={ground} />
   <g clip-path={`url(#${id})`}>

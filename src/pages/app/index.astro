@@ -4,22 +4,17 @@ import Opening from '@/components/app/today/Opening.astro';
 import Glance from '@/components/app/today/Glance.astro';
 import NeedsYou from '@/components/app/today/NeedsYou.astro';
 import WeekGlance from '@/components/app/today/WeekGlance.astro';
-import IonDay from '@/components/app/today/IonDay.astro';
 import MightDo from '@/components/app/today/MightDo.astro';
-import FindWay from '@/components/app/today/FindWay.astro';
-import { getDayFlow, getHealthCards, getHerWords, getMedicines, getMetrics, getParent, getReport, getTasks, getToday, getViewer } from '@/lib/loaders';
+import { getHealthCards, getHerWords, getMedicines, getMetrics, getParent, getReport, getTasks, getToday, getViewer } from '@/lib/loaders';
 
-const [today, parent, viewer, report, cards, tasks, flow, metrics, words, medicines] = await Promise.all([
-  getToday(), getParent(), getViewer(), getReport(), getHealthCards(), getTasks(), getDayFlow(), getMetrics(), getHerWords(), getMedicines(),
+const [today, parent, viewer, report, cards, tasks, metrics, words, medicines] = await Promise.all([
+  getToday(), getParent(), getViewer(), getReport(), getHealthCards(), getTasks(), getMetrics(), getHerWords(), getMedicines(),
 ]);
 const needsYou = tasks.filter((t) => t.status === 'needs-you');
-const done = flow.filter((s) => s.status === 'done').length;
-const waiting = flow.some((s) => s.status === 'needs-you');
 ---
 <AppLayout
   title="Today"
   active="today"
-  eyebrow={`${today.long}`}
   heading={`Good morning, ${viewer.short}.`}
   tone2={`Here is how your mom is today.`}
 >
@@ -33,7 +28,6 @@ const waiting = flow.some((s) => s.status === 'needs-you');
       overallTone={report.overallTone}
       quotes={report.quotes}
       said={report.said}
-      needsLink={needsYou.length > 0}
     />
 
     <Glance cards={cards} metrics={metrics} words={words} medicines={medicines} />
@@ -42,32 +36,13 @@ const waiting = flow.some((s) => s.status === 'needs-you');
 
     <WeekGlance metrics={metrics} />
 
-    <section class="ion" aria-labelledby="ion-h" data-reveal>
-      <div class="ion-head">
-        <h2 id="ion-h" class="h3">What Ion did today</h2>
-        <p class="muted small">
-          <span data-ride-step>{done} of {flow.length} done{waiting ? '. One is waiting for you.' : '.'}</span>
-          <span data-ride-step-done hidden>{done + 1} of {flow.length} done.</span>
-        </p>
-      </div>
-      <!-- The task cards' script shows the second list once someone has said yes to the ride. -->
-      <div data-ride-step><IonDay steps={flow} label="What Ion did today, in order" /></div>
-      <div data-ride-step-done hidden><IonDay steps={flow} said label="What Ion did today, in order" /></div>
-    </section>
-
     <MightDo items={report.suggestions} />
-
-    <FindWay current="today" />
   </div>
 </AppLayout>
 
 <style>
   .today { container-type: inline-size; display: flex; flex-direction: column; gap: var(--s-10); min-width: 0; }
-  .ion { display: flex; flex-direction: column; gap: var(--s-6); padding: var(--s-8); border-radius: var(--r-xl); background: var(--surface); border: 1px solid var(--line); min-width: 0; }
-  .ion-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--s-1) var(--s-4); }
-  .ion [hidden] { display: none; }
   @media (max-width: 30rem) {
     .today { gap: var(--s-8); }
-    .ion { padding: var(--s-5); border-radius: var(--r-lg); }
   }
 </style>

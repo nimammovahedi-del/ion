@@ -31,8 +31,8 @@ const fromText = (t: Task) => {
   ) : (
     <>
       <ol role="list" class="list">
-        {tasks.map((t, i) => (
-          <li class="task draw-pop" style={`--i:${i * 2}`} data-task={t.id}>
+        {tasks.map((t) => (
+          <li class="task" data-task={t.id}>
             <div class="task-top">
               <IconBadge name={t.icon} tone="butter" size="lg" />
               {t.due && <span class="task-due"><Icon name="clock" size={14} />Due {t.due}</span>}
@@ -58,6 +58,7 @@ const fromText = (t: Task) => {
       </ol>
       <p class="calm" data-all-done hidden>That is everything for today. Thank you. Ion will add anything new after tomorrow's call.</p>
       <p class="note"><Icon name="lock" size={14} />Example data. Nothing is sent. Changes are kept in this browser only.</p>
+      <noscript><p class="note">Saying yes needs JavaScript in this example.</p></noscript>
     </>
   )}
   <p class="sr-only" aria-live="polite" data-live></p>
@@ -94,27 +95,22 @@ const fromText = (t: Task) => {
       if (done) text.textContent = words;
       card.querySelectorAll<HTMLElement>('[data-chip]').forEach((c) => { c.hidden = (c.dataset.chip === 'done') !== finished; });
     };
-    // Step 4 of "What Ion did today" is the ride. Keep it in step with the ride card.
-    const syncRideStep = () => {
-      const waiting = !state.ride || state.ride.status === 'needs-you';
-      document.querySelectorAll<HTMLElement>('[data-ride-step]').forEach((el) => { el.hidden = !waiting; });
-      document.querySelectorAll<HTMLElement>('[data-ride-step-done]').forEach((el) => { el.hidden = waiting; });
-    };
+    // The same calm line right after a yes and after a reload: who has it, or that it is done.
+    const doneWords = (finished: boolean, who?: string) => (finished ? 'Marked done.' : `${!who || who === viewer ? 'You have' : `${who} has`} this one.`);
     root.querySelectorAll<HTMLElement>('[data-task]').forEach((card) => {
       const id = card.dataset.task as string;
       const title = card.querySelector('.task-title')?.textContent ?? '';
       // Bring back what was chosen earlier in this browser, here or on the Tasks page.
       const before = state[id];
-      if (before && before.status !== 'needs-you') show(card, true, before.status === 'done' ? 'Marked done.' : `${!before.who || before.who === viewer ? 'You have' : `${before.who} has`} this one.`, before.status === 'done');
+      if (before && before.status !== 'needs-you') show(card, true, doneWords(before.status === 'done', before.who), before.status === 'done');
       card.querySelectorAll<HTMLButtonElement>('[data-act]').forEach((btn) => {
         btn.addEventListener('click', () => {
           const label = btn.dataset.act ?? '';
           const finished = /already|done/i.test(label);
           const other = label.match(/^(\w+) will /)?.[1];
-          show(card, true, `You chose "${label}".`, finished);
+          show(card, true, doneWords(finished, other ?? viewer), finished);
           state[id] = { status: finished ? 'done' : 'in-progress', who: other ?? viewer };
           const left = update(true);
-          syncRideStep();
           if (live) live.textContent = `${title}: ${finished ? 'marked done' : 'now in progress'}. ${countText(left)}.`;
           card.querySelector<HTMLButtonElement>('[data-undo]')?.focus();
         });
@@ -123,13 +119,11 @@ const fromText = (t: Task) => {
         show(card, false);
         delete state[id];
         const left = update(true);
-        syncRideStep();
         if (live) live.textContent = `${title} is waiting again. ${countText(left)}.`;
         card.querySelector<HTMLButtonElement>('[data-actions] button')?.focus();
       });
     });
     if (Object.keys(state).length) update(false);
-    syncRideStep();
   });
 </script>
 
@@ -150,6 +144,7 @@ const fromText = (t: Task) => {
   .task-title { font-size: 1.25rem; font-weight: 500; line-height: 1.25; letter-spacing: -0.015em; }
   .task-detail { font-size: 0.9375rem; line-height: 1.5; color: var(--ink-2); }
   .task-actions { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: auto; }
+  .task-actions :global(.btn) { min-height: var(--tap); }
   .task-actions[hidden], .task-done[hidden] { display: none; }
   .task-done { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3); margin-top: auto; font-size: var(--fs-sm); color: var(--ink-2); }
   .task-done p { flex: 1 1 100%; }

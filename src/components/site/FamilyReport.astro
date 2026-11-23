@@ -1,78 +1,105 @@
 ---
 /**
- * A small picture of the family report for the example family: three rings, one steady line,
- * something she said, and the next steps waiting for a yes. Everything comes through the loaders.
+ * The longer view, beside the sleep chart: three small 30-day trend lines with their status in words,
+ * one thing she said, and the one-page sheet for a doctor visit. The day's story itself is told once, in the hero.
+ * Everything comes through the loaders.
  */
 import Chip from '@/components/ui/Chip.astro';
-import Ring from '@/components/ui/Ring.astro';
 import Spark from '@/components/ui/Spark.astro';
 import IconBadge from '@/components/ui/IconBadge.astro';
-import { getReport, getToday, getParent, getTasks, getMetric, lastDays } from '@/lib/loaders';
-const [report, today, parent, tasks, meals, pills, pain] = await Promise.all([getReport(), getToday(), getParent(), getTasks(), getMetric('meals'), getMetric('medicines'), getMetric('pain')]);
-const waiting = tasks.filter((t) => t.status === 'needs-you');
-const lastOf = (m: typeof meals) => lastDays(m, 1)[0].value ?? 0;
-const rings = [
-  { name: 'Feeling', value: report.feeling, max: 10, mid: String(report.feeling), tone: 'acc', say: `Feeling: ${report.feeling} out of 10. Her usual is ${report.feelingUsual}.`, sub: `usual ${report.feelingUsual}` },
-  { name: 'Meals', value: lastOf(meals), max: meals.usual, mid: `${lastOf(meals)}/${meals.usual}`, tone: 'leaf', say: `Meals: ${lastOf(meals)} of ${meals.usual} yesterday.`, sub: 'as usual' },
-  { name: 'Pill times', value: lastOf(pills), max: pills.usual, mid: `${lastOf(pills)}/${pills.usual}`, tone: 'butter', say: `Pill times taken: ${lastOf(pills)} of ${pills.usual} since yesterday's call.`, sub: 'worth a check' },
-] as const;
-const painDays = lastDays(pain, 14).map((p) => p.value);
-const TONES = ['acc', 'leaf', 'butter'] as const;
+import Button from '@/components/ui/Button.astro';
+import { getReport, getParent, getMetric, getHealthCards, lastDays } from '@/lib/loaders';
+const [report, parent, sleep, feeling, pain, cards] = await Promise.all([getReport(), getParent(), getMetric('sleep'), getMetric('feeling'), getMetric('pain'), getHealthCards()]);
+const DAYS = 30;
+// One look per status, the same as in the app: apricot for changed, butter for a small change, sage for as usual. The words come from the app's own cards.
+const LOOK = {
+  changed: { badge: 'acc', line: 'acc' },
+  check: { badge: 'paper', line: 'deep' },
+  little: { badge: 'butter', line: 'deep' },
+  usual: { badge: 'leaf', line: 'leaf' },
+} as const;
+const rows = [
+  { m: sleep, name: 'Sleep', icon: 'moon' },
+  { m: feeling, name: 'Feeling', icon: 'heart' },
+  { m: pain, name: 'Knee', icon: 'spark' },
+].map((r) => ({
+  ...r, values: lastDays(r.m, DAYS).map((p) => p.value), look: LOOK[r.m.status],
+  word: cards.find((c) => c.id === r.m.id)?.statusLabel ?? 'As usual',
+  say: `Line of her ${r.name.toLowerCase()} over ${DAYS} days, beside her usual of ${r.m.usualLabel}. ${r.m.note}`,
+}));
+const quote = report.quotes[0];
 ---
-<article class="fr" aria-label={`A picture of the family report, with example data for ${parent.short}`} data-reveal>
-  <header class="fr-head">
-    <p class="fr-when">{today.short} · after the {today.callTime} call</p>
-    <Chip tone="info">Example data</Chip>
-  </header>
-  <p class="fr-headline">{report.headline}</p>
-
-  <ul role="list" class="fr-rings">
-    {rings.map((r) => (
-      <li>
-        <Ring value={r.value} max={r.max} size={76} thickness={11} tone={r.tone} label={r.say}>{r.mid}</Ring>
-        <p aria-hidden="true"><b>{r.name}</b><span>{r.sub}</span></p>
-      </li>
-    ))}
-  </ul>
-
-  <div class="fr-line">
-    <p><b>Knee, 14 days</b><span>steady, as usual</span></p>
-    <Spark values={painDays} min={0} max={10} usual={pain.usual} tone="leaf" width={190} height={40} summary={`Line of her knee pain over 14 days. It stays close to her usual, ${pain.usualLabel}.`} />
-  </div>
-
-  <blockquote class="fr-quote">
-    <p>"{report.quote}"</p>
-    <footer>{parent.short}, about last night</footer>
-  </blockquote>
-
-  <div class="fr-steps">
-    <p class="fr-steps-head">{waiting.length} next steps, waiting for a yes</p>
-    <ul role="list">
-      {waiting.map((t, i) => <li><IconBadge name={t.icon} tone={TONES[i % 3]} size="sm" /><span>{t.title}</span></li>)}
+<div class="fr" data-reveal>
+  <article class="fr-card" aria-labelledby="fr-trend">
+    <header class="fr-head">
+      <h3 id="fr-trend" class="fr-title">The last {DAYS} days</h3>
+      <Chip tone="info">Example data</Chip>
+    </header>
+    <ul role="list" class="fr-rows">
+      {rows.map((r) => (
+        <li class="fr-row">
+          <IconBadge name={r.icon} tone={r.look.badge} />
+          <p class="fr-name"><b>{r.name}</b><span>usual {r.m.usualLabel.split(',')[0]}</span></p>
+          <Spark values={r.values} min={r.m.min} max={r.m.max} usual={r.m.usual} tone={r.look.line} width={140} height={44} summary={r.say} />
+          <Chip tone={r.m.status}>{r.word}</Chip>
+        </li>
+      ))}
     </ul>
-  </div>
-</article>
+    <blockquote class="fr-quote">
+      <p>"{quote.text}"</p>
+      <footer>{parent.short}. {quote.about}.</footer>
+    </blockquote>
+  </article>
+
+  <article class="fr-sheet" aria-labelledby="fr-sheet">
+    <svg class="fr-page" viewBox="0 0 120 132" aria-hidden="true">
+      <rect class="pg-back" x="20" y="6" width="88" height="116" rx="10" transform="rotate(5 64 64)" />
+      <rect class="pg" x="14" y="8" width="88" height="116" rx="10" />
+      <rect class="pg-ink" x="26" y="22" width="40" height="6" rx="3" />
+      <rect class="pg-soft" x="26" y="33" width="26" height="4" rx="2" />
+      <path class="pg-line draw-line" pathLength="1" style="--i:4" d="M26 62l9-2 9 3 9-4 9 1 9 9 9 3 10-1" />
+      <path class="pg-usual" d="M26 58h64" />
+      <g class="pg-soft"><rect x="36" y="86" width="52" height="4" rx="2" /><rect x="36" y="98" width="44" height="4" rx="2" /><rect x="36" y="110" width="48" height="4" rx="2" /></g>
+      <g class="pg-box"><rect x="26" y="84" width="7" height="7" rx="2" /><rect x="26" y="96" width="7" height="7" rx="2" /><rect x="26" y="108" width="7" height="7" rx="2" /></g>
+    </svg>
+    <div class="fr-sheet-words">
+      <h3 id="fr-sheet" class="fr-title">One page for the doctor</h3>
+      <p>The last weeks on a single sheet to print, with room for your own questions.</p>
+      <Button href="/app/trends/doctor-visit/" variant="ghost" size="sm" arrow class="fr-link">See the example sheet</Button>
+    </div>
+  </article>
+</div>
 <style>
-  .fr { display: flex; flex-direction: column; gap: var(--s-5); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-xl); padding: var(--s-8); box-shadow: var(--shadow-2); min-width: 0; }
+  .fr { display: flex; flex-direction: column; gap: var(--s-4); min-width: 0; }
+  .fr-card { flex: 1; display: flex; flex-direction: column; gap: var(--s-5); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-xl); padding: var(--s-8); box-shadow: var(--shadow-2); min-width: 0; }
   .fr-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-2); }
-  .fr-when { font-size: var(--fs-sm); color: var(--ink-2); }
-  .fr-headline { font-size: 1.5rem; font-weight: 400; line-height: 1.2; letter-spacing: -0.025em; text-wrap: balance; }
-  .fr-rings { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-2); }
-  .fr-rings li { display: flex; flex-direction: column; align-items: center; gap: var(--s-2); padding: var(--s-4) var(--s-2); border-radius: var(--r-lg); background: var(--cream); text-align: center; }
-  .fr-rings p, .fr-line p { display: flex; flex-direction: column; line-height: 1.3; }
-  .fr b { font-weight: 500; font-size: 0.9375rem; }
-  .fr-rings span, .fr-line p span { font-size: var(--fs-sm); color: var(--ink-2); }
-  .fr-rings :global(.ring-mid) { font-size: 1.125rem; color: var(--ink); }
-  .fr-line { display: flex; align-items: center; justify-content: space-between; gap: var(--s-4); padding: var(--s-3) var(--s-5); border-radius: var(--r-lg); background: var(--cream); }
+  .fr-title { font-size: var(--fs-h3); font-weight: 500; letter-spacing: -0.02em; line-height: 1.3; }
+  .fr-rows { flex: 1; display: flex; flex-direction: column; justify-content: space-around; gap: var(--s-2); }
+  .fr-row { display: grid; grid-template-columns: auto minmax(4.5rem, 1fr) auto auto; align-items: center; gap: var(--s-3); padding: var(--s-3) var(--s-4) var(--s-3) var(--s-3); border-radius: var(--r-lg); background: var(--cream); min-width: 0; }
+  .fr-name { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
+  .fr-name b { font-weight: 500; }
+  .fr-name span { font-size: var(--fs-sm); color: var(--ink-2); }
   .fr-quote { margin: 0; padding: var(--s-4) var(--s-5); border-radius: var(--r-lg) var(--r-lg) var(--r-lg) var(--r-sm); background: var(--butter-soft); }
   .fr-quote p { font-size: var(--fs-lg); line-height: 1.35; letter-spacing: -0.01em; }
-  .fr-quote footer { font-size: var(--fs-sm); color: var(--ink-2); }
-  .fr-steps { display: flex; flex-direction: column; gap: var(--s-2); }
-  .fr-steps-head { font-size: 0.9375rem; font-weight: 500; }
-  .fr-steps ul { display: flex; flex-direction: column; gap: var(--s-2); }
-  .fr-steps li { display: flex; align-items: center; gap: var(--s-3); font-size: 0.9375rem; line-height: 1.3; }
+  .fr-quote footer { margin-top: var(--s-1); font-size: var(--fs-sm); color: var(--ink-2); }
+
+  .fr-sheet { display: flex; align-items: center; gap: var(--s-6); background: var(--sky-soft); border-radius: var(--r-xl); padding: var(--s-5) var(--s-8) var(--s-5) var(--s-6); min-width: 0; }
+  .fr-page { flex: none; width: 7rem; height: auto; overflow: visible; }
+  .pg { fill: var(--surface); stroke: var(--line-strong); stroke-width: 1.5; }
+  .pg-back { fill: var(--sky); }
+  .pg-ink { fill: var(--deep); }
+  .pg-soft { fill: var(--grey-2); }
+  .pg-box rect { fill: none; stroke: var(--ink-3); stroke-width: 1.5; }
+  .pg-line { fill: none; stroke: var(--acc-text); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+  .pg-usual { fill: none; stroke: var(--line-strong); stroke-width: 1.5; stroke-dasharray: 3 4; }
+  .fr-sheet-words { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s-1); line-height: 1.5; color: var(--ink-2); min-width: 0; }
+  .fr-sheet-words .fr-title { color: var(--ink); }
+  .fr-sheet :global(.fr-link) { margin-left: calc(var(--s-3) * -1); }
   @media (max-width: 40rem) {
-    .fr { padding: var(--s-5) var(--s-4); border-radius: var(--r-lg); }
-    .fr-line { flex-direction: column; align-items: flex-start; }
+    .fr-card { padding: var(--s-5) var(--s-4); border-radius: var(--r-lg); }
+    .fr-row { grid-template-columns: auto minmax(0, 1fr) auto; }
+    .fr-row :global(.spark) { grid-column: 1 / -1; grid-row: 2; }
+    .fr-sheet { flex-direction: column; align-items: flex-start; padding: var(--s-5) var(--s-4); border-radius: var(--r-lg); }
+    .fr-page { width: 5rem; }
   }
 </style>

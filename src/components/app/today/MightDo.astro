@@ -12,8 +12,8 @@ const ICONS: Record<string, string> = { '/app/ask/': 'chat', '/app/trends/doctor
     <p class="muted small">Ideas, not instructions. You know her best.</p>
   </div>
   <ul role="list" class="list">
-    {items.map((s, i) => (
-      <li class="draw-pop" style={`--i:${i * 2}`}>
+    {items.map((s) => (
+      <li>
         <IconBadge name={(s.href && ICONS[s.href]) || 'spark'} tone="surface" size="md" round />
         <p class="text">{s.text}</p>
         <p class="why">{s.why}</p>

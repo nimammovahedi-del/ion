@@ -1,26 +1,53 @@
 // Extra example data for the care screens. It adds to src/data/example.ts and never contradicts it.
 // The family is invented. Today in the example is Tuesday, November 24, 2026.
-import type { AskedQuestion, CareTask, Hearing, PlannedService } from './types-care';
+import type { AskedQuestion, CareTask, Hearing, Place, PlannedService } from './types-care';
 import type { CalendarItem } from './types';
 
 /** Words for each task in src/data/example.ts, keyed by task id. */
-export const taskWords: Record<string, Pick<CareTask, 'origin' | 'doing' | 'approveLabel' | 'ionAfter' | 'doneNote'>> = {
-  ride: { origin: 'She asked on today\'s call.', doing: 'sort out the ride', approveLabel: 'Approve ride',
+export const taskWords: Record<string, Pick<CareTask, 'origin' | 'source' | 'doing' | 'approveLabel' | 'ionAfter' | 'doneNote'>> = {
+  ride: { origin: 'She asked on today\'s call.', source: 'From today\'s call', doing: 'sort out the ride', approveLabel: 'Approve ride',
     ionAfter: 'Once someone says yes, Ion will tell her on tomorrow\'s call who is driving.' },
-  groceries: { origin: 'She said she is running low on today\'s call.', doing: 'bring the groceries', approveLabel: 'Approve shopping',
+  groceries: { origin: 'She said she is running low on today\'s call.', source: 'From today\'s call', doing: 'bring the groceries', approveLabel: 'Approve shopping',
     ionAfter: 'Ion will tell her on tomorrow\'s call who is bringing them.' },
-  refill: { origin: 'From the medicine list: about 6 days left.', doing: 'call the pharmacy', approveLabel: 'Approve refill call',
+  refill: { origin: 'From the medicine list: about 6 days left.', source: 'From the medicine list', doing: 'call the pharmacy', approveLabel: 'Approve refill call',
     ionAfter: 'Ion will let her know on the call once the refill is sorted.' },
-  heating: { origin: 'Daniel offered in a family note on Sunday.', doing: 'check the heating', approveLabel: 'Approve' },
-  glasses: { origin: 'She asked on the call on November 18.', doing: 'pick them up', approveLabel: 'Approve', doneNote: 'Done on Friday, Nov 20.' },
-  nights: { origin: 'From today\'s report.', doing: 'ask on the call', approveLabel: 'Approve' },
+  heating: { origin: 'Daniel offered in a family note on Sunday.', source: 'From a family note on Sunday', doing: 'check the heating', approveLabel: 'Approve' },
+  glasses: { origin: 'She asked on the call on November 18.', source: 'From the call on November 18', doing: 'pick them up', approveLabel: 'Approve', doneNote: 'Done on Friday, Nov 20.' },
+  nights: { origin: 'From today\'s report.', source: 'From today\'s report', doing: 'ask on the call', approveLabel: 'Approve' },
 };
 
 /** One task that is not in example.ts: it ties today's report to the Ask tomorrow queue. */
 export const extraTasks: CareTask[] = [
-  { id: 'nights', title: 'Find out what is waking her at night', detail: 'Sara added it to tomorrow\'s questions. Ion will ask on Wednesday\'s call and add her answer to the report.',
-    icon: 'moon', from: 'Tue report', due: 'Wed Nov 25', status: 'in-progress', assignee: 'Ion', actions: [], ...{ origin: 'From today\'s report.', doing: 'ask on the call', approveLabel: 'Approve' } },
+  { id: 'nights', title: 'Ask what is waking her up at night', detail: 'Sara added it to tomorrow\'s questions. Ion will ask on Wednesday\'s call and add her answer to the report.',
+    icon: 'moon', from: 'Tue report', due: 'Wed Nov 25', status: 'in-progress', assignee: 'Ion', actions: [], ...{ origin: 'From today\'s report.', source: 'From today\'s report', doing: 'ask on the call', approveLabel: 'Approve' } },
 ];
+
+/** A task that is a question in the Ask tomorrow queue: the task takes the question's own wording. Task id to question id. */
+export const taskQuestions: Record<string, string> = { nights: 'a1' };
+/** A task about one medicine: the card shows the family's own label for it. Task id to medicine id. */
+export const taskMedicines: Record<string, string> = { refill: 'm1' };
+
+/**
+ * The same thing shown on more than one page, with the id it has on each page.
+ * Each copy gets a small link to the others, so nobody wonders whether they are two different things.
+ */
+export const sameThings: Partial<Record<Place, string>>[] = [
+  { tasks: 'ride', calendar: 'c3', reminders: 'r3', services: 'now' },
+  { tasks: 'nights', ask: 'a1' },
+  { tasks: 'refill', calendar: 'c6', medicines: 'm1' },
+  { tasks: 'heating', calendar: 'c5' },
+  { reminders: 'r1', medicines: 'evening' },
+  { reminders: 'r2', medicines: 'morning' },
+];
+
+/** Short titles for the two-week strip, keyed by calendar id. The list below the strip shows the full title. */
+export const calendarShort: Record<string, string> = { c3: 'Eye doctor', c4: 'Priya visits', c5: 'Heating', c6: 'Refill due', c7: 'Hair', c8: 'Coffee', c9: 'Lunch' };
+/** Calendar items that are really tasks someone has taken. Calendar id to task id. */
+export const calendarTasks: Record<string, string> = { c5: 'heating' };
+/** Refills on the calendar, and the medicine each one is for. Calendar id to medicine id. */
+export const calendarRefills: Record<string, string> = { c6: 'm1' };
+/** A calendar note that depends on a task. Calendar id to the words and the task. */
+export const calendarTaskNotes: Record<string, { text: string; task: string }> = { c3: { text: 'Ride: waiting for a yes in Tasks', task: 'ride' } };
 
 /** What Ion will say about each calendar item, keyed by calendar id. */
 export const calendarMentions: Record<string, string> = {
@@ -49,7 +76,7 @@ export const askedQuestions: AskedQuestion[] = [
   { id: 'h2', text: 'Ask if she would like Priya to visit on Saturday.', by: 'Priya', date: 'Sat Nov 21',
     summary: 'She said yes, and asked Priya to bring the photos from the summer.', quote: 'Oh yes. Tell her to bring the photos.' },
   { id: 'h3', text: 'Ask whether she would like a second rail by the back step.', by: 'Daniel', date: 'Fri Nov 20',
-    summary: 'She said she would rather not talk about it today. Ion thanked her and moved on.', quote: 'Not today, love. Ask me another time.', declined: true },
+    summary: 'She said she would rather not talk about it today. Ion thanked her and moved on.', quote: 'Not today, love. Ask me another time.', declined: true, note: 'Ion thanked her and moved on.' },
 ];
 
 export const hearing: Record<string, Hearing> = { sara: 'daily', daniel: 'changes', priya: 'daily' };
@@ -71,10 +98,8 @@ export const preparedRequest = {
   title: 'Ride request, written from today\'s call',
   quote: 'Could someone take me to the eye doctor on Thursday?',
   lines: [
-    ['Who', 'Maggie Ellis', 'users'],
-    ['When', 'Thursday, November 26. Pick up about 1:15 PM.', 'clock'],
+    ['When', 'Thursday, November 26', 'calendar'],
     ['From', 'Home', 'home'],
     ['To', 'The eye doctor, for 2:00 PM', 'door'],
-    ['Back', 'About 4:00 PM', 'home'],
   ] as [string, string, string][],
 };

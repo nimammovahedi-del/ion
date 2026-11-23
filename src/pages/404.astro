@@ -5,10 +5,15 @@ import MessageCard from '@/components/site/MessageCard.astro';
 ---
 <SiteLayout title="Page not found · I-on" description="This page could not be found." active="">
   <MessageCard eyebrow="Page not found" title="We could not find that page." tone2="Ion looked everywhere." doodle="search">
-    <p class="lede">The link may be old, or the address may have a small typo. The home page and the example app are both a click away.</p>
+    <p class="lede">The link may be old, or the address may have a small typo.</p>
     <div class="row">
-      <Button href="/" variant="secondary" size="lg">Back to the home page</Button>
-      <Button href="/app/" size="lg" arrow>See the example app</Button>
+      <Button href="/" size="lg" arrow>Back to the home page</Button>
+      <Button href="/app/" variant="ghost" size="lg">See the example app</Button>
     </div>
+    <p class="also">Or go straight to <a href="/#how">How it works</a> or <a href="/#questions">Questions</a>.</p>
   </MessageCard>
 </SiteLayout>
+<style>
+  .also { color: var(--ink-2); }
+  .also a { display: inline-block; padding: var(--s-3) var(--s-1); margin: calc(var(--s-3) * -1) calc(var(--s-1) * -1); color: var(--acc-text); font-weight: 500; }
+</style>

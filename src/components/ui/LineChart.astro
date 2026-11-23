@@ -1,7 +1,9 @@
 ---
 /**
  * The chart for one measure, drawn as inline SVG at build time. No chart library.
- * kind "line": a soft filled line. kind "bars": one rounded bar per day (for small whole numbers such as meals).
+ * kind "line": her answers as dots joined by straight segments over a soft area (answers are whole numbers or half hours,
+ * so a smoothed curve would show values she never gave). kind "bars": one rounded bar per day (small counts such as meals).
+ * tone: "leaf" (sage) when the measure is as usual, "acc" (apricot) when it is different from her usual.
  * points: oldest first. A null value is a day with no answer: the line breaks there, and a bar is left out.
  * usual: her usual, drawn as a dashed line with its label at the right end.
  * flags: one true per day that was different from her usual. Runs of them get a soft band behind the line.
@@ -12,9 +14,9 @@ import type { DayPoint } from '@/data/types';
 interface Props {
   points: DayPoint[]; min: number; max: number; usual?: number; usualLabel?: string; unit: string;
   summary: string; height?: number; ticks?: number[]; area?: boolean; stepped?: boolean;
-  kind?: 'line' | 'bars'; flags?: boolean[]; lastLabel?: string;
+  kind?: 'line' | 'bars'; flags?: boolean[]; lastLabel?: string; tone?: 'acc' | 'leaf';
 }
-const { points, min, max, usual, usualLabel, unit, summary, height = 280, ticks, area = true, stepped = false, kind = 'line', flags = [], lastLabel } = Astro.props;
+const { points, min, max, usual, usualLabel, unit, summary, height = 280, ticks, area = true, stepped = false, kind = 'line', flags = [], lastLabel, tone = 'acc' } = Astro.props;
 const W = 760, H = height, L = 34, R = usual !== undefined ? 96 : 20, T = 30, B = 34;
 const iw = W - L - R, ih = H - T - B;
 const n = points.length;
@@ -33,29 +35,11 @@ let cur: P[] = [];
 points.forEach((p, i) => { if (p.value === null) { if (cur.length) runs.push(cur); cur = []; } else cur.push({ i, v: p.value }); });
 if (cur.length) runs.push(cur);
 
-// A smooth line that passes through every answer and never swings past one (monotone cubic).
+// Straight segments from answer to answer (or steps), never a curve.
 function smooth(run: P[]): string {
-  const px = run.map((p) => x(p.i)), py = run.map((p) => y(p.v));
-  if (run.length < 3 || stepped) {
-    return run.map((p, k) => (k === 0 ? `M${f(px[k])} ${f(py[k])}` : stepped ? `H${f(px[k])} V${f(py[k])}` : `L${f(px[k])} ${f(py[k])}`)).join(' ');
-  }
-  const d: number[] = [], m: number[] = [];
-  for (let k = 0; k < px.length - 1; k++) d.push((py[k + 1] - py[k]) / (px[k + 1] - px[k]));
-  m.push(d[0]);
-  for (let k = 1; k < px.length - 1; k++) m.push(d[k - 1] * d[k] <= 0 ? 0 : (d[k - 1] + d[k]) / 2);
-  m.push(d[d.length - 1]);
-  for (let k = 0; k < d.length; k++) {
-    if (d[k] === 0) { m[k] = 0; m[k + 1] = 0; continue; }
-    const a = m[k] / d[k], b = m[k + 1] / d[k], s = a * a + b * b;
-    if (s > 9) { const t = 3 / Math.sqrt(s); m[k] = t * a * d[k]; m[k + 1] = t * b * d[k]; }
-  }
-  let out = `M${f(px[0])} ${f(py[0])}`;
-  for (let k = 0; k < d.length; k++) {
-    const h = (px[k + 1] - px[k]) / 3;
-    out += ` C${f(px[k] + h)} ${f(py[k] + m[k] * h)} ${f(px[k + 1] - h)} ${f(py[k + 1] - m[k + 1] * h)} ${f(px[k + 1])} ${f(py[k + 1])}`;
-  }
-  return out;
+  return run.map((p, k) => (k === 0 ? `M${f(x(p.i))} ${f(y(p.v))}` : stepped ? `H${f(x(p.i))} V${f(y(p.v))}` : `L${f(x(p.i))} ${f(y(p.v))}`)).join(' ');
 }
+const dots = kind === 'line' && n <= 31;
 const areaPath = (run: P[]) => `${smooth(run)} L${f(x(run[run.length - 1].i))} ${T + ih} L${f(x(run[0].i))} ${T + ih} Z`;
 
 // soft bands behind runs of days that were different from her usual
@@ -67,8 +51,13 @@ const lastP = [...points].map((p, i) => ({ ...p, i })).reverse().find((p) => p.v
 const lastText = lastP ? (lastLabel ?? fmt(lastP.value as number)) : '';
 const tagW = lastText.length * 7.6 + 18;
 const tagX = lastP ? Math.min(x(lastP.i) - tagW / 2, W - R - tagW - 2) : 0;
-const tagAbove = lastP ? y(lastP.value as number) - 40 >= 2 : true;
-const tagY = lastP ? (tagAbove ? y(lastP.value as number) - 38 : y(lastP.value as number) + 14) : 0;
+// The value bubble sits above the last answer. When that would cover the "Her usual" line or its label, it goes below.
+const lastY = lastP ? y(lastP.value as number) : 0;
+const hitsUsual = (top: number) => usual !== undefined && y(usual) > top - 16 && y(usual) < top + 24 + 6;
+let tagY = lastY - 38;
+if (tagY < 2 || hitsUsual(tagY)) tagY = lastY + 14;
+if (hitsUsual(tagY) || tagY + 24 > T + ih) tagY = lastY - 38 >= 2 ? lastY - 38 : tagY;
+if (hitsUsual(tagY) && usual !== undefined) tagY = y(usual) - 16 - 26;
 
 const labelEvery = Math.max(1, Math.round(n / 6));
 const showLabel = (i: number) => i === n - 1 || (i % labelEvery === 0 && n - 1 - i >= labelEvery * 0.6);
@@ -76,7 +65,7 @@ const bw = Math.max(3, Math.min(22, step * 0.62));
 const gaps = points.filter((p) => p.value === null).length;
 const [usualA, usualB] = usualLabel ? ['Her usual', usualLabel] : ['Her usual', ''];
 ---
-<figure class="chart" data-draw>
+<figure class:list={['chart', `chart-${tone}`]} data-draw>
   <div class="scroll" tabindex="0" role="group" aria-label={`${summary} Scroll sideways to see the whole chart.`}>
     <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={summary} preserveAspectRatio="xMidYMid meet">
       {bands.map((b) => <rect class="band" x={x(b.a) - half} y={T - 10} width={x(b.b) - x(b.a) + 2 * half} height={ih + 10} rx="12" />)}
@@ -101,6 +90,7 @@ const [usualA, usualB] = usualLabel ? ['Her usual', usualLabel] : ['Her usual', 
       {kind === 'line' && runs.map((r) => r.length > 1
         ? <path class="line draw-line" d={smooth(r)} pathLength="1" />
         : <circle class="pt" cx={x(r[0].i)} cy={y(r[0].v)} r="3.5" />)}
+      {dots && runs.filter((r) => r.length > 1).map((r) => r.map((p) => <circle class="pt pt-day" cx={x(p.i)} cy={y(p.v)} r="3.25" />))}
       {lastP && (
         <g class="last draw-pop" style="--i:12">
           {kind === 'line' && <circle cx={x(lastP.i)} cy={y(lastP.value as number)} r="6.5" />}
@@ -121,15 +111,20 @@ const [usualA, usualB] = usualLabel ? ['Her usual', usualLabel] : ['Her usual', 
   .chart { display: flex; flex-direction: column; gap: var(--s-2); min-width: 0; }
   .scroll { overflow-x: auto; border-radius: var(--r-md); }
   svg { display: block; width: 100%; min-width: 34rem; height: auto; }
-  .band { fill: var(--butter-soft); }
+  .band { fill: var(--acc-soft); }
   .grid line { stroke: var(--line); stroke-width: 1; }
   .axis text, .usual text { font-family: var(--font); font-size: 12.5px; fill: var(--ink-2); }
   .usual line { stroke: var(--ink-2); stroke-width: 1.5; stroke-dasharray: 2 6; stroke-linecap: round; }
   .usual text { fill: var(--ink); font-weight: 500; }
   .usual .usual-v { fill: var(--ink-2); font-weight: 400; }
   .area { fill: var(--acc); fill-opacity: 0.14; }
-  .line { fill: none; stroke: var(--acc-text); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+  .line { fill: none; stroke: var(--acc-text); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
   .pt { fill: var(--acc-text); }
+  .pt-day { stroke: var(--surface); stroke-width: 1.5; }
+  .chart-leaf .area { fill: var(--leaf); fill-opacity: 0.22; }
+  .chart-leaf .line { stroke: var(--leaf-text); }
+  .chart-leaf .pt { fill: var(--leaf-text); }
+  .chart-leaf .key-line { background: var(--leaf-text); }
   .bar { fill: var(--leaf); }
   .bar.low { fill: var(--acc); }
   .bar-none { fill: none; stroke: var(--ink-2); stroke-width: 1.5; stroke-dasharray: 3 3; }
@@ -141,7 +136,7 @@ const [usualA, usualB] = usualLabel ? ['Her usual', usualLabel] : ['Her usual', 
   .key-dash { width: 1.25rem; border-top: 2px dotted var(--ink-2); }
   .key-line { width: 1.25rem; height: 0.1875rem; border-radius: var(--r-pill); background: var(--acc-text); }
   .key-bar { width: 0.625rem; height: 0.875rem; border-radius: 0.1875rem 0.1875rem 0 0; background: var(--leaf); }
-  .key-band { width: 1.25rem; height: 0.875rem; border-radius: 0.25rem; background: var(--butter-soft); border: 1px solid var(--line-strong); }
+  .key-band { width: 1.25rem; height: 0.875rem; border-radius: 0.25rem; background: var(--acc-soft); border: 1px solid var(--line-strong); }
   .key-gap { width: 1.25rem; border-top: 2px dashed var(--line-strong); }
   /* the fill fades in after the line has drawn */
   @media (prefers-reduced-motion: no-preference) {
@@ -152,5 +147,6 @@ const [usualA, usualB] = usualLabel ? ['Her usual', usualLabel] : ['Her usual', 
     .band { fill: none; stroke: var(--ink); stroke-width: 0.5; }
     .area { fill: none; }
     .line { stroke: var(--ink); }
+    .pt { fill: var(--ink); }
   }
 </style>

@@ -24,7 +24,7 @@ const lowCount = days.filter((d) => d.low).length;
 const src = (s: SiteSource) => sourceLine(s);
 ---
 <section id="why" class="why wrap" aria-labelledby="why-title">
-  <SectionHeading id="why-title" align="center" eyebrow="Why it matters" title="More parents are growing older at home." tone2="Fewer of us live close enough to notice." />
+  <SectionHeading id="why-title" align="center" eyebrow="Why it matters" title="More parents are growing older at home." tone2="Small changes are easy to miss from a distance." />
 
   <ul role="list" class="figs">
     <li class="fig fig-older" data-reveal>
@@ -40,7 +40,7 @@ const src = (s: SiteSource) => sourceLine(s);
               </li>
             ))}
           </ul>
-          <p class="mini-cap"><b>{older.shareLine}</b><span>{older.share.map((s) => `${s.people} ${s.expected ? 'by' : 'in'} ${s.year}`).join(', ')}.</span></p>
+          <p class="mini-cap">{older.shareLine}</p>
         </div>
         <div class="mini">
           <ul role="list" class="bars">
@@ -52,7 +52,7 @@ const src = (s: SiteSource) => sourceLine(s);
               </li>
             ))}
           </ul>
-          <p class="mini-cap"><b>{older.oldestTitle}</b><span>{older.oldestLine}</span></p>
+          <p class="mini-cap">{older.oldestTitle}</p>
         </div>
       </div>
       <p class="fig-source"><a href={older.source.href} rel="noopener">Source: {src(older.source)}</a></p>
@@ -63,7 +63,6 @@ const src = (s: SiteSource) => sourceLine(s);
         <div class="fig-words">
           <p class="fig-value num">{alone.value}</p>
           <p class="fig-label">{alone.label}</p>
-          <p class="fig-detail">{alone.detail}</p>
         </div>
         <div class="houses" role="img" aria-label={`${alone.of} little houses. ${tintedHouses} of them, ${alone.pct}%, are coloured and have one person at the window.`}>
           {houses.map((on, i) => (
@@ -89,7 +88,6 @@ const src = (s: SiteSource) => sourceLine(s);
         <div class="fig-words">
           <p class="fig-value num">{falls.value}</p>
           <p class="fig-label">{falls.label}</p>
-          <p class="fig-detail">{falls.detail}</p>
         </div>
       </div>
       <p class="fig-source"><a href={falls.source.href} rel="noopener">Source: {src(falls.source)}</a></p>
@@ -100,17 +98,15 @@ const src = (s: SiteSource) => sourceLine(s);
         <div class="fig-words">
           <p class="fig-value num">{carers.value}</p>
           <p class="fig-label">{carers.label}</p>
-        </div>
-        <div class="work">
-          <div class="people people-ten" role="img" aria-label={`${carers.of} people. ${carers.tinted} of them are coloured and carry a work bag.`}>
-            {people(carers.of, carers.tinted).map((on, i) => (
-              <svg class:list={['person', 'draw-pop', { on }]} style={`--i:${i}`} viewBox="0 0 24 46" aria-hidden="true">
-                <circle cx="12" cy="8" r="7" /><path d="M3 43V29a9 9 0 0 1 18 0v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                {on && <path class="bag" d="M7 33h10v8H7zM10 33v-2.5h4V33" />}
-              </svg>
-            ))}
-          </div>
           <p class="fig-detail">{carers.detail}</p>
+        </div>
+        <div class="people" role="img" aria-label={`${carers.of} adults. ${carers.tinted} of them is coloured and holds a small heart: a family caregiver.`}>
+          {people(carers.of, carers.tinted).map((on, i) => (
+            <svg class:list={['person', 'draw-pop', { on }]} style={`--i:${i * 2}`} viewBox="0 0 24 46" aria-hidden="true">
+              <circle cx="12" cy="8" r="7" /><path d="M3 43V29a9 9 0 0 1 18 0v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+              {on && <path class="heart" d="M12 39.5c-3.6-2.4-5.2-4.3-5.2-6.3a2.7 2.7 0 0 1 5.2-1 2.7 2.7 0 0 1 5.2 1c0 2-1.6 3.9-5.2 6.3z" />}
+            </svg>
+          ))}
         </div>
       </div>
       <p class="fig-source"><a href={carers.source.href} rel="noopener">Source: {src(carers.source)}</a></p>
@@ -149,7 +145,13 @@ const src = (s: SiteSource) => sourceLine(s);
         <span class="said draw-pop" style="--i:16">"{report.quote}"</span>
       </div>
     </div>
-    <p class="gap-foot">{GAP.foot}</p>
+    <div class="gap-end">
+      <p class="gap-foot">{GAP.foot}</p>
+      <ul role="list" class="gap-keys">
+        <li><span class="key-dot" aria-hidden="true"></span>{GAP.daily.usualKey}</li>
+        <li><span class="key-dot low" aria-hidden="true"></span>{GAP.daily.shortKey}</li>
+      </ul>
+    </div>
   </div>
 </section>
 <style>
@@ -166,7 +168,7 @@ const src = (s: SiteSource) => sourceLine(s);
   .fig-row { flex: 1; display: flex; align-items: center; gap: var(--s-8); }
   .fig-words { flex: 1 1 12rem; display: flex; flex-direction: column; gap: var(--s-1); min-width: 0; }
   .fig-value { font-weight: 400; font-size: 3.25rem; line-height: 1.05; letter-spacing: -0.04em; }
-  .fig-label { font-weight: 500; line-height: 1.4; }
+  .fig-label { font-weight: 500; line-height: 1.4; text-wrap: balance; }
   .fig-detail { font-size: 0.9375rem; line-height: 1.5; color: var(--ink-2); }
   .fig-source { margin-top: auto; }
   .fig-source a { display: inline-flex; align-items: center; min-height: var(--tap); font-size: var(--fs-sm); line-height: 1.4; color: var(--ink-2); text-decoration: underline; text-decoration-color: var(--hair); }
@@ -183,9 +185,7 @@ const src = (s: SiteSource) => sourceLine(s);
   .bar-v { font-size: 1.125rem; font-weight: 500; letter-spacing: -0.02em; line-height: 1.2; white-space: nowrap; }
   .bar-y { display: flex; flex-direction: column; height: 2.5rem; font-size: var(--fs-sm); font-weight: 500; line-height: 1.25rem; white-space: nowrap; }
   .bar-y span { font-weight: 400; color: var(--ink-2); }
-  .mini-cap { display: flex; flex-direction: column; gap: var(--s-1); padding-bottom: 2.75rem; line-height: 1.4; }
-  .mini-cap b { font-weight: 500; }
-  .mini-cap span { font-size: 0.9375rem; color: var(--ink-2); }
+  .mini-cap { padding-bottom: 2.75rem; font-weight: 500; line-height: 1.4; }
 
   /* houses */
   .houses { flex: none; display: grid; grid-template-columns: repeat(5, 2rem); gap: var(--s-2); }
@@ -201,11 +201,8 @@ const src = (s: SiteSource) => sourceLine(s);
   .person circle, .person path { fill: var(--surface); stroke: var(--line-strong); stroke-width: 1.5; }
   .fig-falls .person.on { transform-origin: 15% 100%; rotate: 24deg; margin-left: var(--s-2); }
   .fig-falls .person.on circle, .fig-falls .person.on path { fill: var(--acc); stroke: var(--acc-text); }
-  .work { flex: none; display: flex; flex-direction: column; gap: var(--s-3); }
-  .people-ten { gap: 0.375rem; }
-  .people-ten .person { width: 2rem; }
   .fig-carers .person.on circle, .fig-carers .person.on path { fill: var(--leaf); stroke: var(--leaf-text); }
-  .fig-carers .person.on .bag { fill: var(--deep); stroke: var(--deep); stroke-linejoin: round; }
+  .fig-carers .person.on .heart { fill: var(--surface); stroke: var(--leaf-text); stroke-linejoin: round; }
 
   /* the gap: two strips of fourteen days */
   .gap { display: flex; flex-direction: column; gap: var(--s-5); background: var(--paper); border-radius: var(--r-xl); padding: var(--s-8) var(--s-10); }
@@ -225,12 +222,18 @@ const src = (s: SiteSource) => sourceLine(s);
   .plot-some .dot { margin-bottom: calc(var(--plot-h) * 0.3); scale: 0.5; background: var(--grey-2); }
   .plot-some .called .dot { scale: 1; background: var(--ink-3); }
   .fine { position: absolute; bottom: calc(var(--plot-h) * 0.3 + 3.25rem); padding: var(--s-1) var(--s-3); border-radius: var(--r-md) var(--r-md) var(--r-md) var(--r-sm); background: var(--grey-1); font-size: var(--fs-sm); white-space: nowrap; }
-  .plot-daily .dot { position: absolute; bottom: calc(1.75rem + var(--up) / 100 * (var(--plot-h) - 0.875rem)); background: var(--acc); }
-  .plot-daily .low .dot { background: var(--deep); box-shadow: 0 0 0 4px var(--acc-soft); }
+  /* one rule everywhere: sage for her usual nights, apricot for the shorter ones */
+  .plot-daily .dot { position: absolute; bottom: calc(1.75rem + var(--up) / 100 * (var(--plot-h) - 0.875rem)); background: var(--leaf); box-shadow: inset 0 0 0 1.5px var(--leaf-text); }
+  .plot-daily .low .dot { background: var(--acc); box-shadow: inset 0 0 0 1.5px var(--acc-text), 0 0 0 4px var(--acc-soft); }
   .usual { position: absolute; left: 0; right: 0; bottom: calc(1.75rem + var(--usual) / 100 * (var(--plot-h) - 0.875rem) + 0.4375rem); border-top: 2px dashed var(--line-strong); }
   .usual span { position: absolute; left: 0; bottom: 0.625rem; font-size: var(--fs-xs); color: var(--ink-2); background: var(--surface); padding-right: var(--s-2); }
   .said { position: absolute; right: 0; top: 0; padding: var(--s-1) var(--s-3); border-radius: var(--r-md) var(--r-md) var(--r-sm) var(--r-md); background: var(--butter-soft); font-size: var(--fs-sm); white-space: nowrap; }
+  .gap-end { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-2) var(--s-6); }
   .gap-foot { font-size: var(--fs-sm); color: var(--ink-2); }
+  .gap-keys { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-5); font-size: var(--fs-sm); color: var(--ink-2); }
+  .gap-keys li { display: inline-flex; align-items: center; gap: var(--s-2); }
+  .key-dot { width: 0.75rem; height: 0.75rem; border-radius: 50%; background: var(--leaf); box-shadow: inset 0 0 0 1.5px var(--leaf-text); }
+  .key-dot.low { background: var(--acc); box-shadow: inset 0 0 0 1.5px var(--acc-text); }
 
   @media (max-width: 64rem) {
     .fig-older, .fig-alone, .fig-falls, .fig-carers { grid-column: 1 / -1; }
@@ -242,7 +245,6 @@ const src = (s: SiteSource) => sourceLine(s);
     .fig-row { flex-direction: column; align-items: flex-start; gap: var(--s-5); }
     .charts { grid-template-columns: minmax(0, 1fr); }
     .mini + .mini { border-left: 0; padding-left: 0; border-top: 1px solid var(--hair); padding-top: var(--s-5); }
-    .people-ten .person { width: 1.5rem; }
     .gap { padding: var(--s-5) var(--s-4); border-radius: var(--r-lg); }
     .strip { padding: var(--s-4) var(--s-3); }
     .fine { font-size: var(--fs-xs); padding-inline: var(--s-2); }

@@ -7,8 +7,9 @@ import BaseLayout from './BaseLayout.astro';
 import Button from '@/components/ui/Button.astro';
 import { siteNav, STANDING_LINE } from '@/data/nav';
 import { HOME_SECTIONS } from '@/data/site';
-interface Props { title: string; description?: string; active?: string }
-const { title, description, active = 'home' } = Astro.props;
+/** joined: the visitor has just joined the waitlist, so the menu does not ask again. */
+interface Props { title: string; description?: string; active?: string; joined?: boolean }
+const { title, description, active = 'home', joined = false } = Astro.props;
 // One link per section of the home page, in page order. The label comes from nav.ts where the section is listed there.
 const links = HOME_SECTIONS.map((s) => {
   const n = siteNav.find((x) => x.id === s.id);
@@ -25,8 +26,9 @@ const links = HOME_SECTIONS.map((s) => {
         </ul>
       </nav>
       <div class="navcta">
-        <a class="applink" href="/app/">See the app</a>
-        <Button href="/#waitlist" arrow>Join the waitlist</Button>
+        {joined
+          ? <a class="applink applink-only" href="/app/">See the example app</a>
+          : <Fragment><a class="applink" href="/app/">See the example app</a><Button href="/#waitlist" arrow>Join the waitlist</Button></Fragment>}
       </div>
     </div>
   </header>
@@ -41,7 +43,7 @@ const links = HOME_SECTIONS.map((s) => {
         <ul role="list" class="foot-links">
           <li><a href="/#how">How it works</a></li>
           <li><a href="/#questions">Questions</a></li>
-          <li><a href="/app/">Example app</a></li>
+          <li><a href="/app/">See the example app</a></li>
           <li><a href="/privacy/">Privacy</a></li>
         </ul>
       </nav>
@@ -92,6 +94,7 @@ const links = HOME_SECTIONS.map((s) => {
   .navcta { flex: none; display: flex; align-items: center; gap: var(--s-2); }
   .applink { display: inline-flex; align-items: center; min-height: var(--tap); padding: 0 var(--s-3); font-size: 0.9375rem; font-weight: 500; color: var(--ink); text-decoration: none; white-space: nowrap; }
   .applink:hover { color: var(--acc-text); }
+  .applink-only { padding-inline: var(--s-4); }
   /* Section links land clear of the floating menu. */
   :global(html) { scroll-padding-top: 6.5rem; }
   @media (max-width: 56rem) {
@@ -99,14 +102,15 @@ const links = HOME_SECTIONS.map((s) => {
     .site-head { position: relative; padding-top: var(--s-4); }
     .navpill { flex-wrap: wrap; padding: var(--s-3) var(--s-4); border-radius: var(--r-lg); }
     .navpill nav { order: 3; flex: 1 1 100%; }
-    .applink { display: none; }
+    .applink:not(.applink-only) { display: none; }
   }
   @media (max-width: 26rem) {
     .navpill { padding: var(--s-3); }
     .navtrack a { padding: 0 0.75rem; }
   }
-  .site-foot { display: flex; flex-direction: column; gap: var(--s-5); margin-top: var(--s-24); padding-block: var(--s-10) var(--s-12); border-top: 1px solid var(--line); }
-  .foot-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-6); }
+  .site-foot { display: flex; flex-direction: column; gap: var(--s-5); margin-top: var(--s-24); padding-bottom: var(--s-12); }
+  /* the rule sits on the content column, not on the padded wrapper */
+  .foot-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-6); padding-top: var(--s-10); border-top: 1px solid var(--line); }
   .foot-brand { display: flex; flex-direction: column; gap: var(--s-1); }
   .foot-links { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-6); }
   .foot-links a { display: inline-flex; align-items: center; min-height: var(--tap); color: var(--ink); text-decoration: none; }

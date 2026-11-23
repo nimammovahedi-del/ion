@@ -1,43 +1,44 @@
 ---
 /**
- * The overview grid: one small card per measure with its icon, the last 14 days against her usual, her latest answer
- * and a status word. Each card jumps to that measure's section, so this is the main way around the page.
+ * The overview grid: one small card per measure with its icon, a small picture of the days chosen in the switch above it,
+ * her latest answer and its status in words. Each card jumps to that measure further down, so this is the way around the page.
  */
 import type { MetricSeries } from '@/data/types';
 import Chip from '@/components/ui/Chip.astro';
 import IconBadge from '@/components/ui/IconBadge.astro';
 import MiniTrend from './MiniTrend.astro';
-import { lastDays } from '@/lib/loaders';
-import { ICON, TONE, STATUS_WORD, latest, valueWords } from './measure';
-interface Props { measures: MetricSeries[] }
-const { measures } = Astro.props;
+import { lastDays, pillCounts, pillDays } from '@/lib/loaders';
+import { ICON, TONE, latest, statusWord, valueWords } from './measure';
+interface Props { measures: MetricSeries[]; ranges: readonly number[] }
+const { measures, ranges } = Astro.props;
+// Her latest answer in a few words. Medicines never get a count: only what she said.
+const latestWords = (m: MetricSeries): { when: string; value: string } => {
+  if (m.id === 'medicines') {
+    const c = pillCounts(pillDays(lastDays(m, 7)));
+    return c.two ? { when: 'This week', value: 'Two answers' } : c.no ? { when: 'This week', value: 'Not sure once' } : { when: 'Latest', value: 'She said yes' };
+  }
+  const last = latest(lastDays(m, 14));
+  return { when: 'Latest', value: last ? valueWords(m.id, last.value) : 'No answer' };
+};
 ---
-<section class="ov" aria-labelledby="ov-h" data-reveal>
-  <div class="ov-head">
-    <h2 id="ov-h" class="h3">Each measure, last 14 days</h2>
-    <p class="muted small">Pick one to see more. The dotted line is her usual.</p>
-  </div>
-  <ul role="list" class="ov-grid">
-    {measures.map((m, i) => {
-      const last = latest(lastDays(m, 14));
-      return (
-        <li class="draw-pop" style={`--i:${i}`}>
-          <a class:list={['ov-card', `ov-${m.status}`]} href={`#${m.id}`}>
-            <span class="ov-top"><IconBadge name={ICON[m.id]} tone={m.status === 'usual' ? TONE[m.id] : 'surface'} size="md" /><b>{m.title}</b></span>
-            <span class="ov-pic"><MiniTrend m={m} days={14} width={220} height={56} /></span>
-            <span class="ov-foot">
-              <span class="ov-val"><span class="ov-when">Latest</span>{last ? valueWords(m.id, last.value) : 'No answer'}</span>
-              <Chip tone={m.status}>{STATUS_WORD[m.status]}</Chip>
-            </span>
-          </a>
-        </li>
-      );
-    })}
-  </ul>
-</section>
+<ul role="list" class="ov-grid" aria-label="Each measure">
+  {measures.map((m) => {
+    const l = latestWords(m);
+    return (
+      <li>
+        <a class:list={['ov-card', `ov-${m.status}`]} href={`#${m.id}`}>
+          <span class="ov-top"><IconBadge name={ICON[m.id]} tone={m.status === 'changed' || m.status === 'check' ? 'surface' : TONE[m.id]} size="md" /><b>{m.title}</b></span>
+          <span class="ov-pic">{ranges.map((n) => <span class="ov-range" data-range={n}><MiniTrend m={m} days={n} width={220} height={56} /></span>)}</span>
+          <span class="ov-foot">
+            <span class="ov-val"><span class="ov-when">{l.when}</span>{l.value}</span>
+            <Chip tone={m.status}>{statusWord(m)}</Chip>
+          </span>
+        </a>
+      </li>
+    );
+  })}
+</ul>
 <style>
-  .ov { display: flex; flex-direction: column; gap: var(--s-4); min-width: 0; }
-  .ov-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--s-1) var(--s-4); }
   .ov-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: var(--s-4); }
   .ov-grid li { display: flex; min-width: 0; }
   .ov-card { flex: 1; display: flex; flex-direction: column; gap: var(--s-3); padding: var(--s-5); border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-1); color: var(--ink); text-decoration: none; min-width: 0; transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease); }
@@ -47,7 +48,8 @@ const { measures } = Astro.props;
   .ov-top { display: flex; align-items: center; gap: var(--s-3); }
   .ov-top b { font-size: 1.0625rem; font-weight: 500; }
   .ov-pic { display: flex; align-items: center; min-height: 3.5rem; }
-  .ov-pic :global(svg) { width: 100%; }
+  .ov-range { flex: 1; display: flex; align-items: center; min-width: 0; }
+  .ov-pic :global(svg.spark) { width: 100%; }
   .ov-foot { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--s-2); margin-top: auto; }
   .ov-val { display: flex; flex-direction: column; font-size: 1.1875rem; font-weight: 500; line-height: 1.25; letter-spacing: -0.015em; }
   .ov-when { font-size: var(--fs-sm); font-weight: 400; letter-spacing: 0; color: var(--ink-2); }

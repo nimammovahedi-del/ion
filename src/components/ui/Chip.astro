@@ -1,7 +1,7 @@
 ---
 /** Status and label chips. State is always said in words, never by colour alone. */
 interface Props {
-  tone?: 'changed' | 'check' | 'usual' | 'done' | 'waiting' | 'working' | 'info' | 'source';
+  tone?: 'changed' | 'check' | 'little' | 'usual' | 'done' | 'waiting' | 'working' | 'info' | 'source';
   dot?: boolean;
   class?: string;
 }
@@ -19,6 +19,7 @@ const { tone = 'info', dot = false, class: cls = '' } = Astro.props;
   .chip-dot { width: 0.375rem; height: 0.375rem; border-radius: 50%; background: currentColor; }
   .chip-changed { background: var(--acc); color: var(--on-acc); }
   .chip-check { background: var(--deep); color: var(--on-deep); }
+  .chip-little { background: var(--butter-soft); color: var(--ink); border: 1px solid var(--butter); }
   .chip-usual { background: var(--leaf-soft); color: var(--ink); }
   .chip-done { background: var(--grey-1); color: var(--ink); }
   .chip-waiting { background: var(--butter); color: var(--ink); }

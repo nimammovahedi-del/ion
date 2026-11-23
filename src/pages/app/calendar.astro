@@ -10,48 +10,55 @@ import FormCard from '@/components/app/care/FormCard.astro';
 import Field from '@/components/app/care/Field.astro';
 import ExampleNote from '@/components/app/care/ExampleNote.astro';
 import LiveRegion from '@/components/app/care/LiveRegion.astro';
-import { getAgenda } from '@/lib/loaders-care';
+import { getToday } from '@/lib/loaders';
+import { getAgenda, getAlso } from '@/lib/loaders-care';
 
-const days = await getAgenda(14);
-const total = days.reduce((n, d) => n + d.items.length, 0);
+const [days, today, also] = await Promise.all([getAgenda(14), getToday(), getAlso()]);
 const mentions = days.flatMap((d) => d.items.filter((i) => i.mention)).length;
 const kinds = ['appointment', 'visit', 'refill'] as const;
-const kindLabel = { appointment: 'Appointment', visit: 'Visit', refill: 'Refill' };
+const kindLabel = { appointment: 'Appointment', visit: 'Visit', refill: 'Refill', task: 'Task' };
+const kindOf = (it: { kind: string; isTask?: boolean }) => (it.isTask ? 'task' : it.kind) as 'appointment' | 'visit' | 'refill' | 'task';
 const things = (n: number) => (n === 0 ? 'nothing planned' : n === 1 ? '1 thing' : `${n} things`);
 const month = (short: string) => short.split(' ')[1];
 const callTime = days[0]?.call.time ?? '';
+const hasTask = days.some((d) => d.items.some((i) => i.isTask));
 ---
-<AppLayout title="Calendar" active="calendar" eyebrow="Calendar"
-  heading="The next two weeks." tone2={`${total} things planned.`}
+<AppLayout title="Calendar" active="calendar"
+  heading="The next two weeks."
   lede="One calendar for the whole family. Ion mentions what is coming up on her morning call.">
   <HeadArt slot="head-art" name="calendar" />
-  <Button slot="head-actions" href="#add" variant="primary" size="sm"><Icon name="plus" size={16} />Add to the calendar</Button>
+  <Button slot="head-actions" href="#add" variant="secondary" size="sm"><Icon name="plus" size={16} />Add to the calendar</Button>
   <LiveRegion />
 
-  <nav class="wk" aria-label="The next two weeks. Jump to a day">
-    <ol role="list" class="wk-grid">
-      {days.map((d, i) => (
-        <li>
-          <a href={`#day-${d.iso}`} class:list={['wk-day', { today: d.isToday, busy: d.items.length > 0 }]} aria-current={d.isToday ? 'date' : undefined} data-strip={d.iso}>
-            <span class="wk-top" aria-hidden="true">
-              <span class="wk-wd">{d.isToday ? 'Today' : d.weekday}</span>
-              <span class="wk-n num">{(i === 0 || d.dayNum === '1') && <span class="wk-month">{month(d.short)} </span>}{d.dayNum}</span>
-            </span>
-            <span class="wk-items" aria-hidden="true" data-dots>{d.items.map((it) => <span class={`wk-chip wk-${it.kind}`}>{it.title}</span>)}</span>
-            <span class="sr-only" data-strip-label>{d.label}: {things(d.items.length)}</span>
-          </a>
-        </li>
-      ))}
-    </ol>
-    <ul role="list" class="wk-key">
-      <li><span class="wk-dot wk-call"><Icon name="phone" size={14} /></span>Ion calls every morning at {callTime}</li>
-      <li><span class="wk-dot wk-appointment"></span>Appointment</li>
-      <li><span class="wk-dot wk-visit"></span>Visit</li>
-      <li><span class="wk-dot wk-refill"></span>Refill</li>
-    </ul>
-  </nav>
+  <div class="over">
+    <nav class="wk" aria-label="The next two weeks. Jump to a day">
+      <ol role="list" class="wk-grid">
+        {days.map((d, i) => (
+          <li>
+            <a href={`#day-${d.iso}`} class:list={['wk-day', { today: d.isToday, busy: d.items.length > 0 }]} aria-current={d.isToday ? 'date' : undefined} data-strip={d.iso}>
+              <span class="wk-top" aria-hidden="true">
+                {d.isToday ? <span class="wk-badge">Today</span> : <span class="wk-wd">{d.weekday}</span>}
+                <span class="wk-n num">{(i === 0 || d.dayNum === '1') && <span class="wk-month">{month(d.short)} </span>}{d.dayNum}</span>
+              </span>
+              {d.isToday && <span class="wk-called" aria-hidden="true"><Icon name="phone" size={14} /><span>Ion called, <span class="num">{today.callTime}</span></span></span>}
+              <span class="wk-items" aria-hidden="true" data-dots>{d.items.map((it) => <span class={`wk-chip wk-${kindOf(it)}`}>{it.short}</span>)}</span>
+              <span class="sr-only">{d.isToday ? `Today. Ion called at ${today.callTime}. ` : ''}<span data-strip-label>{d.label}: {things(d.items.length)}</span></span>
+            </a>
+          </li>
+        ))}
+      </ol>
+      <ul role="list" class="wk-key">
+        <li class="wk-key-call"><Icon name="phone" size={14} />Ion calls every morning at {callTime}</li>
+        {(['appointment', 'visit', 'refill', ...(hasTask ? ['task'] : [])] as const).map((k) => <li><span class={`wk-chip wk-${k}`}>{kindLabel[k as keyof typeof kindLabel]}</span></li>)}
+      </ul>
+    </nav>
+    <p class="mentions">
+      <Capybara size={40} waves={false} ground="var(--surface)" label="" />
+      <span><b>Ion will bring up <span class="num" data-mentions={mentions}>{mentions}</span> of these</b> on her morning calls, a day or two before, so nothing catches her by surprise.</span>
+    </p>
+  </div>
 
-  <div class="layout">
+  <div class="care-cols">
     <Part id="agenda" title="Day by day" icon="calendar" tone="butter">
       <ol role="list" class="days">
         {days.map((d, i) => (
@@ -62,9 +69,10 @@ const callTime = days[0]?.call.time ?? '';
             </div>
             <div class="day-body">
               <h3 class="day-title">{d.label}{d.isToday && <span class="day-tag">Today</span>}{i === 1 && <span class="day-tag quiet">Tomorrow</span>}</h3>
-              {d.call.note && <p class="day-call"><Icon name="phone" size={16} /><span>Ion called at <span class="num">{d.call.time}</span>. {d.call.note}.</span></p>}
+              {d.isToday && <p class="day-call"><Icon name="phone" size={16} /><span>Ion called at <span class="num">{today.callTime}</span>. They talked for {today.callMinutes} minutes.</span></p>}
               <ul role="list" class="day-items" data-items>
-                {d.items.map((it) => <AgendaRow id={it.id} kind={it.kind} title={it.title} time={it.time} note={it.note} mention={it.mention} sort={it.sort} />)}
+                {d.items.map((it) => <AgendaRow id={it.id} kind={kindOf(it)} title={it.title} short={it.short} time={it.time} note={it.note} noteLink={it.noteLink} mention={it.mention} sort={it.sort}
+                  also={also('calendar', it.id).filter((l) => !(it.noteLink && l.place === 'tasks'))} />)}
               </ul>
             </div>
           </li>
@@ -72,11 +80,11 @@ const callTime = days[0]?.call.time ?? '';
       </ol>
     </Part>
 
-    <div class="side">
-      <FormCard id="add" title="Add something" accent="butter">
+    <div class="care-side">
+      <FormCard title="Add to the calendar">
         <form class="cf" data-add novalidate>
           <Field label="What is it" for="ev-title">
-            <input class="cf-input" id="ev-title" name="title" type="text" required maxlength="80" autocomplete="off" placeholder="Dentist, or lunch with June" aria-describedby="ev-error" />
+            <input class="cf-input" id="ev-title" name="title" type="text" required maxlength="80" autocomplete="off" placeholder="A few words" aria-describedby="ev-error" />
           </Field>
           <div class="cf-grid">
             <Field label="Day" for="ev-day">
@@ -100,14 +108,9 @@ const callTime = days[0]?.call.time ?? '';
           <p class="cf-done" data-done hidden><Icon name="check" size={16} /><span data-msg></span></p>
         </form>
       </FormCard>
-
-      <div class="mentions">
-        <Capybara size={64} ground="var(--surface)" label="" />
-        <p><b>Ion will bring up {mentions} of these</b> on her morning calls, a day or two before, so nothing catches her by surprise.</p>
-      </div>
-      <ExampleNote />
     </div>
   </div>
+  <ExampleNote />
 
   {kinds.map((k) => <template id={`tpl-${k}`}><AgendaRow kind={k} added /></template>)}
 </AppLayout>
@@ -137,11 +140,17 @@ const callTime = days[0]?.call.time ?? '';
     if (dots) dots.replaceChildren(...rows.map((r) => {
       const chip = document.createElement('span');
       chip.className = `wk-chip wk-${r.dataset.kind ?? 'appointment'}`;
-      chip.textContent = r.querySelector('[data-slot="title"]')?.textContent ?? '';
+      chip.textContent = r.dataset.short || (r.querySelector('[data-slot="title"]')?.textContent ?? '');
       return chip;
     }));
     const lab = link.querySelector('[data-strip-label]');
     if (lab) lab.textContent = `${dayLabel(iso)}: ${n === 0 ? 'nothing planned' : n === 1 ? '1 thing' : `${n} things`}`;
+  }
+
+  /** Keep "Ion will bring up N of these" in step with what was added in this browser. */
+  function refreshMentions() {
+    const el = document.querySelector<HTMLElement>('[data-mentions]');
+    if (el) el.textContent = String(Number(el.dataset.mentions) + added.filter((a) => a.mention && a.day !== todayIso).length);
   }
 
   function render(a: Added) {
@@ -160,16 +169,26 @@ const callTime = days[0]?.call.time ?? '';
       save('calendar', added);
       row.remove();
       refreshStrip(a.day);
+      refreshMentions();
       announce(`${a.title} removed from ${dayLabel(a.day)}.`);
       document.getElementById('ev-title')?.focus();
     });
     const after = Array.from(list.children).find((c) => Number((c as HTMLElement).dataset.sort) > sortOf(a.time));
     list.insertBefore(row, after ?? null);
     refreshStrip(a.day);
+    refreshMentions();
     return row;
   }
 
   added.forEach(render);
+
+  // A note that depends on a task follows what was done on the Tasks page in this browser.
+  const taskState = load<Record<string, { status: string; who?: string }>>('tasks', {});
+  document.querySelectorAll<HTMLAnchorElement>('[data-task-note]').forEach((a) => {
+    const st = taskState[a.dataset.taskNote ?? ''];
+    if (!st || st.status === 'needs-you') return;
+    a.textContent = st.status === 'done' ? 'Ride: marked done in Tasks' : `Ride: ${st.who ?? 'someone'} is on it, see Tasks`;
+  });
 
   const form = document.querySelector<HTMLFormElement>('[data-add]');
   form?.addEventListener('submit', (e) => {
@@ -198,67 +217,65 @@ const callTime = days[0]?.call.time ?? '';
 
 <style>
   /* the two weeks as a picture: one column per day, a chip for each thing */
+  .over { display: flex; flex-direction: column; gap: var(--s-3); }
   .wk { display: flex; flex-direction: column; gap: var(--s-4); padding: var(--s-5); border-radius: var(--r-xl); background: var(--butter-soft); }
   .wk-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--s-2); }
-  .wk-day { display: flex; flex-direction: column; gap: var(--s-2); height: 100%; min-height: 6.5rem; padding: var(--s-2) var(--s-3) var(--s-3); border-radius: var(--r-md); background: var(--surface); color: var(--ink); text-decoration: none; opacity: 0.72; transition: transform 0.15s var(--ease), box-shadow 0.15s var(--ease); }
-  .wk-day.busy, .wk-day.today { opacity: 1; }
-  .wk-day:hover { color: var(--ink); transform: translateY(-2px); box-shadow: var(--shadow-1); opacity: 1; }
-  .wk-day.today { background: var(--deep); color: var(--on-deep); }
-  .wk-day.today:hover { color: var(--on-deep); }
-  .wk-top { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-2); }
+  .wk-day { display: flex; flex-direction: column; gap: var(--s-2); height: 100%; min-height: 6.5rem; padding: var(--s-2) var(--s-2) var(--s-3); border-radius: var(--r-md); background: var(--surface); color: var(--ink); text-decoration: none; transition: transform 0.15s var(--ease), box-shadow 0.15s var(--ease); }
+  .wk-day:not(.busy):not(.today) { background: transparent; box-shadow: inset 0 0 0 1px var(--hair); }
+  .wk-day:hover { color: var(--ink); transform: translateY(-2px); box-shadow: var(--shadow-1); }
+  .wk-day.today { box-shadow: inset 0 0 0 2px var(--acc); }
+  .wk-top { display: flex; align-items: center; justify-content: space-between; gap: var(--s-1); padding-inline: var(--s-1); }
   .wk-wd { font-size: var(--fs-sm); font-weight: 500; }
+  .wk-badge { font-size: var(--fs-xs); font-weight: 600; padding: 0.125rem 0.5rem; border-radius: var(--r-pill); background: var(--acc); color: var(--on-acc); }
   .wk-n { font-size: 1.125rem; font-weight: 500; line-height: 1.2; white-space: nowrap; }
   .wk-month { font-size: var(--fs-sm); font-weight: 400; }
+  .wk-called { display: flex; align-items: flex-start; gap: 0.25rem; padding-inline: var(--s-1); font-size: var(--fs-xs); line-height: 1.35; color: var(--ink-2); }
+  .wk-called :global(svg) { flex: none; margin-top: 0.0625rem; }
   .wk-items { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
-  .wk-items :global(.wk-chip) { display: block; padding: 0.1875rem 0.5rem; border-radius: var(--r-sm); font-size: 0.8125rem; line-height: 1.3; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .wk :global(.wk-appointment) { background: var(--acc-soft); }
-  .wk :global(.wk-visit) { background: var(--leaf-soft); }
-  .wk :global(.wk-refill) { background: var(--sky-soft); }
-  .wk-key { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-5); font-size: var(--fs-sm); color: var(--ink-2); }
+  .wk :global(.wk-chip) { display: block; padding: 0.1875rem 0.375rem 0.1875rem 0.5rem; border-radius: var(--r-sm); border-left: 0.25rem solid var(--swatch); background: var(--tint); font-size: 0.8125rem; line-height: 1.3; color: var(--ink); overflow-wrap: anywhere; }
+  .wk :global(.wk-appointment) { --tint: var(--acc-soft); --swatch: var(--acc); }
+  .wk :global(.wk-visit) { --tint: var(--leaf-soft); --swatch: var(--leaf); }
+  .wk :global(.wk-refill) { --tint: var(--sky-soft); --swatch: var(--sky); }
+  .wk :global(.wk-task) { --tint: var(--butter-soft); --swatch: var(--sun); }
+  .wk-key { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3); font-size: var(--fs-sm); color: var(--ink-2); }
   .wk-key li { display: inline-flex; align-items: center; gap: var(--s-2); }
-  .wk-key li:first-child { margin-right: auto; color: var(--ink); }
-  .wk-dot { display: inline-grid; place-items: center; width: 1rem; height: 1rem; border-radius: 0.3125rem; border: 1px solid var(--hair); }
-  .wk-dot.wk-call { width: 1.5rem; height: 1.5rem; border-radius: 50%; border: 0; background: var(--surface); }
+  .wk-key-call { margin-right: auto; color: var(--ink); }
+  .wk-key :global(.wk-chip) { background: var(--surface); box-shadow: inset 0 0 0 99px var(--tint); }
+  .mentions { display: flex; align-items: center; gap: var(--s-3); padding: var(--s-2) var(--s-5); font-size: 0.9375rem; line-height: 1.5; }
+  .mentions :global(svg) { flex: none; width: 2.5rem; height: 2.5rem; }
+  .mentions b { font-weight: 600; }
 
-  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 24rem; gap: var(--s-8); align-items: start; }
-  .days { display: flex; flex-direction: column; gap: var(--s-5); }
-  .day { display: grid; grid-template-columns: 3.5rem minmax(0, 1fr); gap: var(--s-4); scroll-margin-top: var(--s-4); }
+  .days { display: flex; flex-direction: column; gap: var(--s-4); }
+  .day { display: grid; grid-template-columns: 3rem minmax(0, 1fr); gap: var(--s-3); scroll-margin-top: var(--s-4); }
   .day.is-empty { display: none; }
-  .day-date { display: flex; flex-direction: column; align-items: center; align-self: start; padding: var(--s-2) 0; border-radius: var(--r-md); background: var(--surface); border: 1px solid var(--line); line-height: 1.15; }
-  .is-today .day-date { background: var(--deep); color: var(--on-deep); border-color: var(--deep); }
-  .day-wd { font-size: var(--fs-sm); }
-  .day-n { font-size: 1.5rem; font-weight: 500; }
+  .day:target .day-date { box-shadow: 0 0 0 3px var(--acc); }
+  .day-date { display: flex; flex-direction: column; align-items: center; align-self: start; padding: var(--s-1) 0; border-radius: var(--r-md); background: var(--surface); border: 1px solid var(--line); line-height: 1.15; }
+  .is-today .day-date { border: 2px solid var(--acc); }
+  .day-wd { font-size: var(--fs-xs); }
+  .day-n { font-size: 1.25rem; font-weight: 500; }
   .day-body { display: flex; flex-direction: column; gap: var(--s-2); min-width: 0; }
-  .day-title { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); font-size: 1.0625rem; font-weight: 500; line-height: 1.4; }
-  .day-tag { font-size: var(--fs-xs); font-weight: 500; padding: 0.125rem 0.5rem; border-radius: var(--r-pill); background: var(--butter); color: var(--ink); }
-  .day-tag.quiet { background: var(--surface); border: 1px solid var(--line); }
-  .day-call { display: flex; align-items: center; gap: var(--s-2); font-size: 0.9375rem; color: var(--ink-2); }
+  .day-title { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); font-size: 1rem; font-weight: 500; line-height: 1.4; }
+  .day-tag { font-size: var(--fs-xs); font-weight: 500; padding: 0.125rem 0.5rem; border-radius: var(--r-pill); background: var(--acc); color: var(--on-acc); }
+  .day-tag.quiet { background: var(--surface); border: 1px solid var(--line); color: var(--ink); }
+  .day-call { display: flex; align-items: center; gap: var(--s-2); font-size: var(--fs-sm); color: var(--ink-2); }
   .day-call :global(svg) { flex: none; }
   .day-items { display: flex; flex-direction: column; gap: var(--s-2); }
   .day-items:empty { display: none; }
 
-  .side { position: sticky; top: var(--s-6); display: flex; flex-direction: column; gap: var(--s-4); }
-  .mentions { display: flex; align-items: center; gap: var(--s-4); padding: var(--s-4) var(--s-5); border-radius: var(--r-lg); background: var(--acc-soft); font-size: 0.9375rem; line-height: 1.5; }
-  .mentions :global(svg) { flex: none; width: 3.5rem; height: 3.5rem; }
-  .mentions b { font-weight: 600; }
   .check { border-radius: var(--r-md); align-self: flex-start; min-height: var(--tap); height: auto; padding-block: var(--s-2); line-height: 1.35; }
   .err { color: var(--ink); font-weight: 500; }
   .err[hidden] { display: none; }
 
-  @media (max-width: 75rem) {
-    .layout { grid-template-columns: minmax(0, 1fr); }
-    .side { position: static; }
-  }
   @media (max-width: 48rem) {
     .wk { padding: var(--s-3); }
     .wk-grid { gap: var(--s-1); }
     .wk-day { min-height: 4rem; padding: var(--s-2) var(--s-1); align-items: center; }
-    .wk-top { flex-direction: column; align-items: center; gap: 0; }
-    .wk-month { display: none; }
+    .wk-top { flex-direction: column; align-items: center; gap: 0; padding: 0; }
+    .wk-month, .wk-called { display: none; }
     .wk-wd { font-size: var(--fs-xs); }
+    .wk-badge { padding: 0 0.25rem; }
     .wk-items { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 0.1875rem; }
-    .wk-items :global(.wk-chip) { width: 0.5rem; height: 0.5rem; padding: 0; border-radius: 50%; font-size: 0; border: 1px solid var(--hair); }
-    .day { grid-template-columns: 2.75rem minmax(0, 1fr); gap: var(--s-3); }
-    .day-n { font-size: 1.25rem; }
+    .wk-items :global(.wk-chip) { width: 0.625rem; height: 0.625rem; padding: 0; border: 0; border-radius: 50%; background: var(--swatch); font-size: 0; }
+    .mentions { padding-inline: var(--s-2); }
   }
 </style>

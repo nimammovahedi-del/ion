@@ -29,9 +29,9 @@ const spoken = reminders.filter((r) => r.active && r.spokenBy === 'call').slice(
 </section>
 <style>
   .fp { padding-top: var(--s-24); }
-  .fp-band { display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1fr); align-items: center; gap: var(--s-12); background: var(--acc-soft); border-radius: var(--r-xl); padding: var(--s-10) var(--s-12) 0; overflow: hidden; }
-  .fp-pic { align-self: end; min-width: 0; }
-  .fp-copy { display: flex; flex-direction: column; gap: var(--s-6); padding-bottom: var(--s-10); min-width: 0; }
+  .fp-band { display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1fr); align-items: center; gap: var(--s-12); background: var(--acc-soft); border-radius: var(--r-xl); padding: var(--s-10) var(--s-12); overflow: hidden; }
+  .fp-pic { min-width: 0; }
+  .fp-copy { display: flex; flex-direction: column; gap: var(--s-6); min-width: 0; }
   .fp-points { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-5) var(--s-6); }
   .fp-points li { display: flex; align-items: flex-start; gap: var(--s-3); min-width: 0; }
   .fp-points li > span { display: flex; flex-direction: column; line-height: 1.4; }
@@ -41,13 +41,12 @@ const spoken = reminders.filter((r) => r.active && r.spokenBy === 'call').slice(
   .fp-said li { background: var(--surface); border-radius: var(--r-lg) var(--r-lg) var(--r-lg) var(--r-sm); padding: var(--s-2) var(--s-4); font-size: 0.9375rem; box-shadow: var(--shadow-1); }
   .fp-later { font-size: var(--fs-sm); color: var(--ink-2); }
   @media (max-width: 56rem) {
-    .fp-band { grid-template-columns: minmax(0, 1fr); gap: var(--s-6); padding: var(--s-8) var(--s-8) 0; }
+    .fp-band { grid-template-columns: minmax(0, 1fr); gap: var(--s-6); padding: var(--s-8); }
     .fp-pic { order: 2; max-width: 22rem; margin-inline: auto; }
-    .fp-copy { padding-bottom: 0; }
   }
   @media (max-width: 40rem) {
     .fp { padding-top: var(--s-16); }
-    .fp-band { padding: var(--s-6) var(--s-4) 0; border-radius: var(--r-lg); }
+    .fp-band { padding: var(--s-6) var(--s-4); border-radius: var(--r-lg); }
     .fp-points { grid-template-columns: minmax(0, 1fr); gap: var(--s-4); }
   }
 </style>

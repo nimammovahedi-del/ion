@@ -48,7 +48,7 @@ const { source = 'home' } = Astro.props;
       </div>
       <input type="hidden" name="source" value={source} />
       <Button type="submit" variant="dark" size="lg" arrow class="wl-submit">Join the waitlist</Button>
-      <noscript><p class="wl-note">Sent back here after pressing Join? Your address was not saved. Please check it and try again.</p></noscript>
+      <noscript><p class="wl-note">If you come back to this page after pressing Join, your address was not saved. Please check it and try again.</p></noscript>
       <p id="wl-status" class="wl-status" role="status" aria-live="polite" tabindex="-1"></p>
       <p class="wl-small">We keep your email, the optional answer above, which page you joined from and the day. See <a href="/privacy/">privacy</a>.</p>
     </form>
@@ -140,7 +140,7 @@ const { source = 'home' } = Astro.props;
   .wl-status[data-state='error'] { border: 2px solid var(--acc-text); background: var(--surface); }
   .wl-note { font-size: var(--fs-sm); color: var(--ink-2); }
   .wl-small { font-size: var(--fs-sm); color: var(--ink-2); line-height: 1.5; }
-  .wl-small a { color: var(--acc-text); }
+  .wl-small a { display: inline-block; padding: var(--s-3) var(--s-2); margin: calc(var(--s-3) * -1) calc(var(--s-2) * -1); color: var(--acc-text); }
   @media (max-width: 60rem) {
     .wl-band { grid-template-columns: minmax(0, 1fr); padding: var(--s-8); gap: var(--s-8); }
   }
